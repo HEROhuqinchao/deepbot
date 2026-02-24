@@ -39,6 +39,7 @@ interface DeepBotAPI {
   onMessageError: (callback: (error: any) => void) => () => void;
   onSubAgentNotification: (callback: (notification: any) => void) => () => void;
   onExecutionStepUpdate?: (callback: (data: any) => void) => () => void;
+  onClearAllMessages: (callback: () => void) => () => void;
   taskMonitor: {
     onMainTaskCreated: (callback: (task: any) => void) => () => void;
     onMainTaskUpdated: (callback: (updates: any) => void) => () => void;

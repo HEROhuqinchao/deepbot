@@ -25,7 +25,6 @@ import { Gateway } from './gateway';
 import { IPC_CHANNELS } from '../types/ipc';
 import { registerModelConfigHandlers, setGatewayForModelConfig } from './ipc/model-config-handler';
 import { hasConfig } from './config';
-import { WELCOME_MESSAGE } from '../shared/constants/welcome-message';
 import { getErrorMessage } from '../shared/utils/error-handler';
 import { ensureWorkspaceDirectories } from './utils/ensure-directories';
 import { SystemConfigStore } from './database/system-config-store';
@@ -197,6 +196,8 @@ function createWindow() {
           const { SystemConfigStore } = require('./database/system-config-store');
           const configStore = SystemConfigStore.getInstance();
           const nameConfig = configStore.getNameConfig();
+          
+          console.log('[Main] 读取到的名字配置:', nameConfig);
           
           // 构建动态欢迎消息
           const isDefaultUserName = nameConfig.userName === 'user';

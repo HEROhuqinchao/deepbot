@@ -1,47 +1,14 @@
 /**
  * 模型配置页面
  * 
- * 支持主流 AI 模型厂商的配置
+ * 简化版：直接配置 API 地址和模型 ID
  */
 
 import React, { useState, useEffect } from 'react';
-import { WELCOME_MESSAGE } from '../../../shared/constants/welcome-message';
 
-// 模型提供商预设
-interface ModelProvider {
-  id: string;
-  name: string;
-  baseUrl: string;
-  models: Array<{
-    id: string;
-    name: string;
-  }>;
-  requiresApiKey: boolean;
-  description?: string;
-}
-
-const MODEL_PROVIDERS: ModelProvider[] = [
-  {
-    id: 'qwen',
-    name: '通义千问 (Qwen)',
-    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    models: [
-      { id: 'qwen-plus', name: 'Qwen Plus' },
-      { id: 'qwen-max', name: 'Qwen Max' },
-      { id: 'qwen-turbo', name: 'Qwen Turbo' },
-    ],
-    requiresApiKey: true,
-    description: '阿里云通义千问大模型',
-  },
-  {
-    id: 'custom',
-    name: '自定义 (OpenAI 兼容)',
-    baseUrl: '',
-    models: [],
-    requiresApiKey: true,
-    description: '支持任何 OpenAI 兼容的 API',
-  },
-];
+// 默认配置
+const DEFAULT_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+const DEFAULT_MODEL_ID = 'qwen3.5-plus';
 
 interface ModelConfig {
   providerId: string;
@@ -57,13 +24,12 @@ interface ModelConfigProps {
 }
 
 export function ModelConfig({ onClose }: ModelConfigProps) {
-  const [selectedProvider, setSelectedProvider] = useState<ModelProvider | null>(null);
   const [config, setConfig] = useState<ModelConfig>({
-    providerId: '',
-    providerName: '',
-    baseUrl: '',
-    modelId: '',
-    modelName: '',
+    providerId: 'qwen',
+    providerName: '通义千问',
+    baseUrl: DEFAULT_BASE_URL,
+    modelId: DEFAULT_MODEL_ID,
+    modelName: DEFAULT_MODEL_ID,
     apiKey: '',
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -83,64 +49,25 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
       const result = await window.electron.ipcRenderer.invoke('model-config:get');
       if (result.success && result.config) {
         setConfig(result.config);
-        
-        // 查找对应的提供商
-        const provider = MODEL_PROVIDERS.find(p => p.id === result.config.providerId);
-        if (provider) {
-          setSelectedProvider(provider);
-        }
       }
     } catch (error) {
       console.error('加载模型配置失败:', error);
     }
   };
 
-  const handleProviderChange = (providerId: string) => {
-    const provider = MODEL_PROVIDERS.find(p => p.id === providerId);
-    if (!provider) return;
-
-    setSelectedProvider(provider);
-    setConfig({
-      ...config,
-      providerId: provider.id,
-      providerName: provider.name,
-      baseUrl: provider.baseUrl,
-      modelId: provider.models[0]?.id || '',
-      modelName: provider.models[0]?.name || '',
-    });
-  };
-
-  const handleModelChange = (modelId: string) => {
-    if (!selectedProvider) return;
-
-    const model = selectedProvider.models.find(m => m.id === modelId);
-    if (!model) return;
-
-    setConfig({
-      ...config,
-      modelId: model.id,
-      modelName: model.name,
-    });
-  };
-
   const handleSave = async () => {
     // 验证配置
-    if (!config.providerId) {
-      setSaveMessage({ type: 'error', text: '请选择模型提供商' });
-      return;
-    }
-
     if (!config.baseUrl) {
       setSaveMessage({ type: 'error', text: '请输入 API 地址' });
       return;
     }
 
     if (!config.modelId) {
-      setSaveMessage({ type: 'error', text: '请选择模型' });
+      setSaveMessage({ type: 'error', text: '请输入模型 ID' });
       return;
     }
 
-    if (selectedProvider?.requiresApiKey && !config.apiKey) {
+    if (!config.apiKey) {
       setSaveMessage({ type: 'error', text: '请输入 API Key' });
       return;
     }
@@ -164,11 +91,6 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
         if (onClose) {
           onClose();
         }
-        
-        // 发送欢迎消息到主 Agent（不要等待，避免阻塞）
-        window.deepbot.sendMessage(WELCOME_MESSAGE).catch(error => {
-          console.error('发送欢迎消息失败:', error);
-        });
       } else {
         setSaveMessage({ type: 'error', text: result.error || '保存失败' });
       }
@@ -196,7 +118,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
                 模型未配置
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
-                <p>请选择 AI 模型提供商并配置 API 密钥后才能使用 DeepBot。</p>
+                <p>请配置 API 地址和密钥后才能使用 DeepBot。</p>
               </div>
             </div>
           </div>
@@ -206,106 +128,60 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
       <div>
         <h3 className="text-base font-semibold text-gray-900 mb-4">模型配置</h3>
         <p className="text-sm text-gray-600 mb-6">
-          选择 AI 模型提供商并配置 API 密钥
+          配置 AI 模型 API 地址和密钥（默认为通义千问）
         </p>
       </div>
 
-      {/* 提供商选择 */}
+      {/* API 地址 */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          模型提供商
+          API 地址
         </label>
-        <select
-          value={config.providerId}
-          onChange={(e) => handleProviderChange(e.target.value)}
+        <input
+          type="text"
+          value={config.baseUrl}
+          onChange={(e) => setConfig({ ...config, baseUrl: e.target.value })}
+          placeholder={DEFAULT_BASE_URL}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">请选择提供商</option>
-          {MODEL_PROVIDERS.map((provider) => (
-            <option key={provider.id} value={provider.id}>
-              {provider.name}
-            </option>
-          ))}
-        </select>
-        {selectedProvider?.description && (
-          <p className="mt-1 text-xs text-gray-500">{selectedProvider.description}</p>
-        )}
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          默认为通义千问地址，可修改为其他兼容 OpenAI API 格式的地址
+        </p>
       </div>
 
-      {/* API 地址 */}
-      {selectedProvider && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            API 地址
-          </label>
-          <input
-            type="text"
-            value={config.baseUrl}
-            onChange={(e) => setConfig({ ...config, baseUrl: e.target.value })}
-            placeholder="https://api.example.com/v1"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            可以修改为自定义的 API 地址（需兼容 OpenAI API 格式）
-          </p>
-        </div>
-      )}
-
-      {/* 模型选择 */}
-      {selectedProvider && selectedProvider.models.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            模型
-          </label>
-          <select
-            value={config.modelId}
-            onChange={(e) => handleModelChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">请选择模型</option>
-            {selectedProvider.models.map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* 自定义模型 ID（仅自定义提供商） */}
-      {selectedProvider?.id === 'custom' && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            模型 ID
-          </label>
-          <input
-            type="text"
-            value={config.modelId}
-            onChange={(e) => setConfig({ ...config, modelId: e.target.value, modelName: e.target.value })}
-            placeholder="gpt-4o"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      )}
+      {/* 模型 ID */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          模型 ID
+        </label>
+        <input
+          type="text"
+          value={config.modelId}
+          onChange={(e) => setConfig({ ...config, modelId: e.target.value, modelName: e.target.value })}
+          placeholder={DEFAULT_MODEL_ID}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          输入模型 ID（如 qwen3.5-plus）
+        </p>
+      </div>
 
       {/* API Key */}
-      {selectedProvider?.requiresApiKey && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            API Key
-          </label>
-          <input
-            type="password"
-            value={config.apiKey}
-            onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
-            placeholder="sk-..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            API 密钥将加密存储在本地
-          </p>
-        </div>
-      )}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          API Key
+        </label>
+        <input
+          type="password"
+          value={config.apiKey}
+          onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
+          placeholder="sk-..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          API 密钥将加密存储在本地
+        </p>
+      </div>
 
       {/* 保存消息 */}
       {saveMessage && (

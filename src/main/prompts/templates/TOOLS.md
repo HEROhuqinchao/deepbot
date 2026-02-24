@@ -74,7 +74,6 @@
 - `open`: 打开新标签页（需要 targetUrl）
 - `close`: 关闭标签页（需要 targetId）
 - `snapshot`: 获取页面快照（显示所有可交互元素和文本）
-- `screenshot`: 截图（自动保存到临时文件）
 - `navigate`: 导航到 URL（需要 targetUrl）
 - `act`: 执行交互操作（点击、输入等，需要 request）
 - `console`: 获取控制台消息
@@ -83,7 +82,6 @@
 **标准工作流程**:
 1. 打开网页：`start` → `open` → `snapshot`
 2. 交互操作：`snapshot`（找 ref）→ `act`
-3. 截图保存：`screenshot` → `exec_run`（复制到目标位置）
 
 **参数示例**:
 ```json

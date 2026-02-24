@@ -191,6 +191,21 @@ function App() {
     tabsRef.current = tabs;
   }, [tabs]);
 
+  // 监听清空所有消息事件（切换模型时触发）
+  useEffect(() => {
+    const unsubscribe = window.deepbot.onClearAllMessages(() => {
+      console.log('[App] 收到清空所有消息事件');
+      // 清空所有 Tab 的消息
+      setTabs(prev => prev.map(tab => ({ ...tab, messages: [] })));
+      // 清空当前显示的消息
+      setMessages([]);
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // 监听流式消息和 Sub Agent 通知
   useEffect(() => {
     const unsubscribeStream = window.deepbot.onMessageStream((chunk) => {
@@ -293,6 +308,7 @@ function App() {
                 {
                   ...existingMessages[existingIndex],
                   content: existingMessages[existingIndex].content + chunk.content,
+                  executionSteps: existingMessages[existingIndex].executionSteps, // 🔥 保留现有的执行步骤
                 },
                 ...existingMessages.slice(existingIndex + 1),
               ];
@@ -306,6 +322,7 @@ function App() {
                 isStreaming: true,
                 isSubAgentResult,
                 subAgentTask,
+                executionSteps: [], // 🔥 初始化执行步骤为空数组
               };
               updatedMessages = [...existingMessages, newMessage];
             }

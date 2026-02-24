@@ -15,6 +15,7 @@ const IPC_CHANNELS = {
   MESSAGE_ERROR: 'message:error',
   STOP_GENERATION: 'message:stop',
   EXECUTION_STEP_UPDATE: 'message:execution-step-update',
+  CLEAR_ALL_MESSAGES: 'message:clear-all',
   TASK_MAIN_CREATED: 'task-monitor:main-task-created',
   TASK_MAIN_UPDATED: 'task-monitor:main-task-updated',
   TASK_SUB_ADDED: 'task-monitor:sub-task-added',
@@ -209,6 +210,16 @@ contextBridge.exposeInMainWorld('deepbot', {
     
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.EXECUTION_STEP_UPDATE, listener);
+    };
+  },
+
+  // 监听清空所有消息事件
+  onClearAllMessages: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on(IPC_CHANNELS.CLEAR_ALL_MESSAGES, listener);
+    
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.CLEAR_ALL_MESSAGES, listener);
     };
   },
 

@@ -299,9 +299,7 @@ ${lastPart}
 - 如果执行状态是"已完成"，但任务进度是"中间步骤" → YES
 - 如果执行状态是"已完成"，且任务进度是"最后步骤"或"等待用户" → NO
 
-只回答 YES 或 NO，不要解释。
-
-/no_think`;
+只回答 YES 或 NO，不要解释。`;
 
       // 使用公共 AI 客户端
       const response = await callAI([

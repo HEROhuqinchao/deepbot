@@ -644,18 +644,23 @@ export class SystemConfigStore {
       `);
       const row = stmt.get() as any;
       
+      console.log('[SystemConfigStore] getNameConfig 查询结果:', row);
+      
       if (!row) {
         // 返回默认值
+        console.log('[SystemConfigStore] 未找到名字配置，返回默认值');
         return {
           agentName: 'matrix',
           userName: 'user',
         };
       }
 
-      return {
+      const result = {
         agentName: row.agent_name,
         userName: row.user_name,
       };
+      console.log('[SystemConfigStore] 返回名字配置:', result);
+      return result;
     } catch (error) {
       console.error('[SystemConfigStore] 获取名字配置失败:', error);
       return {

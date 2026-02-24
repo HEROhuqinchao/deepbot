@@ -13,6 +13,7 @@ export const IPC_CHANNELS = {
   MESSAGE_ERROR: 'message:error',
   STOP_GENERATION: 'message:stop', // 停止生成
   EXECUTION_STEP_UPDATE: 'message:execution-step-update', // 执行步骤更新
+  CLEAR_ALL_MESSAGES: 'message:clear-all', // 清空所有消息
   
   // 任务监控
   TASK_MAIN_CREATED: 'task-monitor:main-task-created',

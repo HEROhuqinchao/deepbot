@@ -624,16 +624,12 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
         console.log('[Image Generation] ✅ 图片生成成功');
         console.log(`   保存路径: ${savedPath}`);
 
-        // 转换为 file:// URL 用于前端显示
-        const fileUrl = `file://${savedPath}`;
-
         return {
           type: 'tool-result',
           details: {
             success: true,
             action: 'generate',
             path: savedPath,
-            url: fileUrl,
             aspectRatio: params.aspectRatio || '4:3',
             resolution: params.resolution || '1K',
             referenceCount: params.referenceImages?.length || 0,
@@ -646,7 +642,6 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
                 action: 'generate',
                 message: '图片生成成功',
                 path: savedPath,
-                url: fileUrl,
                 aspectRatio: params.aspectRatio || '4:3',
                 resolution: params.resolution || '1K',
                 referenceCount: params.referenceImages?.length || 0,

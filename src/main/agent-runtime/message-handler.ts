@@ -84,15 +84,22 @@ export class MessageHandler {
       throw new Error('Agent 未初始化');
     }
 
-    // 在用户消息末尾添加 /no_think 标记，禁用 thinking 模式
-    const messageWithNoThink = content.trim() + ' /no_think';
-    console.log('📤 发送消息到 AI（已添加 /no_think）:', messageWithNoThink.substring(0, 100));
+    console.log('📤 发送消息到 AI:', content.substring(0, 100));
+    
+    // 🔍 打印当前模型信息
+    console.log('🤖 当前模型:', this.agent.state.model.id);
+    console.log('📊 当前消息历史数量:', this.agent.state.messages.length);
 
     try {
       // 订阅 Agent 事件，并实现真正的流式输出
       let fullResponse = '';
       let wasCancelled = false;
       let currentToolStepId: string | null = null; // 当前工具调用的步骤 ID
+      
+      // 🔍 用于调试：记录所有事件
+      let eventCount = 0;
+      let textDeltaCount = 0;
+      let toolCallCount = 0;
       
       // 创建一个 Promise 来等待 Agent 完成
       let resolvePrompt: (() => void) | null = null;
@@ -103,6 +110,13 @@ export class MessageHandler {
       });
       
       const unsubscribe = this.agent.subscribe((event) => {
+        eventCount++;
+        
+        // 🔍 打印所有事件（用于调试）
+        if (eventCount <= 10 || event.type === 'tool_execution_start' || event.type === 'tool_execution_end') {
+          console.log(`[Event ${eventCount}] type=${event.type}`, event.type === 'message_update' ? '(message_update)' : JSON.stringify(event, null, 2).substring(0, 200));
+        }
+        
         // 检查是否已取消或已废弃
         if (this.abortController?.signal.aborted || generationId !== this.currentGenerationId) {
           wasCancelled = true;
@@ -113,6 +127,13 @@ export class MessageHandler {
         if (event.type === 'message_update' && event.assistantMessageEvent) {
           const assistantEvent = event.assistantMessageEvent;
           if (assistantEvent.type === 'text_delta' && assistantEvent.delta) {
+            textDeltaCount++;
+            
+            // 🔍 打印前几个 text_delta（用于调试）
+            if (textDeltaCount <= 5) {
+              console.log(`[TextDelta ${textDeltaCount}] delta="${assistantEvent.delta}"`);
+            }
+            
             // 过滤掉 <think> 和 </think> 标签
             const filteredDelta = assistantEvent.delta
               .replace(/<think>/g, '')
@@ -124,8 +145,9 @@ export class MessageHandler {
         
         // 处理工具调用事件 - 收集执行步骤
         if (event.type === 'tool_execution_start') {
-          // console.log(`🔧 工具调用开始: ${event.toolName}`);
-          // console.log(`   工具参数:`, event.args);
+          toolCallCount++;
+          console.log(`🔧 [工具调用 ${toolCallCount}] 开始: ${event.toolName}`);
+          console.log(`   工具参数:`, JSON.stringify(event.args, null, 2).substring(0, 300));
           
           // 创建执行步骤
           currentToolStepId = `step-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -152,8 +174,8 @@ export class MessageHandler {
         }
         
         if (event.type === 'tool_execution_end') {
-          // console.log(`✅ 工具调用完成: ${event.toolName}`);
-          // console.log(`   工具结果:`, event.result);
+          console.log(`✅ [工具调用 ${toolCallCount}] 完成: ${event.toolName}`);
+          console.log(`   工具结果:`, JSON.stringify(event.result, null, 2).substring(0, 300));
           
           // 更新执行步骤为成功
           if (currentToolStepId) {
@@ -216,13 +238,18 @@ export class MessageHandler {
         const TIMEOUT_MS = TIMEOUTS.AGENT_MESSAGE_TIMEOUT;
         const startTime = Date.now();
         
-        // 启动 Agent.prompt()，使用添加了 /no_think 的消息
+        // 启动 Agent.prompt()
         // Agent 内部会自动处理工具调用循环，直到完成
-        void this.agent.prompt(messageWithNoThink).then(() => {
+        void this.agent.prompt(content).then(() => {
           const duration = Date.now() - startTime;
           console.log(`✅ agent.prompt() 完成，耗时: ${duration}ms`);
           console.log(`📊 Agent 最终状态:`);
           console.log(`   消息总数: ${this.agent?.state.messages.length || 0}`);
+          console.log(`   事件总数: ${eventCount}`);
+          console.log(`   文本增量数: ${textDeltaCount}`);
+          console.log(`   工具调用数: ${toolCallCount}`);
+          console.log(`   最终响应长度: ${fullResponse.length} 字符`);
+          console.log(`   最终响应预览: ${fullResponse.substring(0, 200)}...`);
           resolvePrompt?.();
         }).catch((error) => {
           console.error(`❌ agent.prompt() 失败:`, error);

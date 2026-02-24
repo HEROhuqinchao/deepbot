@@ -63,6 +63,37 @@ export class Gateway {
     this.agentRuntimes.clear();
     
     console.log('[Gateway] ✅ 模型配置已重新加载，所有会话已重置');
+    
+    // 🔥 通知前端清空所有聊天记录
+    if (this.mainWindow) {
+      this.mainWindow.webContents.send('message:clear-all');
+      console.log('[Gateway] 📤 已发送清空聊天记录事件到前端');
+    }
+    
+    // 🔥 发送欢迎消息到默认会话
+    const { SystemConfigStore } = await import('./database/system-config-store');
+    const configStore = SystemConfigStore.getInstance();
+    const nameConfig = configStore.getNameConfig();
+    
+    const isDefaultUserName = nameConfig.userName === 'user';
+    const greeting = isDefaultUserName 
+      ? `你好！我是 ${nameConfig.agentName}，一个运行在桌面的 AI 助手。`
+      : `你好，${nameConfig.userName}！我是 ${nameConfig.agentName}，一个运行在桌面的 AI 助手。`;
+    
+    const welcomeMessage = `请按照以下方式欢迎用户：
+
+1. 说"${greeting}"
+2. ${isDefaultUserName ? '告诉用户可以随时给你改名字，也可以告诉你希望怎么称呼用户，你会永久记住' : `告诉${nameConfig.userName}可以随时给你改名字，你会永久记住`}
+3. 简单介绍你的能力：处理文件、浏览网页、执行命令、管理任务、创建后台任务等
+4. 使用 environment_check 工具检查运行环境
+5. 如果环境未配置，提醒${isDefaultUserName ? '用户' : nameConfig.userName}你可以帮助安装
+
+不要显示计划步骤，直接执行。`;
+    
+    // 异步发送，不阻塞
+    this.handleSendMessage(welcomeMessage, 'default').catch(error => {
+      console.error('[Gateway] 发送欢迎消息失败:', error);
+    });
   }
 
   /**
