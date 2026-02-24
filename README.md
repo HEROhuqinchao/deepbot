@@ -2,293 +2,294 @@
 
 <img src="banner.png" alt="DeepBot Terminal" width="800"/>
 
-**🤖 通用桌面 AI 助手 | 智能、安全、可扩展**
+**🤖 Universal Desktop AI Assistant | Intelligent, Secure, Extensible**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
 [![Electron](https://img.shields.io/badge/Electron-28+-9feaf9.svg)](https://www.electronjs.org/)
 
-[English](README_EN.md) | [简体中文](README.md)
+[English](README.md) | [简体中文](README_CN.md)
 
 </div>
 
 ---
 
-## 📖 简介
+## 📖 Introduction
 
-DeepBot Terminal 是由格灵深瞳灵感实验室成员开发的桌面 AI 助手，它就像为你的电脑装上了一个智能大脑。无论是整理文件、定时提醒、网页自动化，还是复杂的多步骤任务，DeepBot 都能通过 AI Agent 技术帮你轻松搞定。它支持多任务并行处理、定时任务、技能扩展等功能，同时通过严格的安全机制保护你的系统安全。
+DeepBot Terminal is a desktop AI assistant developed by members of DeepGlint GLINT LAB. Think of it as installing an intelligent brain for your computer. Whether it's organizing files, setting reminders, web automation, or complex multi-step tasks, DeepBot handles it all effortlessly through AI Agent technology. It supports multi-task parallel processing, scheduled tasks, skill extensions, while protecting your system security through strict safety mechanisms.
 
-### ✨ 核心特性
+### ✨ Core Features
 
-- 🎯 **多任务并行处理** - 同时处理多个任务，互不干扰
-- 🔧 **10 个内置工具** - 文件操作、命令执行、浏览器控制、图片生成等
-- 🧠 **记忆系统** - 长期记忆用户偏好和重要信息
-- ⏰ **定时任务** - 自动化执行周期性任务
-- 🎨 **技能扩展** - 通过 Skills 组合工具实现复杂功能
-- 🔒 **安全限制** - 严格的路径白名单机制，保护系统安全
-- 🤖 **多模型支持** - 通义千问、OpenAI、Claude 等
-- 🌐 **未来可扩展** - 支持接入飞书、Discord、Slack 等平台
+- 🎯 **Multi-Task Parallel Processing** - Handle multiple tasks simultaneously without interference
+- 🔧 **10 Built-in Tools** - File operations, command execution, browser control, image generation, etc.
+- 🧠 **Memory System** - Long-term memory of user preferences and important information
+- ⏰ **Scheduled Tasks** - Automated execution of periodic tasks
+- 🎨 **Skill Extensions** - Combine tools to implement complex functions through Skills
+- 🔒 **Security Restrictions** - Strict path whitelist mechanism to protect system security
+- 🤖 **Multi-Model Support** - Qwen, OpenAI, Claude, etc.
+- 🌐 **Future Extensible** - Support for Feishu, Discord, Slack, and other platforms
 
 ---
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 环境要求
+### Requirements
 
-- **Node.js**: 20.0.0 或更高版本
-- **pnpm**: 10.23.0 或更高版本
-- **操作系统**: macOS、Windows、Linux
+- **Node.js**: 20.0.0 or higher
+- **pnpm**: 10.23.0 or higher
+- **OS**: macOS, Windows, Linux
 
-### 安装
+### Installation
 
 ```bash
-# 克隆仓库
-git clone https://github.com/yourusername/deepbot.git
+# Clone repository
+git clone https://github.com/kevinluosl/deepbot.git
 cd deepbot
 
-# 安装依赖
+# Install dependencies
 pnpm install
 
-# 开发模式运行
+# Run in development mode
 pnpm run dev
 ```
 
-### 构建
+### Build
 
 ```bash
-# 构建所有平台
+# Build for all platforms
 pnpm run dist
 
-# 仅构建 macOS
+# Build for macOS only
 pnpm run dist:mac
 
-# 仅构建 Windows
+# Build for Windows only
 pnpm run dist:win
 
-# 仅构建 Linux
+# Build for Linux only
 pnpm run dist:linux
 ```
 
 ---
 
-## 🏗️ 架构设计
+## 🏗️ Architecture Design
 
-DeepBot 采用模块化架构，主要包含以下层次：
+DeepBot adopts a modular architecture with the following layers:
 
 ```
 ┌─────────────────────────────────────────┐
-│         用户界面 (Electron)              │
-│    未来可扩展：飞书/Discord/Slack        │
+│      User Interface (Electron)          │
+│  Future: Feishu/Discord/Slack           │
 └─────────────────┬───────────────────────┘
                   │ IPC
 ┌─────────────────▼───────────────────────┐
-│         Gateway (会话管理)               │
-│    • Tab 管理 (最多 10 个)               │
-│    • 消息队列                            │
+│      Gateway (Session Management)       │
+│    • Tab Management (Max 10)            │
+│    • Message Queue                      │
 └─────────────────┬───────────────────────┘
                   │
 ┌─────────────────▼───────────────────────┐
-│      Agent Runtime (每个 Tab 一个)       │
-│    • 智能决策和工具编排                  │
-│    • 自动继续机制 (最多 100 次)          │
-│    • 操作追踪 (防重复，最多 3 次)        │
+│   Agent Runtime (One per Tab)           │
+│    • Intelligent Decision & Orchestration│
+│    • Auto-Continue (Max 100 times)      │
+│    • Operation Tracking (Max 3 times)   │
 └─────────────────┬───────────────────────┘
                   │
 ┌─────────────────▼───────────────────────┐
-│         10 个工具 + 安全检查             │
-│    🔒 路径白名单 • 工作空间隔离          │
+│      10 Tools + Security Check          │
+│    🔒 Path Whitelist • Workspace Isolation│
 └─────────────────┬───────────────────────┘
                   │
         ┌─────────┼─────────┐
         ▼         ▼         ▼
-    Skills   定时任务   数据存储
+    Skills   Scheduled   Data Storage
+                Tasks
 ```
 
-### 架构说明
+### Architecture Overview
 
-- **Gateway**: 管理所有会话，每个 Tab 对应一个独立会话
-- **Agent Runtime**: 基于 `@mariozechner/pi-agent-core`，负责智能决策和工具编排
-- **Tools**: 10 个内置工具，提供文件、命令、浏览器等核心能力
-- **安全检查**: 所有文件和命令操作都经过路径白名单验证
+- **Gateway**: Manages all sessions, each Tab corresponds to an independent session
+- **Agent Runtime**: Based on `@mariozechner/pi-agent-core`, responsible for intelligent decision-making and tool orchestration
+- **Tools**: 10 built-in tools providing core capabilities like file, command, browser operations
+- **Security Check**: All file and command operations are validated through path whitelist
 
 ---
 
-## 🔧 10 个内置工具
+## 🔧 10 Built-in Tools
 
-| 工具 | 功能 | 典型用途 |
-|------|------|---------|
-| **File Tool** | 文件读写操作 | 读取配置、保存数据、搜索文件 |
-| **Exec Tool** | 执行命令行命令 | 运行脚本、系统操作、安装软件 |
-| **Browser Tool** | 浏览器控制 | 网页截图、自动化操作、内容提取 |
-| **Calendar Tool** | 日历管理 | 查看日期、计算时间、日程提醒 |
-| **Environment Check** | 环境检查 | 检测系统信息、验证依赖、诊断问题 |
-| **Image Generation** | AI 图片生成 | 创建图片、设计素材、视觉内容 |
-| **Web Search** | 网页搜索 | 实时信息查询、资料搜集、内容研究 |
-| **Memory Tool** | 记忆管理 | 存储用户偏好、读取历史信息 |
-| **Skill Manager** | 技能管理 | 安装/卸载/列出技能包 |
-| **Scheduled Task** | 定时任务 | 创建/管理/执行定时任务 |
-
----
-
-## 🔒 安全机制
-
-DeepBot 实现了严格的安全限制，确保 AI Agent 只能访问用户明确授权的目录：
-
-### 路径白名单
-
-只允许访问以下配置的目录及其子目录：
-
-| 目录类型 | 默认路径 | 用途 | 可配置 |
-|---------|---------|------|--------|
-| **工作目录** | `~` (用户主目录) | 文件读写、命令执行 | ✅ |
-| **脚本目录** | `~/.deepbot/scripts` | Python 脚本存储 | ✅ |
-| **Skill 目录** | `~/.deepbot/skills` | Skill 包安装 | ✅ |
-| **图片目录** | `~/.deepbot/generated-images` | AI 生成图片保存 | ✅ |
-
-### 安全检查流程
-
-```
-工具调用 → 路径安全检查 → 在白名单内？
-                           ├─ 是 → 允许执行
-                           └─ 否 → 拒绝执行，返回错误
-```
+| Tool | Function | Typical Use Cases |
+|------|----------|-------------------|
+| **File Tool** | File read/write operations | Read configs, save data, search files |
+| **Exec Tool** | Execute command-line commands | Run scripts, system operations, install software |
+| **Browser Tool** | Browser control | Web screenshots, automation, content extraction |
+| **Calendar Tool** | Calendar management | View dates, calculate time, schedule reminders |
+| **Environment Check** | Environment inspection | Detect system info, verify dependencies, diagnose issues |
+| **Image Generation** | AI image generation | Create images, design materials, visual content |
+| **Web Search** | Web search | Real-time info queries, data collection, content research |
+| **Memory Tool** | Memory management | Store user preferences, read historical information |
+| **Skill Manager** | Skill management | Install/uninstall/list skill packages |
+| **Scheduled Task** | Scheduled tasks | Create/manage/execute scheduled tasks |
 
 ---
 
-## 🧠 记忆系统
+## 🔒 Security Mechanism
 
-DeepBot 支持长期记忆功能，可以记住用户的偏好和重要信息：
+DeepBot implements strict security restrictions to ensure AI Agent can only access user-authorized directories:
 
-- **存储位置**: `~/.deepbot/memory/MEMORY.md`
-- **格式**: Markdown 格式，结构化存储
-- **自动注入**: 每次对话自动加载到系统提示词
-- **实时更新**: 记忆更新后自动重载所有 Agent
+### Path Whitelist
 
-### 使用示例
+Only allows access to the following configured directories and their subdirectories:
+
+| Directory Type | Default Path | Purpose | Configurable |
+|---------------|--------------|---------|--------------|
+| **Workspace** | `~` (User home) | File read/write, command execution | ✅ |
+| **Scripts** | `~/.deepbot/scripts` | Python script storage | ✅ |
+| **Skills** | `~/.deepbot/skills` | Skill package installation | ✅ |
+| **Images** | `~/.deepbot/generated-images` | AI-generated image storage | ✅ |
+
+### Security Check Flow
 
 ```
-用户: "记住：我喜欢简洁的代码"
-DeepBot: "已记住你的偏好"
-
-用户: "我的偏好是什么？"
-DeepBot: "你喜欢简洁的代码..."
+Tool Call → Path Security Check → Within Whitelist?
+                                   ├─ Yes → Allow Execution
+                                   └─ No → Reject, Return Error
 ```
 
 ---
 
-## ⏰ 定时任务
+## 🧠 Memory System
 
-支持创建和管理定时任务，自动化执行周期性工作：
+DeepBot supports long-term memory functionality to remember user preferences and important information:
 
-### 功能特性
+- **Storage Location**: `~/.deepbot/memory/MEMORY.md`
+- **Format**: Markdown format, structured storage
+- **Auto-Injection**: Automatically loaded into system prompt for each conversation
+- **Real-time Update**: Memory updates automatically reload all Agents
 
-- ✅ Cron 表达式支持
-- ✅ 专用 Tab 执行（锁定不可关闭）
-- ✅ 清空历史上下文
-- ✅ 执行历史记录
-
-### 使用示例
+### Usage Example
 
 ```
-用户: "每天早上 9 点检查桌面文件"
-DeepBot: "已创建定时任务，将在每天 9:00 执行"
+User: "Remember: I prefer concise code"
+DeepBot: "I've remembered your preference"
+
+User: "What are my preferences?"
+DeepBot: "You prefer concise code..."
 ```
 
 ---
 
-## 🎨 技能扩展 (Skills)
+## ⏰ Scheduled Tasks
 
-通过 Skills 系统可以组合多个工具实现复杂功能：
+Support for creating and managing scheduled tasks to automate periodic work:
 
-### 安装 Skill
+### Features
+
+- ✅ Cron expression support
+- ✅ Dedicated Tab execution (locked, cannot be closed)
+- ✅ Clear historical context
+- ✅ Execution history tracking
+
+### Usage Example
+
+```
+User: "Check desktop files every day at 9 AM"
+DeepBot: "Scheduled task created, will execute daily at 9:00"
+```
+
+---
+
+## 🎨 Skill Extensions
+
+The Skills system allows combining multiple tools to implement complex functions:
+
+### Install Skills
 
 ```bash
-# 在 DeepBot 中使用 Skill Manager 工具
-"安装 weather skill"
+# Use Skill Manager tool in DeepBot
+"Install weather skill"
 ```
 
-### Skill 目录
+### Skill Directory
 
-- **默认路径**: `~/.deepbot/skills/`
-- **自动发现**: 启动时自动加载所有已安装的 Skills
-- **动态管理**: 支持运行时安装/卸载
+- **Default Path**: `~/.deepbot/skills/`
+- **Auto-Discovery**: Automatically loads all installed Skills at startup
+- **Dynamic Management**: Supports runtime install/uninstall
 
 ---
 
-## 🤖 支持的 AI 模型
+## 🤖 Supported AI Models
 
-DeepBot 支持多种 AI 模型提供商：
+DeepBot supports multiple AI model providers:
 
-- **通义千问** (阿里云) - 默认模型
-- **OpenAI** (GPT-4、GPT-3.5)
+- **Qwen** (Alibaba Cloud) - Default model
+- **OpenAI** (GPT-4, GPT-3.5)
 - **Claude** (Anthropic)
 
-### 配置 API 密钥
+### Configure API Keys
 
-在系统设置中配置对应的 API 密钥即可使用。
-
----
-
-## 📦 外部服务
-
-DeepBot 集成了以下外部服务：
-
-| 服务 | 用途 | 配置位置 |
-|------|------|---------|
-| **Tavily API** | 网页搜索 | 系统设置 → Web Search |
-| **Gemini** | 图片生成 (Imagen 3) | 系统设置 → Image Generation |
+Configure the corresponding API keys in system settings to use.
 
 ---
 
-## 🛠️ 开发指南
+## 📦 External Services
 
-### 项目结构
+DeepBot integrates the following external services:
+
+| Service | Purpose | Configuration |
+|---------|---------|---------------|
+| **Tavily API** | Web search | System Settings → Web Search |
+| **Gemini** | Image generation (Imagen 3) | System Settings → Image Generation |
+
+---
+
+## 🛠️ Development Guide
+
+### Project Structure
 
 ```
 deepbot/
 ├── src/
-│   ├── main/           # 主进程代码
-│   │   ├── gateway.ts          # 会话管理
-│   │   ├── agent-runtime/      # Agent 运行时
-│   │   ├── tools/              # 10 个工具
-│   │   ├── scheduled-tasks/    # 定时任务
-│   │   └── database/           # 数据存储
-│   ├── renderer/       # 渲染进程代码 (React)
-│   ├── shared/         # 共享代码
-│   └── types/          # 类型定义
-├── docs/               # 文档
-└── scripts/            # 构建脚本
+│   ├── main/           # Main process code
+│   │   ├── gateway.ts          # Session management
+│   │   ├── agent-runtime/      # Agent runtime
+│   │   ├── tools/              # 10 tools
+│   │   ├── scheduled-tasks/    # Scheduled tasks
+│   │   └── database/           # Data storage
+│   ├── renderer/       # Renderer process code (React)
+│   ├── shared/         # Shared code
+│   └── types/          # Type definitions
+├── docs/               # Documentation
+└── scripts/            # Build scripts
 ```
 
 ---
 
-## 📝 许可证
+## 📝 License
 
-本项目采用 [MIT License](LICENSE) 开源协议。
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## 🙏 致谢
+## 🙏 Acknowledgments
 
-DeepBot 的开发受到以下项目的启发：
+DeepBot's development was inspired by the following projects:
 
-- [Clawdbot](https://github.com/openclaw/openclaw) - 导师项目，提供了架构参考
+- [Clawdbot](https://github.com/openclaw/openclaw) - Mentor project, provided architectural reference
 - [@mariozechner/pi-agent-core](https://github.com/badlogic/pi-agent) - AI Agent Runtime
-- [Electron](https://www.electronjs.org/) - 跨平台桌面应用框架
+- [Electron](https://www.electronjs.org/) - Cross-platform desktop application framework
 
 ---
 
-## 📧 联系方式
+## 📧 Contact
 
-- **作者**: Kevin Luo
-- **问题反馈**: [GitHub Issues](https://github.com/yourusername/deepbot/issues)
+- **Author**: Kevin Luo
+- **Issue Reporting**: [GitHub Issues](https://github.com/kevinluosl/deepbot/issues)
 
 ---
 
 <div align="center">
 
-**⭐ 如果这个项目对你有帮助，请给一个 Star！**
+**⭐ If this project helps you, please give it a Star!**
 
 Made with ❤️ by Kevin Luo
 
