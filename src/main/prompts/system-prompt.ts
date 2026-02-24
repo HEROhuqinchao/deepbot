@@ -60,7 +60,7 @@ export async function buildSystemPrompt(params: SystemPromptParams): Promise<str
     );
   }
 
-  // 3. 项目上下文（SOUL.md, TOOLS.md 等）
+  // 3. 项目上下文（AGENT.md, TOOLS.md 等）
   // 🔥 修改：minimal 模式也需要加载 TOOLS.md（包含工具使用规则）
   if (params.contextFiles && params.contextFiles.length > 0) {
     // minimal 模式只加载 TOOLS.md，full 模式加载所有文件

@@ -19,16 +19,16 @@ export function buildContextSection(contextFiles: ContextFile[]): string[] {
     '以下项目上下文文件已加载：',
   ];
 
-  // 检查是否有 SOUL.md
-  const hasSoulFile = contextFiles.some((file) => {
+  // 检查是否有 AGENT.md
+  const hasAgentFile = contextFiles.some((file) => {
     const fileName = file.path.toLowerCase();
-    return fileName === 'soul.md';
+    return fileName === 'agent.md';
   });
 
-  if (hasSoulFile) {
+  if (hasAgentFile) {
     lines.push(
       '',
-      '如果存在 SOUL.md，请体现其中定义的个性和语气。',
+      '如果存在 AGENT.md，请体现其中定义的个性和语气。',
       '避免僵硬、通用的回复；遵循其指导，除非有更高优先级的指令覆盖它。',
     );
   }

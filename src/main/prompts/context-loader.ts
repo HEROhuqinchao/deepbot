@@ -3,7 +3,7 @@
  * 
  * 
  * 职责：
- * - 从 templates 目录加载上下文文件（SOUL.md, TOOLS.md 等）
+ * - 从 templates 目录加载上下文文件（AGENT.md, TOOLS.md 等）
  * - 替换模板变量（{{scriptDir}}, {{imageDir}} 等）
  * - 处理文件内容截断
  * - 提供错误处理
@@ -25,10 +25,8 @@ const TAIL_RATIO = 0.2;
 
 /** 默认加载的文件列表 */
 const DEFAULT_BOOTSTRAP_FILES = [
-  'SOUL.md',
+  'AGENT.md',
   'TOOLS.md',
-  'TOOLS-BASIC.md',
-  'task-execution.md',
   'MEMORY-TRIGGER.md',
 ];
 
