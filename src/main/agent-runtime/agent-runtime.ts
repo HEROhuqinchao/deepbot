@@ -153,9 +153,22 @@ export class AgentRuntime {
    * 初始化系统提示词
    */
   private async initializeSystemPrompt(): Promise<void> {
-    // 防止重复初始化
+    // 🔥 如果正在初始化，等待完成
     if (this.systemPromptInitializing) {
-      console.log('⏳ 系统提示词正在初始化中，跳过重复调用');
+      console.log('⏳ 系统提示词正在初始化中，等待完成...');
+      // 轮询等待初始化完成（最多等待 30 秒）
+      const maxWaitTime = 30000;
+      const startTime = Date.now();
+      while (this.systemPromptInitializing && (Date.now() - startTime) < maxWaitTime) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      if (this.systemPromptInitializing) {
+        console.error('❌ 等待系统提示词初始化超时（30秒）');
+        throw new Error('系统提示词初始化超时');
+      }
+      
+      console.log('✅ 系统提示词初始化完成（等待）');
       return;
     }
     
@@ -170,13 +183,16 @@ export class AgentRuntime {
       await this.ensureInitialized();
       
       if (!this.instanceManager.agent) {
-        return;
+        console.error('❌ Agent 未初始化，无法构建系统提示词');
+        throw new Error('Agent 未初始化');
       }
       
       this.systemPrompt = await this.initializer.initializeSystemPrompt(
         this.instanceManager.agent,
         this.tools
       );
+      
+      console.log('✅ 系统提示词初始化成功，长度:', this.systemPrompt.length);
     } finally {
       this.systemPromptInitializing = false;
     }
@@ -277,6 +293,13 @@ export class AgentRuntime {
     console.log(`   response 长度: ${response.length} 字符`);
     console.log(`   response 最后 100 字符: ${response.slice(-100)}`);
     
+    // 🔥 检查是否已被用户停止
+    const abortController = this.messageHandler.getAbortController();
+    if (abortController?.signal.aborted) {
+      console.log('⏹️ [detectUnfinishedIntent] 检测到用户停止，返回 false（不继续）');
+      return false;
+    }
+    
     // 提取最后 400 字符作为判断依据（增加上下文）
     const lastPart = response.slice(-400).trim();
     
@@ -337,6 +360,12 @@ ${lastPart}
         temperature: 0.1,
         maxTokens: 10,
       });
+      
+      // 🔥 AI 调用返回后，再次检查是否已被用户停止
+      if (abortController?.signal.aborted) {
+        console.log('⏹️ [detectUnfinishedIntent] AI 调用返回后检测到用户停止，返回 false');
+        return false;
+      }
       
       const answer = response.content.trim().toUpperCase();
       
@@ -433,25 +462,27 @@ ${lastPart}
         this.instanceManager.agent.state.messages = result.messages;
       }
     }
-    
-    // 重新包装工具，使用新的 AbortSignal
-    const abortController = this.messageHandler.getAbortController();
-    if (abortController && this.instanceManager.agent) {
-      const toolsWithAbort = this.tools.map(tool => 
-        wrapToolWithAbortSignal(tool, abortController.signal)
-      );
-      
-      // 更新 Agent 的工具列表
-      this.instanceManager.agent.state.tools = toolsWithAbort as any;
-      
-      console.log('✅ 已为工具添加取消支持');
-    }
 
     // 收集完整的响应和工具调用信息
     let fullResponse = '';
     let hasToolCalls = false;
     
     try {
+      // 🔥 在调用 sendMessage 之前，设置 AbortController 创建回调
+      // 这样可以在 AbortController 创建后立即包装工具，确保工具执行前就有 signal
+      this.messageHandler.setOnAbortControllerCreated((abortController) => {
+        if (this.instanceManager.agent) {
+          const toolsWithAbort = this.tools.map(tool => 
+            wrapToolWithAbortSignal(tool, abortController.signal)
+          );
+          
+          // 更新 Agent 的工具列表
+          this.instanceManager.agent.state.tools = toolsWithAbort as any;
+          
+          console.log('✅ 已为工具添加取消支持（在 AbortController 创建后立即包装）');
+        }
+      });
+      
       // 使用 MessageHandler 处理消息
       console.log('🔄 开始调用 MessageHandler.sendMessage...');
       for await (const chunk of this.messageHandler.sendMessage(content)) {
@@ -467,8 +498,7 @@ ${lastPart}
       
       // 检查响应是否为空
       // 🔥 如果是用户主动停止（aborted），不抛出错误
-      const abortController = this.messageHandler.getAbortController();
-      const wasAborted = abortController?.signal.aborted || false;
+      const wasAborted = this.messageHandler.wasAbortedByUser();
       
       if (fullResponse.trim().length === 0 && !wasAborted) {
         throw new Error('AI 返回空响应，可能是 API 配置错误或网络问题');
@@ -483,8 +513,7 @@ ${lastPart}
       console.error('❌ MessageHandler.sendMessage 失败:', error);
       
       // 🔥 如果是用户主动停止，不抛出错误
-      const abortController = this.messageHandler.getAbortController();
-      if (abortController?.signal.aborted) {
+      if (this.messageHandler.wasAbortedByUser()) {
         console.log('⏹️ 用户主动停止生成（捕获异常），结束执行');
         return;
       }
@@ -523,11 +552,24 @@ ${lastPart}
     console.log(`   autoContinue: ${autoContinue}, maxContinuations: ${maxContinuations}, hasToolCalls: ${hasToolCalls}`);
     
     if (autoContinue && maxContinuations > 0 && this.instanceManager.agent) {
+      // 🔥 在检测未完成意图之前，先检查是否已被用户停止
+      const abortController = this.messageHandler.getAbortController();
+      if (abortController?.signal.aborted) {
+        console.log('⏹️ 检测到用户停止，跳过自动继续');
+        return;
+      }
+      
       const hasUnfinishedIntent = await this.detectUnfinishedIntent(fullResponse, hasToolCalls);
       
       console.log(`   detectUnfinishedIntent 返回: ${hasUnfinishedIntent}`);
       
       if (hasUnfinishedIntent) {
+        // 🔥 在自动继续之前，再次检查是否已被用户停止
+        if (abortController?.signal.aborted) {
+          console.log('⏹️ 检测到用户停止，取消自动继续');
+          return;
+        }
+        
         console.log('🔄 检测到未完成的意图，自动继续执行...');
         console.log(`   剩余继续次数: ${maxContinuations - 1}`);
         

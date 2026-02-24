@@ -35,37 +35,48 @@ function throwAbortError(): never {
 }
 
 /**
+ * 检查是否是 AbortError
+ * 
+ * @param error - 错误对象
+ * @returns 是否是 AbortError
+ */
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+/**
  * 合并两个 AbortSignal
  * 
  * 如果任一 signal 被取消，返回的 signal 也会被取消
- * 
- * 注意：此函数会过滤掉已经 aborted 的 signal，避免污染新的执行
  * 
  * @param a - 第一个 AbortSignal
  * @param b - 第二个 AbortSignal
  * @returns 合并后的 AbortSignal
  */
 function combineAbortSignals(a?: AbortSignal, b?: AbortSignal): AbortSignal | undefined {
-  // 过滤掉已经 aborted 的 signal（避免污染新的执行）
-  const validA = a && !a.aborted ? a : undefined;
-  const validB = b && !b.aborted ? b : undefined;
-  
-  if (!validA && !validB) return undefined;
-  if (validA && !validB) return validA;
-  if (validB && !validA) return validB;
+  // 🔥 不过滤已 aborted 的 signal，因为我们需要检测用户停止
+  if (!a && !b) return undefined;
+  if (a && !b) return a;
+  if (b && !a) return b;
   
   // 使用 AbortSignal.any（Node.js 20+）
   if (typeof AbortSignal.any === 'function') {
-    return AbortSignal.any([validA as AbortSignal, validB as AbortSignal]);
+    return AbortSignal.any([a as AbortSignal, b as AbortSignal]);
   }
   
   // 降级方案：手动合并
   const controller = new AbortController();
   
+  // 如果任一 signal 已经 aborted，立即 abort
+  if (a?.aborted || b?.aborted) {
+    controller.abort();
+    return controller.signal;
+  }
+  
   // 监听两个 signal 的 abort 事件
   const onAbort = () => controller.abort();
-  validA?.addEventListener('abort', onAbort, { once: true });
-  validB?.addEventListener('abort', onAbort, { once: true });
+  a?.addEventListener('abort', onAbort, { once: true });
+  b?.addEventListener('abort', onAbort, { once: true });
   
   return controller.signal;
 }
@@ -102,13 +113,32 @@ export function wrapToolWithAbortSignal(
       // 合并工具自己的 signal 和 runtime 的 signal
       const combined = combineAbortSignals(signal, abortSignal);
       
-      // 检查是否已取消
+      // 执行前检查是否已取消
       if (combined?.aborted) {
+        console.log(`⏹️ [${tool.name}] 工具执行前检测到 abort，跳过执行`);
         throwAbortError();
       }
       
       // 执行工具，传入合并后的 signal
-      return await execute(toolCallId, params, combined, onUpdate);
+      try {
+        const result = await execute(toolCallId, params, combined, onUpdate);
+        
+        // 执行后再次检查（防止执行过程中被取消）
+        if (combined?.aborted) {
+          console.log(`⏹️ [${tool.name}] 工具执行后检测到 abort`);
+          throwAbortError();
+        }
+        
+        return result;
+      } catch (error) {
+        // 如果是 abort 错误，重新抛出
+        if (isAbortError(error)) {
+          console.log(`⏹️ [${tool.name}] 工具执行被中断`);
+          throw error;
+        }
+        // 其他错误也重新抛出
+        throw error;
+      }
     },
   };
 }

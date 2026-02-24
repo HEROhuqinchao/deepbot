@@ -16,9 +16,11 @@ export class MessageHandler {
   private agent: Agent | null = null;
   private isGenerating: boolean = false;
   private abortController: AbortController | null = null;
+  private userAborted: boolean = false; // 🔥 记录是否被用户主动停止
   private currentGenerationId: number = 0;
   private executionSteps: ExecutionStep[] = []; // 当前消息的执行步骤
   private onExecutionStepUpdate?: (steps: ExecutionStep[]) => void; // 执行步骤更新回调
+  private onAbortControllerCreated?: (controller: AbortController) => void; // AbortController 创建回调
 
   constructor(agent: Agent | null) {
     this.agent = agent;
@@ -36,6 +38,15 @@ export class MessageHandler {
    */
   setExecutionStepCallback(callback: (steps: ExecutionStep[]) => void): void {
     this.onExecutionStepUpdate = callback;
+  }
+
+  /**
+   * 设置 AbortController 创建回调
+   * 
+   * 用于在 AbortController 创建后立即通知外部（例如包装工具）
+   */
+  setOnAbortControllerCreated(callback: (controller: AbortController) => void): void {
+    this.onAbortControllerCreated = callback;
   }
 
   /**
@@ -72,6 +83,9 @@ export class MessageHandler {
     // 清空执行步骤
     this.executionSteps = [];
 
+    // 🔥 重置用户停止标志
+    this.userAborted = false;
+
     // 标记为正在生成，并创建新的 AbortController
     this.isGenerating = true;
     this.abortController = new AbortController();
@@ -79,6 +93,11 @@ export class MessageHandler {
     // 生成新的 ID，用于标识这次生成
     const generationId = ++this.currentGenerationId;
     // console.log(`🆔 生成 ID: ${generationId}`);
+    
+    // 🔥 立即通知外部：AbortController 已创建，可以包装工具了
+    if (this.onAbortControllerCreated) {
+      this.onAbortControllerCreated(this.abortController);
+    }
 
     if (!this.agent) {
       throw new Error('Agent 未初始化');
@@ -372,14 +391,27 @@ export class MessageHandler {
       
       // 1. 触发 AbortController，取消所有工具的执行
       if (this.abortController) {
+        console.log('   📡 触发 AbortController.abort()');
         this.abortController.abort();
+        // 🔥 记录用户主动停止
+        this.userAborted = true;
       }
       
-      // 2. 递增 generationId，标记当前生成为"已废弃"
-      this.currentGenerationId++;
-      // console.log(`🆔 新的生成 ID: ${this.currentGenerationId}`);
+      // 2. 尝试停止 Agent 执行（pi-agent-core 支持 abort）
+      if (this.agent && typeof (this.agent as any).abort === 'function') {
+        console.log('   🛑 调用 Agent.abort()');
+        try {
+          (this.agent as any).abort();
+        } catch (error) {
+          console.warn('   ⚠️ Agent.abort() 失败:', error);
+        }
+      }
       
-      // 3. 立即清理状态，允许新消息
+      // 3. 递增 generationId，标记当前生成为"已废弃"
+      this.currentGenerationId++;
+      console.log(`   🆔 新的生成 ID: ${this.currentGenerationId}`);
+      
+      // 4. 立即清理状态，允许新消息
       this.isGenerating = false;
       this.abortController = null;
       
@@ -401,6 +433,13 @@ export class MessageHandler {
    */
   getAbortController(): AbortController | null {
     return this.abortController;
+  }
+
+  /**
+   * 获取是否被用户主动停止
+   */
+  wasAbortedByUser(): boolean {
+    return this.userAborted;
   }
 
   /**

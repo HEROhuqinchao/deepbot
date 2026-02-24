@@ -73,8 +73,16 @@ async function performQwenWebSearch(params: {
   apiKey: string;
   apiUrl: string;
   model: string;
+  signal?: AbortSignal;
 }): Promise<{ answer: string; sources: Array<{ title: string; url: string }> }> {
-  const { query, enableSearch = true, apiKey, apiUrl, model } = params;
+  const { query, enableSearch = true, apiKey, apiUrl, model, signal } = params;
+
+  // 检查是否已被取消
+  if (signal?.aborted) {
+    const err = new Error('网络搜索操作被取消');
+    err.name = 'AbortError';
+    throw err;
+  }
 
   // 构建请求体
   const requestBody = {
@@ -99,6 +107,14 @@ async function performQwenWebSearch(params: {
   console.log('[Web Search] 发送请求到:', url);
   
   const response = await new Promise<any>((resolve, reject) => {
+    // 检查是否已被取消
+    if (signal?.aborted) {
+      const err = new Error('网络搜索操作被取消');
+      err.name = 'AbortError';
+      reject(err);
+      return;
+    }
+
     const urlObj = new URL(url);
     const options = {
       hostname: urlObj.hostname,
@@ -142,6 +158,24 @@ async function performQwenWebSearch(params: {
       req.destroy();
       reject(new Error('请求超时（30秒）'));
     });
+    
+    // 监听 AbortSignal
+    if (signal) {
+      const onAbort = () => {
+        console.log('[Web Search] ⏹️ 收到停止信号，中止请求');
+        req.destroy();
+        const err = new Error('网络搜索操作被取消');
+        err.name = 'AbortError';
+        reject(err);
+      };
+      
+      signal.addEventListener('abort', onAbort, { once: true });
+      
+      // 清理监听器
+      req.on('close', () => {
+        signal.removeEventListener('abort', onAbort);
+      });
+    }
     
     req.write(JSON.stringify(requestBody));
     req.end();
@@ -200,8 +234,16 @@ async function performGeminiWebSearch(params: {
   apiKey: string;
   apiUrl: string;
   model: string;
+  signal?: AbortSignal;
 }): Promise<{ answer: string; sources: Array<{ title: string; url: string }> }> {
-  const { query, apiKey, apiUrl, model } = params;
+  const { query, apiKey, apiUrl, model, signal } = params;
+
+  // 检查是否已被取消
+  if (signal?.aborted) {
+    const err = new Error('网络搜索操作被取消');
+    err.name = 'AbortError';
+    throw err;
+  }
 
   // 构建请求体（使用 google_search 工具）
   const requestBody = {
@@ -231,6 +273,14 @@ async function performGeminiWebSearch(params: {
   console.log('[Web Search] 发送请求到:', url);
   
   const response = await new Promise<any>((resolve, reject) => {
+    // 检查是否已被取消
+    if (signal?.aborted) {
+      const err = new Error('网络搜索操作被取消');
+      err.name = 'AbortError';
+      reject(err);
+      return;
+    }
+
     const urlObj = new URL(url);
     const options = {
       hostname: urlObj.hostname,
@@ -273,6 +323,24 @@ async function performGeminiWebSearch(params: {
       req.destroy();
       reject(new Error('请求超时（30秒）'));
     });
+    
+    // 监听 AbortSignal
+    if (signal) {
+      const onAbort = () => {
+        console.log('[Web Search] ⏹️ 收到停止信号，中止请求');
+        req.destroy();
+        const err = new Error('网络搜索操作被取消');
+        err.name = 'AbortError';
+        reject(err);
+      };
+      
+      signal.addEventListener('abort', onAbort, { once: true });
+      
+      // 清理监听器
+      req.on('close', () => {
+        signal.removeEventListener('abort', onAbort);
+      });
+    }
     
     req.write(JSON.stringify(requestBody));
     req.end();
@@ -331,8 +399,15 @@ export function createWebSearchTool(configStore: SystemConfigStore): AgentTool {
     label: 'Web Search',
     description: '使用 Qwen 或 Gemini 进行网络搜索，获取最新的网络信息。适用于需要实时信息、新闻、天气、股票等场景。',
     parameters: WebSearchSchema,
-    execute: async (_toolCallId: string, args: unknown) => {
+    execute: async (_toolCallId: string, args: unknown, signal?: AbortSignal) => {
       try {
+        // 检查是否已被取消（执行前）
+        if (signal?.aborted) {
+          const err = new Error('网络搜索操作被取消');
+          err.name = 'AbortError';
+          throw err;
+        }
+
         const params = args as {
           query: string;
           enableSearch?: boolean;
@@ -360,6 +435,7 @@ export function createWebSearchTool(configStore: SystemConfigStore): AgentTool {
             apiKey: toolConfig.apiKey,
             apiUrl: toolConfig.apiUrl,
             model: toolConfig.model,
+            signal,
           });
           answer = result.answer;
           sources = result.sources;
@@ -371,6 +447,7 @@ export function createWebSearchTool(configStore: SystemConfigStore): AgentTool {
             apiKey: toolConfig.apiKey,
             apiUrl: toolConfig.apiUrl,
             model: toolConfig.model,
+            signal,
           });
           answer = result.answer;
           sources = result.sources;

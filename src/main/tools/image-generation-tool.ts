@@ -159,8 +159,16 @@ async function generateImage(params: {
   apiKey: string;
   apiUrl: string;
   model: string;
+  signal?: AbortSignal;
 }): Promise<{ imageData: string; mimeType: string }> {
-  const { prompt, aspectRatio = '16:9', resolution = '1K', referenceImages = [], apiKey, apiUrl, model } = params;
+  const { prompt, aspectRatio = '16:9', resolution = '1K', referenceImages = [], apiKey, apiUrl, model, signal } = params;
+
+  // 检查是否已被取消
+  if (signal?.aborted) {
+    const err = new Error('图片生成操作被取消');
+    err.name = 'AbortError';
+    throw err;
+  }
 
   // 构建请求体
   const contents: any[] = [];
@@ -172,6 +180,13 @@ async function generateImage(params: {
     
     // 添加所有参考图片
     for (const imagePath of validImages) {
+      // 🔥 在处理每张图片前检查是否已被取消
+      if (signal?.aborted) {
+        const err = new Error('图片生成操作被取消');
+        err.name = 'AbortError';
+        throw err;
+      }
+      
       // 安全检查：验证路径
       assertPathAllowed(imagePath);
       
@@ -250,6 +265,14 @@ async function generateImage(params: {
   console.log('[Image Generation] 发送请求到:', url.replace(apiKey, '***'));
   
   const response = await new Promise<any>((resolve, reject) => {
+    // 检查是否已被取消
+    if (signal?.aborted) {
+      const err = new Error('图片生成操作被取消');
+      err.name = 'AbortError';
+      reject(err);
+      return;
+    }
+
     const urlObj = new URL(url);
     const options = {
       hostname: urlObj.hostname,
@@ -298,6 +321,24 @@ async function generateImage(params: {
       req.destroy();
       reject(new Error('请求超时（60秒）'));
     });
+    
+    // 监听 AbortSignal
+    if (signal) {
+      const onAbort = () => {
+        console.log('[Image Generation] ⏹️ 收到停止信号，中止请求');
+        req.destroy();
+        const err = new Error('图片生成操作被取消');
+        err.name = 'AbortError';
+        reject(err);
+      };
+      
+      signal.addEventListener('abort', onAbort, { once: true });
+      
+      // 清理监听器
+      req.on('close', () => {
+        signal.removeEventListener('abort', onAbort);
+      });
+    }
     
     req.write(JSON.stringify(requestBody));
     req.end();
@@ -358,8 +399,16 @@ async function analyzeImage(params: {
   apiKey: string;
   apiUrl: string;
   model: string;
+  signal?: AbortSignal;
 }): Promise<string> {
-  const { imagePath, apiKey, apiUrl, model } = params;
+  const { imagePath, apiKey, apiUrl, model, signal } = params;
+
+  // 检查是否已被取消
+  if (signal?.aborted) {
+    const err = new Error('图片解析操作被取消');
+    err.name = 'AbortError';
+    throw err;
+  }
 
   // 安全检查：验证路径
   assertPathAllowed(imagePath);
@@ -409,6 +458,14 @@ async function analyzeImage(params: {
   const url = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;
   
   const response = await new Promise<any>((resolve, reject) => {
+    // 检查是否已被取消
+    if (signal?.aborted) {
+      const err = new Error('图片解析操作被取消');
+      err.name = 'AbortError';
+      reject(err);
+      return;
+    }
+
     const urlObj = new URL(url);
     const options = {
       hostname: urlObj.hostname,
@@ -444,6 +501,24 @@ async function analyzeImage(params: {
       req.destroy();
       reject(new Error('请求超时（60秒）'));
     });
+
+    // 监听 AbortSignal
+    if (signal) {
+      const onAbort = () => {
+        console.log('[Image Analysis] ⏹️ 收到停止信号，中止请求');
+        req.destroy();
+        const err = new Error('图片解析操作被取消');
+        err.name = 'AbortError';
+        reject(err);
+      };
+      
+      signal.addEventListener('abort', onAbort, { once: true });
+      
+      // 清理监听器
+      req.on('close', () => {
+        signal.removeEventListener('abort', onAbort);
+      });
+    }
     
     req.write(JSON.stringify(requestBody));
     req.end();
@@ -529,7 +604,7 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
     label: 'Image Generation',
     description: '使用 Gemini 3 Pro Image 生成或解析图片。支持：1) 文本生成图片 2) 解析图片生成提示词 3) 使用参考图片（最多5张）生成图片。',
     parameters: ImageGenerationSchema,
-    execute: async (_toolCallId: string, args: unknown) => {
+    execute: async (_toolCallId: string, args: unknown, signal?: AbortSignal) => {
       try {
         const params = args as {
           action?: 'generate' | 'analyze';
@@ -542,6 +617,13 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
         };
 
         const action = params.action || 'generate';
+
+        // 检查是否已被取消（执行前）
+        if (signal?.aborted) {
+          const err = new Error('图片生成操作被取消');
+          err.name = 'AbortError';
+          throw err;
+        }
 
         // 获取工具配置
         const toolConfig = getToolConfig(configStore);
@@ -560,6 +642,7 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
             apiKey: toolConfig.apiKey,
             apiUrl: toolConfig.apiUrl,
             model: toolConfig.model,
+            signal,
           });
 
           console.log('[Image Analysis] ✅ 图片解析成功');
@@ -607,6 +690,13 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
           });
         }
 
+        // 检查是否已被取消（生成前）
+        if (signal?.aborted) {
+          const err = new Error('图片生成操作被取消');
+          err.name = 'AbortError';
+          throw err;
+        }
+
         // 生成图片
         const { imageData, mimeType } = await generateImage({
           prompt: params.prompt,
@@ -616,6 +706,7 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
           apiKey: toolConfig.apiKey,
           apiUrl: toolConfig.apiUrl,
           model: toolConfig.model,
+          signal,
         });
 
         // 保存图片（使用配置的输出目录）

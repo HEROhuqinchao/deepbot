@@ -155,8 +155,16 @@ async function writeMemory(content: string): Promise<void> {
 async function refineMemory(
   userMessage: string,
   context: string | undefined,
-  currentMemory: string
+  currentMemory: string,
+  signal?: AbortSignal
 ): Promise<string> {
+  // 检查是否已被取消
+  if (signal?.aborted) {
+    const err = new Error('记忆提炼操作被取消');
+    err.name = 'AbortError';
+    throw err;
+  }
+
   const prompt = `你是一个记忆管理助手，负责提炼和更新用户的核心记忆。
 
 当前记忆内容：
@@ -204,6 +212,7 @@ ${context ? `执行结果：\n"""\n${context}\n"""\n` : ''}
     ], {
       temperature: 0.3,
       maxTokens: 2000,
+      signal,
     });
     
     return response.content.trim();
@@ -316,9 +325,16 @@ export function createMemoryTool(): AgentTool {
     
     parameters: MemoryToolSchema,
     
-    execute: async (_toolCallId: string, args: any) => {
+    execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
       const params = args as MemoryToolParams;
       try {
+        // 检查是否已被取消（执行前）
+        if (signal?.aborted) {
+          const err = new Error('记忆操作被取消');
+          err.name = 'AbortError';
+          throw err;
+        }
+
         const { action, userMessage, context } = params as MemoryToolParams;
         
         console.log(`[Memory Tool] 执行操作: ${action}`);
@@ -347,6 +363,13 @@ export function createMemoryTool(): AgentTool {
             throw new Error('update 操作需要提供 userMessage 参数');
           }
           
+          // 检查是否已被取消（更新前）
+          if (signal?.aborted) {
+            const err = new Error('记忆操作被取消');
+            err.name = 'AbortError';
+            throw err;
+          }
+          
           const currentMemory = await readMemory();
           
           console.log('\n' + '='.repeat(80));
@@ -357,7 +380,7 @@ export function createMemoryTool(): AgentTool {
           console.log('='.repeat(80));
           
           console.log('[Memory Tool] 🤖 使用大模型提炼记忆...');
-          const updatedMemory = await refineMemory(userMessage, context, currentMemory);
+          const updatedMemory = await refineMemory(userMessage, context, currentMemory, signal);
           
           console.log('\n' + '='.repeat(80));
           console.log('[Memory Tool] 📤 更新后的记忆内容:');

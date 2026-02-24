@@ -25,6 +25,7 @@ export interface AICallOptions {
   maxTokens?: number;
   apiKey?: string;
   baseUrl?: string;
+  signal?: AbortSignal;
 }
 
 /**
@@ -114,7 +115,15 @@ export async function callAI(
     temperature = 0.7,
     maxTokens,
     apiKey = config.apiKey,
+    signal,
   } = options;
+  
+  // 检查是否已被取消
+  if (signal?.aborted) {
+    const err = new Error('AI 调用被取消');
+    err.name = 'AbortError';
+    throw err;
+  }
   
   if (!apiKey) {
     throw new Error('AI API Key 未配置，请在系统设置中配置 AI 模型');
@@ -165,9 +174,34 @@ export async function callAI(
   });
   
   try {
-    // 调用 pi-ai 的 complete 方法（非流式）
-    // 签名: complete(model, context, options) => Promise<AssistantMessage>
-    const result = await piAI.complete(model, context, piOptions);
+    // 创建一个可以被 signal 中止的 Promise
+    const completePromise = piAI.complete(model, context, piOptions);
+    
+    // 如果有 signal，使用 Promise.race 来实现中止
+    let result;
+    if (signal) {
+      const abortPromise = new Promise((_, reject) => {
+        if (signal.aborted) {
+          const err = new Error('AI 调用被取消');
+          err.name = 'AbortError';
+          reject(err);
+          return;
+        }
+        
+        const onAbort = () => {
+          console.log('[AI Client] ⏹️ 收到停止信号，中止 AI 调用');
+          const err = new Error('AI 调用被取消');
+          err.name = 'AbortError';
+          reject(err);
+        };
+        
+        signal.addEventListener('abort', onAbort, { once: true });
+      });
+      
+      result = await Promise.race([completePromise, abortPromise]);
+    } else {
+      result = await completePromise;
+    }
     
     // 检查是否有错误（在记录日志之前）
     if (result.stopReason === 'error' && result.errorMessage) {

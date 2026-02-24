@@ -173,11 +173,18 @@ function createGetEventsTool(): AgentTool {
         description: '日历名称（可选，默认读取所有日历）'
       }))
     }),
-    execute: async (toolCallId, params: any) => {
+    execute: async (toolCallId, params: any, signal?: AbortSignal) => {
       console.log('[Calendar Tool] 📅 读取日历事件');
       console.log('  参数:', params);
 
       try {
+        // 检查是否已被取消（执行前）
+        if (signal?.aborted) {
+          const err = new Error('日历操作被取消');
+          err.name = 'AbortError';
+          throw err;
+        }
+
         // 检查平台
         if (!isMacOS()) {
           return {
@@ -317,11 +324,18 @@ function createCreateEventTool(): AgentTool {
         description: '日历名称（可选，默认使用默认日历）'
       }))
     }),
-    execute: async (toolCallId, params: any) => {
+    execute: async (toolCallId, params: any, signal?: AbortSignal) => {
       console.log('[Calendar Tool] 📅 创建日历事件');
       console.log('  参数:', params);
 
       try {
+        // 检查是否已被取消（执行前）
+        if (signal?.aborted) {
+          const err = new Error('日历操作被取消');
+          err.name = 'AbortError';
+          throw err;
+        }
+
         // 检查平台
         if (!isMacOS()) {
           return {
