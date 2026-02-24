@@ -26,6 +26,7 @@ export class AgentRuntime {
   private runtimeConfig: AgentRuntimeConfig;
   private systemPrompt: string = '';
   private initPromise: Promise<void> | null = null;
+  private systemPromptInitializing: boolean = false; // 防止重复初始化系统提示词
   
   // 模块实例
   private initializer: AgentInitializer;
@@ -152,16 +153,33 @@ export class AgentRuntime {
    * 初始化系统提示词
    */
   private async initializeSystemPrompt(): Promise<void> {
-    await this.ensureInitialized();
-    
-    if (!this.instanceManager.agent) {
+    // 防止重复初始化
+    if (this.systemPromptInitializing) {
+      console.log('⏳ 系统提示词正在初始化中，跳过重复调用');
       return;
     }
     
-    this.systemPrompt = await this.initializer.initializeSystemPrompt(
-      this.instanceManager.agent,
-      this.tools
-    );
+    if (this.systemPrompt) {
+      console.log('✅ 系统提示词已初始化，跳过重复调用');
+      return;
+    }
+    
+    this.systemPromptInitializing = true;
+    
+    try {
+      await this.ensureInitialized();
+      
+      if (!this.instanceManager.agent) {
+        return;
+      }
+      
+      this.systemPrompt = await this.initializer.initializeSystemPrompt(
+        this.instanceManager.agent,
+        this.tools
+      );
+    } finally {
+      this.systemPromptInitializing = false;
+    }
   }
 
   /**
@@ -174,6 +192,10 @@ export class AgentRuntime {
     console.log('[AgentRuntime] 🔄 重新加载系统提示词...');
     console.log('   会话ID:', this.runtimeConfig.sessionId);
     console.log('='.repeat(80));
+    
+    // 清空现有提示词，允许重新初始化
+    this.systemPrompt = '';
+    this.systemPromptInitializing = false;
     
     await this.initializeSystemPrompt();
     

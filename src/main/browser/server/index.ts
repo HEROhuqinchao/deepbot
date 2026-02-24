@@ -21,7 +21,8 @@
 import type { Server } from 'node:http';
 import express from 'express';
 import type { Express } from 'express';
-import { resolveBrowserConfig, getDefaultProfile } from '../config';
+import { resolveBrowserConfig } from '../config';
+import { DEFAULT_PROFILE_NAME } from '../constants';
 import { closeBrowser } from '../pw-session';
 import type { BrowserServerState } from './types';
 import { registerRoutes } from './routes';
@@ -32,14 +33,53 @@ import { registerRoutes } from './routes';
 let state: BrowserServerState | null = null;
 
 /**
+ * 启动中的 Promise（防止并发启动）
+ */
+let startingPromise: Promise<BrowserServerState | null> | null = null;
+
+/**
  * 启动 Browser Control Server
  * 
  * @returns Server 状态，如果启动失败返回 null
  */
 export async function startBrowserControlServer(): Promise<BrowserServerState | null> {
+  console.log('[Browser Server] 🔍 startBrowserControlServer 被调用');
+  
   // 如果已经启动，直接返回
   if (state) {
-    console.log('[Browser Server] 服务器已启动');
+    console.log('[Browser Server] 服务器已启动，直接返回');
+    return state;
+  }
+
+  // 如果正在启动中，等待启动完成
+  if (startingPromise) {
+    console.log('[Browser Server] 服务器正在启动中，等待完成...');
+    return startingPromise;
+  }
+
+  console.log('[Browser Server] 创建启动 Promise');
+  
+  // 创建启动 Promise
+  startingPromise = (async () => {
+    try {
+      return await doStartServer();
+    } finally {
+      startingPromise = null;
+    }
+  })();
+
+  return startingPromise;
+}
+
+/**
+ * 实际启动服务器的函数
+ */
+async function doStartServer(): Promise<BrowserServerState | null> {
+  console.log('[Browser Server] 🚀 doStartServer 开始执行');
+  
+  // 再次检查（双重检查锁定）
+  if (state) {
+    console.log('[Browser Server] 双重检查：服务器已启动');
     return state;
   }
 
@@ -60,23 +100,33 @@ export async function startBrowserControlServer(): Promise<BrowserServerState | 
   const server = await new Promise<Server | null>((resolve, reject) => {
     const s = app.listen(port, '127.0.0.1', () => {
       console.log(`[Browser Server] ✅ 服务器启动成功: http://127.0.0.1:${port}/`);
+      s.removeAllListeners('error'); // 移除错误监听器
       resolve(s);
     });
     s.once('error', (err) => {
       console.error(`[Browser Server] ❌ 服务器启动失败: ${err}`);
       reject(err);
     });
-  }).catch(() => null);
+  }).catch((err) => {
+    console.error(`[Browser Server] 捕获到启动错误: ${err}`);
+    return null;
+  });
 
   if (!server) {
     return null;
   }
 
   // 初始化状态
+  const profile = {
+    name: DEFAULT_PROFILE_NAME,
+    cdpPort: config.cdpPort,
+    color: config.color,
+  };
+  
   state = {
     server,
     port,
-    profile: getDefaultProfile(),
+    profile,
     browser: {
       running: false,
       pid: null,
