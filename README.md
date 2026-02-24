@@ -229,6 +229,24 @@ DeepBot supports multiple AI model providers:
 
 Configure the corresponding API keys in system settings to use.
 
+### ⚠️ Important Notes
+
+**Not Recommended: Models with "think" or "reasoning" capabilities**
+
+DeepBot is optimized for standard conversational models. Models with built-in thinking/reasoning modes (such as Qwen's QwQ series, OpenAI's o1 series, or other models with explicit reasoning steps) may cause:
+
+- Display issues with thinking tags (`<think>...</think>`)
+- Slower response times
+- Unnecessary reasoning overhead for simple tasks
+
+
+
+**Not Recommended:**
+- ❌ QwQ-32B-Preview (reasoning model)
+- ❌ OpenAI o1, o1-mini, o1-preview (reasoning models)
+- ❌ DeepSeek-R1 (reasoning model)
+- ❌ Other models with explicit thinking/reasoning modes
+
 ---
 
 ## 📦 External Services
