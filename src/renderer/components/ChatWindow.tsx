@@ -181,11 +181,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             <span className="terminal-message system">正在初始化系统...</span>
           </div>
         ) : messages.length === 0 ? (
-          // 🔥 空状态：显示等待提示符和闪烁光标
+          // 🔥 空状态：显示等待提示符（不显示光标）
           <>
             <div className="terminal-line" style={{ display: 'block' }}>
               <span className="terminal-prompt agent">{agentName}@deepbot:~&gt;</span>
-              <span className="terminal-cursor" style={{ display: 'inline-block' }} />
             </div>
           </>
         ) : (
@@ -209,11 +208,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               </div>
             )}
 
-            {/* 等待提示符 - 只在完全空闲时显示 */}
+            {/* 等待提示符 - 只在完全空闲时显示（不显示光标） */}
             {!isLoading && messages.length > 0 && !messages.some(msg => msg.isStreaming) && (
               <div className="terminal-line" style={{ display: 'block' }}>
                 <span className="terminal-prompt agent">{agentName}@deepbot:~&gt;</span>
-                <span className="terminal-cursor" style={{ display: 'inline-block' }} />
               </div>
             )}
 

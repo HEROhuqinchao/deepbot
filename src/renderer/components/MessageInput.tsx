@@ -27,6 +27,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // 自动聚焦到输入框
+  useEffect(() => {
+    if (textareaRef.current && !disabled) {
+      textareaRef.current.focus();
+    }
+  }, [disabled]);
+
   // 自动调整文本框高度
   useEffect(() => {
     if (textareaRef.current) {
@@ -57,6 +64,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       if (textareaRef.current) {
         textareaRef.current.style.height = '32px';
         textareaRef.current.style.overflowY = 'hidden';
+        // 发送后重新聚焦到输入框
+        textareaRef.current.focus();
       }
     }
   };

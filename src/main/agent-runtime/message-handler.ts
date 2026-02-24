@@ -84,6 +84,10 @@ export class MessageHandler {
       throw new Error('Agent 未初始化');
     }
 
+    // 在用户消息末尾添加 /no_think 标记，禁用 thinking 模式
+    const messageWithNoThink = content.trim() + ' /no_think';
+    console.log('📤 发送消息到 AI（已添加 /no_think）:', messageWithNoThink.substring(0, 100));
+
     try {
       // 订阅 Agent 事件，并实现真正的流式输出
       let fullResponse = '';
@@ -109,7 +113,11 @@ export class MessageHandler {
         if (event.type === 'message_update' && event.assistantMessageEvent) {
           const assistantEvent = event.assistantMessageEvent;
           if (assistantEvent.type === 'text_delta' && assistantEvent.delta) {
-            fullResponse += assistantEvent.delta;
+            // 过滤掉 <think> 和 </think> 标签
+            const filteredDelta = assistantEvent.delta
+              .replace(/<think>/g, '')
+              .replace(/<\/think>/g, '');
+            fullResponse += filteredDelta;
           }
           return; // 跳过后续日志
         }
@@ -208,9 +216,9 @@ export class MessageHandler {
         const TIMEOUT_MS = TIMEOUTS.AGENT_MESSAGE_TIMEOUT;
         const startTime = Date.now();
         
-        // 启动 Agent.prompt()
+        // 启动 Agent.prompt()，使用添加了 /no_think 的消息
         // Agent 内部会自动处理工具调用循环，直到完成
-        void this.agent.prompt(content).then(() => {
+        void this.agent.prompt(messageWithNoThink).then(() => {
           const duration = Date.now() - startTime;
           console.log(`✅ agent.prompt() 完成，耗时: ${duration}ms`);
           console.log(`📊 Agent 最终状态:`);
