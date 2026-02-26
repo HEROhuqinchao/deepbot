@@ -220,15 +220,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         )}
       </div>
 
-      {/* 输入框 */}
-      <MessageInput 
-        onSend={onSendMessage} 
-        onStop={onStopGeneration} 
-        disabled={isLoading || isLocked || isInitializing} 
-        isGenerating={isLoading}
-        userName={userName}
-        disableStop={isLocked}
-      />
+      {/* 输入框 - 连接器 Tab 不显示输入框 */}
+      {tabs && activeTabId && tabs.find(t => t.id === activeTabId)?.type === 'connector' ? null : (
+        <MessageInput 
+          onSend={onSendMessage} 
+          onStop={onStopGeneration} 
+          disabled={isLoading || isLocked || isInitializing} 
+          isGenerating={isLoading}
+          userName={userName}
+          disableStop={isLocked}
+        />
+      )}
     </div>
   );
 });

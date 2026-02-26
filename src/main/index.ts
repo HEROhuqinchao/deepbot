@@ -178,6 +178,10 @@ function createWindow() {
   gateway = new Gateway();
   gateway.setMainWindow(mainWindow);
   
+  // 🔥 设置 Gateway 实例供 connector-handler 使用
+  const { setGatewayForConnectorHandler } = require('./ipc/connector-handler');
+  setGatewayForConnectorHandler(gateway);
+  
   // 🔥 将 Gateway 实例传递给 model-config-handler
   setGatewayForModelConfig(gateway);
   
@@ -790,6 +794,10 @@ app.whenReady().then(() => {
   // 注册 IPC 处理器
   registerIpcHandlers();
   registerModelConfigHandlers();
+  
+  // 🔥 注册连接器 IPC 处理器
+  const { registerConnectorHandlers, setGatewayForConnectorHandler } = require('./ipc/connector-handler');
+  registerConnectorHandlers();
   
   // 创建窗口
   createWindow();

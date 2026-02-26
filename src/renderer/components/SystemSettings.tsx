@@ -11,9 +11,10 @@ import { ModelConfig } from './settings/ModelConfig';
 import { EnvironmentConfig } from './settings/EnvironmentConfig';
 import { WorkspaceConfig } from './settings/WorkspaceConfig';
 import { ToolConfig } from './settings/ToolConfig';
+import { ConnectorConfig } from './settings/ConnectorConfig';
 import '../styles/settings.css';
 
-type SettingsTab = 'model' | 'environment' | 'workspace' | 'tools';
+type SettingsTab = 'model' | 'environment' | 'workspace' | 'tools' | 'connectors';
 
 interface SystemSettingsProps {
   isOpen: boolean;
@@ -67,6 +68,12 @@ export function SystemSettings({ isOpen, onClose }: SystemSettingsProps) {
               >
                 工具配置
               </button>
+              <button
+                onClick={() => setActiveTab('connectors')}
+                className={`settings-nav-item ${activeTab === 'connectors' ? 'active' : ''}`}
+              >
+                外部通讯
+              </button>
             </nav>
           </div>
 
@@ -76,6 +83,7 @@ export function SystemSettings({ isOpen, onClose }: SystemSettingsProps) {
             {activeTab === 'environment' && <EnvironmentConfig onClose={onClose} />}
             {activeTab === 'workspace' && <WorkspaceConfig onClose={onClose} />}
             {activeTab === 'tools' && <ToolConfig onClose={onClose} />}
+            {activeTab === 'connectors' && <ConnectorConfig onClose={onClose} />}
           </div>
         </div>
       </div>

@@ -34,6 +34,15 @@ interface DeepBotAPI {
   getAllTabs: () => Promise<{ success: boolean; tabs?: import('./agent-tab').AgentTab[]; error?: string }>;
   switchTab: (tabId: string) => Promise<{ success: boolean; error?: string }>;
   onTabCreated: (callback: (data: { tab: import('./agent-tab').AgentTab }) => void) => () => void;
+  connectorGetAll: () => Promise<any>;
+  connectorGetConfig: (connectorId: string) => Promise<any>;
+  connectorSaveConfig: (connectorId: string, config: any) => Promise<any>;
+  connectorStart: (connectorId: string) => Promise<any>;
+  connectorStop: (connectorId: string) => Promise<any>;
+  connectorHealthCheck: (connectorId: string) => Promise<any>;
+  connectorGetPairingRecords: (connectorId?: string) => Promise<any>;
+  connectorApprovePairing: (pairingCode: string) => Promise<any>;
+  connectorDeletePairing: (connectorId: string, userId: string) => Promise<any>;
   onSubAgentStatusUpdate: (callback: (data: any) => void) => () => void;
   onMessageStream: (callback: (chunk: any) => void) => () => void;
   onMessageError: (callback: (error: any) => void) => () => void;

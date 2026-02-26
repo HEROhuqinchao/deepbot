@@ -45,6 +45,15 @@ const IPC_CHANNELS = {
   GET_TABS: 'tab:get-all',
   SWITCH_TAB: 'tab:switch',
   TAB_CREATED: 'tab:created', // Tab 创建通知
+  CONNECTOR_GET_ALL: 'connector:get-all',
+  CONNECTOR_GET_CONFIG: 'connector:get-config',
+  CONNECTOR_SAVE_CONFIG: 'connector:save-config',
+  CONNECTOR_START: 'connector:start',
+  CONNECTOR_STOP: 'connector:stop',
+  CONNECTOR_HEALTH_CHECK: 'connector:health-check',
+  CONNECTOR_GET_PAIRING_RECORDS: 'connector:get-pairing-records',
+  CONNECTOR_APPROVE_PAIRING: 'connector:approve-pairing',
+  CONNECTOR_DELETE_PAIRING: 'connector:delete-pairing',
 } as const;
 
 /**
@@ -180,6 +189,43 @@ contextBridge.exposeInMainWorld('deepbot', {
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.TAB_CREATED, listener);
     };
+  },
+  
+  // 连接器管理
+  connectorGetAll: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_GET_ALL);
+  },
+  
+  connectorGetConfig: (connectorId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_GET_CONFIG, { connectorId });
+  },
+  
+  connectorSaveConfig: (connectorId: string, config: any) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_SAVE_CONFIG, { connectorId, config });
+  },
+  
+  connectorStart: (connectorId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_START, { connectorId });
+  },
+  
+  connectorStop: (connectorId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_STOP, { connectorId });
+  },
+  
+  connectorHealthCheck: (connectorId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_HEALTH_CHECK, { connectorId });
+  },
+  
+  connectorGetPairingRecords: (connectorId?: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_GET_PAIRING_RECORDS, { connectorId });
+  },
+  
+  connectorApprovePairing: (pairingCode: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_APPROVE_PAIRING, { pairingCode });
+  },
+  
+  connectorDeletePairing: (connectorId: string, userId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_DELETE_PAIRING, { connectorId, userId });
   },
 
   // 监听流式消息

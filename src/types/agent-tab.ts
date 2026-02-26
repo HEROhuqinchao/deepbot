@@ -10,12 +10,16 @@ import type { Message } from './message';
 export interface AgentTab {
   id: string;                    // Tab ID（唯一标识）
   title: string;                 // Tab 标题
+  type?: 'normal' | 'connector' | 'scheduled_task'; // Tab 类型
   messages: Message[];           // 消息历史
   isLoading: boolean;            // 是否正在加载
   createdAt: number;             // 创建时间
   lastActiveAt: number;          // 最后活跃时间
   isLocked?: boolean;            // 是否锁定（定时任务专属 Tab）
   taskId?: string;               // 关联的定时任务 ID（如果是任务 Tab）
+  connectorId?: string;          // 连接器 ID（如果是连接器 Tab）
+  conversationId?: string;       // 外部会话 ID（如果是连接器 Tab）
+  conversationKey?: string;      // 会话唯一标识（用于查找 Tab）
 }
 
 /**

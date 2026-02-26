@@ -67,6 +67,17 @@ export const IPC_CHANNELS = {
   GET_TABS: 'tab:get-all',
   SWITCH_TAB: 'tab:switch',
   TAB_CREATED: 'tab:created', // Tab 创建通知
+  
+  // 连接器管理
+  CONNECTOR_GET_ALL: 'connector:get-all',
+  CONNECTOR_GET_CONFIG: 'connector:get-config',
+  CONNECTOR_SAVE_CONFIG: 'connector:save-config',
+  CONNECTOR_START: 'connector:start',
+  CONNECTOR_STOP: 'connector:stop',
+  CONNECTOR_HEALTH_CHECK: 'connector:health-check',
+  CONNECTOR_GET_PAIRING_RECORDS: 'connector:get-pairing-records',
+  CONNECTOR_APPROVE_PAIRING: 'connector:approve-pairing',
+  CONNECTOR_DELETE_PAIRING: 'connector:delete-pairing',
 } as const;
 
 // 发送消息请求
@@ -275,6 +286,106 @@ export interface SaveUserNameRequest {
 }
 
 export interface SaveUserNameResponse {
+  success: boolean;
+  error?: string;
+}
+
+// 连接器管理
+export interface GetAllConnectorsResponse {
+  success: boolean;
+  connectors?: Array<{
+    id: string;
+    name: string;
+    version: string;
+    enabled: boolean;
+    hasConfig: boolean;
+  }>;
+  error?: string;
+}
+
+export interface GetConnectorConfigRequest {
+  connectorId: string;
+}
+
+export interface GetConnectorConfigResponse {
+  success: boolean;
+  config?: any;
+  enabled?: boolean;
+  error?: string;
+}
+
+export interface SaveConnectorConfigRequest {
+  connectorId: string;
+  config: any;
+  enabled?: boolean;
+}
+
+export interface SaveConnectorConfigResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface StartConnectorRequest {
+  connectorId: string;
+}
+
+export interface StartConnectorResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface StopConnectorRequest {
+  connectorId: string;
+}
+
+export interface StopConnectorResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface HealthCheckConnectorRequest {
+  connectorId: string;
+}
+
+export interface HealthCheckConnectorResponse {
+  success: boolean;
+  status?: 'healthy' | 'unhealthy';
+  message?: string;
+  error?: string;
+}
+
+export interface GetPairingRecordsRequest {
+  connectorId?: string;
+}
+
+export interface GetPairingRecordsResponse {
+  success: boolean;
+  records?: Array<{
+    connectorId: string;
+    userId: string;
+    pairingCode: string;
+    approved: boolean;
+    createdAt: number;
+    approvedAt?: number;
+  }>;
+  error?: string;
+}
+
+export interface ApprovePairingRequest {
+  pairingCode: string;
+}
+
+export interface ApprovePairingResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface DeletePairingRequest {
+  connectorId: string;
+  userId: string;
+}
+
+export interface DeletePairingResponse {
   success: boolean;
   error?: string;
 }

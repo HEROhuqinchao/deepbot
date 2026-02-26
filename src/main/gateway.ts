@@ -14,6 +14,9 @@ import { AgentRuntime } from './agent-runtime/index';
 import type { AgentTab } from '../types/agent-tab';
 import { getErrorMessage } from '../shared/utils/error-handler';
 import { setGatewayInstance } from './tools/scheduled-task-tool';
+import type { GatewayMessage } from '../types/connector';
+import { ConnectorManager } from './connectors/connector-manager';
+import { FeishuConnector } from './connectors/feishu/feishu-connector';
 
 export class Gateway {
   private mainWindow: BrowserWindow | null = null;
@@ -26,13 +29,26 @@ export class Gateway {
   private tabIdCounter: number = 0; // Tab ID 计数器（确保唯一性）
   private readonly MAX_TABS = 10; // 最多 10 个 Tab
   private taskTabMap: Map<string, string> = new Map(); // 任务 ID -> Tab ID 映射
+  private connectorTabMap: Map<string, string> = new Map(); // 连接器会话 ID -> Tab ID 映射
   
   // 消息队列（每个会话一个队列）
   private messageQueues: Map<string, Array<{ content: string; displayContent?: string }>> = new Map();
   private processingQueues: Set<string> = new Set(); // 正在处理队列的会话
+  
+  // 连接器管理
+  private connectorManager: ConnectorManager;
 
   constructor() {
     console.log('Gateway 初始化');
+    
+    // 初始化 ConnectorManager
+    this.connectorManager = new ConnectorManager(this);
+    
+    // 注册飞书连接器
+    const feishuConnector = new FeishuConnector(this.connectorManager);
+    this.connectorManager.registerConnector(feishuConnector);
+    console.log('[Gateway] ✅ 飞书连接器已注册');
+    
     // 设置 Gateway 实例供 scheduled-task-tool 使用
     setGatewayInstance(this);
     
@@ -43,6 +59,48 @@ export class Gateway {
     
     // 创建默认 Tab
     this.createDefaultTab();
+    
+    // 🔥 异步启动已启用的连接器（不阻塞初始化）
+    this.autoStartConnectors().catch(error => {
+      console.error('[Gateway] ❌ 自动启动连接器失败:', error);
+    });
+  }
+  
+  /**
+   * 自动启动已启用的连接器
+   */
+  private async autoStartConnectors(): Promise<void> {
+    console.log('[Gateway] 🔄 检查并启动已启用的连接器...');
+    
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      
+      // 获取所有连接器
+      const allConnectors = this.connectorManager.getAllConnectors();
+      
+      for (const connector of allConnectors) {
+        try {
+          // 检查配置
+          const configData = store.getConnectorConfig(connector.id);
+          
+          if (configData && configData.enabled) {
+            console.log(`[Gateway] 🚀 自动启动连接器: ${connector.id}`);
+            await this.connectorManager.startConnector(connector.id as any);
+            console.log(`[Gateway] ✅ 连接器已启动: ${connector.id}`);
+          } else {
+            console.log(`[Gateway] ⏭️ 跳过未启用的连接器: ${connector.id}`);
+          }
+        } catch (error) {
+          console.error(`[Gateway] ❌ 启动连接器失败: ${connector.id}`, error);
+          // 继续启动其他连接器
+        }
+      }
+      
+      console.log('[Gateway] ✅ 连接器自动启动完成');
+    } catch (error) {
+      console.error('[Gateway] ❌ 自动启动连接器过程失败:', error);
+    }
   }
 
   /**
@@ -382,6 +440,7 @@ export class Gateway {
    */
   private async sendAIResponse(runtime: AgentRuntime, userMessage: string, sessionId: string): Promise<void> {
     const messageId = `msg-${Date.now()}`;
+    let fullResponse = ''; // 收集完整响应
 
     try {
       // 设置执行步骤更新回调
@@ -401,12 +460,20 @@ export class Gateway {
 
       // 逐块发送
       for await (const chunk of stream) {
+        fullResponse += chunk; // 收集响应
         this.sendStreamChunk(messageId, chunk, false, false, undefined, undefined, sessionId);
       }
 
       // 发送完成信号（包含最终的执行步骤）
       const finalSteps = runtime.getExecutionSteps();
       this.sendStreamChunk(messageId, '', true, false, undefined, finalSteps, sessionId);
+      
+      // 🔥 如果是连接器 Tab，发送响应到连接器
+      const tab = this.tabs.get(sessionId);
+      if (tab && tab.type === 'connector' && fullResponse.trim()) {
+        console.log('[Gateway] 🔄 检测到连接器 Tab，发送响应到连接器');
+        await this.sendResponseToConnector(sessionId, fullResponse);
+      }
     } catch (error) {
       console.error('AI 响应失败:', error);
       throw error;
@@ -540,37 +607,49 @@ export class Gateway {
   /**
    * 创建新 Tab
    * 
-   * @param title - Tab 标题（可选）
+   * @param options - 创建选项
    * @returns 新创建的 Tab
    */
-  createTab(title?: string): AgentTab {
+  async createTab(options: {
+    type?: 'normal' | 'connector' | 'scheduled_task';
+    title?: string;
+    conversationKey?: string;
+    connectorId?: string;
+    conversationId?: string;
+    taskId?: string;
+  }): Promise<AgentTab> {
     // 检查 Tab 数量限制
     if (this.tabs.size >= this.MAX_TABS) {
       throw new Error(`最多只能创建 ${this.MAX_TABS} 个窗口`);
     }
     
-    // 🔥 生成唯一的 Tab ID（使用计数器确保唯一性）
+    // 生成唯一的 Tab ID
     this.tabIdCounter++;
     const tabId = `tab-${Date.now()}-${this.tabIdCounter}`;
     
     // 生成默认标题
-    const tabTitle = title || `Agent ${this.tabCounter + 1}`;
+    const tabTitle = options.title || `Agent ${this.tabCounter + 1}`;
     this.tabCounter++;
     
     // 创建 Tab
     const tab: AgentTab = {
       id: tabId,
       title: tabTitle,
+      type: options.type || 'normal',
       messages: [],
       isLoading: false,
       createdAt: Date.now(),
       lastActiveAt: Date.now(),
+      conversationKey: options.conversationKey,
+      connectorId: options.connectorId,
+      conversationId: options.conversationId,
+      taskId: options.taskId,
     };
     
     this.tabs.set(tabId, tab);
-    console.log('[Gateway] 创建新 Tab:', tabId, tabTitle);
+    console.log('[Gateway] 创建新 Tab:', tabId, tabTitle, options.type);
     
-    // 🔥 通知前端 Tab 已创建
+    // 通知前端 Tab 已创建
     this.notifyTabCreated(tab);
     
     return tab;
@@ -716,5 +795,124 @@ export class Gateway {
     if (tab) {
       tab.lastActiveAt = Date.now();
     }
+  }
+  
+  // ========== 连接器相关方法 ==========
+  
+  /**
+   * 处理连接器消息
+   * 
+   * @param message - Gateway 消息
+   */
+  async handleConnectorMessage(message: GatewayMessage): Promise<void> {
+    console.log('[Gateway] 处理连接器消息:', {
+      connectorId: message.source.connectorId,
+      conversationId: message.source.conversationId,
+      senderId: message.source.senderId,
+      senderName: message.source.senderName,
+    });
+    
+    try {
+      // 1. 查找或创建 Tab
+      const conversationKey = `${message.source.connectorId}_${message.source.conversationId}`;
+      let tab = this.findTabByConversationKey(conversationKey);
+      
+      if (!tab) {
+        // 创建新 Tab - 标题只显示连接器名称
+        const title = message.source.connectorId;
+        tab = await this.createTab({
+          type: 'connector',
+          title,
+          conversationKey,
+          connectorId: message.source.connectorId,
+          conversationId: message.source.conversationId,
+        });
+        
+        console.log('[Gateway] 创建连接器 Tab:', {
+          tabId: tab.id,
+          title,
+          conversationKey,
+        });
+      }
+      
+      // 2. 发送消息给 Agent 处理
+      const content = message.content.text || '';
+      const senderName = message.source.senderName || '用户';
+      
+      // displayContent: 前端显示的内容（带发送者信息）
+      // content: 发送给 Agent 的内容（原始消息）
+      const displayContent = `[来自: ${senderName}]\n${content}`;
+      
+      await this.handleSendMessage(content, tab.id, displayContent);
+      
+      console.log('[Gateway] ✅ 连接器消息已处理');
+    } catch (error) {
+      console.error('[Gateway] ❌ 处理连接器消息失败:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 发送响应到连接器
+   * 
+   * @param tabId - Tab ID
+   * @param response - 响应内容
+   */
+  async sendResponseToConnector(tabId: string, response: string): Promise<void> {
+    const tab = this.tabs.get(tabId);
+    if (!tab || tab.type !== 'connector') {
+      console.log('[Gateway] Tab 不是连接器类型，跳过发送');
+      return;
+    }
+    
+    if (!tab.connectorId || !tab.conversationId) {
+      console.error('[Gateway] Tab 缺少连接器信息');
+      return;
+    }
+    
+    console.log('[Gateway] 发送响应到连接器:', {
+      tabId,
+      connectorId: tab.connectorId,
+      conversationId: tab.conversationId,
+      responseLength: response.length,
+    });
+    
+    try {
+      // 调用 ConnectorManager 发送消息
+      await this.connectorManager.sendOutgoingMessage(
+        tab.connectorId as any,
+        tab.conversationId,
+        response
+      );
+      
+      console.log('[Gateway] ✅ 响应已发送到连接器');
+    } catch (error) {
+      console.error('[Gateway] ❌ 发送响应到连接器失败:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 查找 Tab（基于 conversationKey）
+   * 
+   * @param key - 会话 Key
+   * @returns Tab 或 null
+   */
+  private findTabByConversationKey(key: string): AgentTab | null {
+    for (const tab of this.tabs.values()) {
+      if (tab.conversationKey === key) {
+        return tab;
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * 获取 ConnectorManager 实例
+   * 
+   * @returns ConnectorManager
+   */
+  getConnectorManager(): ConnectorManager {
+    return this.connectorManager;
   }
 }

@@ -185,6 +185,43 @@ export class SystemConfigStore {
       )
     `);
 
+    // 连接器配置表
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS connector_config (
+        connector_id TEXT PRIMARY KEY,
+        connector_name TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 0,
+        config_json TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    // 连接器 Pairing 记录表
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS connector_pairing (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        connector_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        pairing_code TEXT NOT NULL UNIQUE,
+        approved INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        approved_at INTEGER,
+        UNIQUE(connector_id, user_id)
+      )
+    `);
+
+    // 创建索引
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_connector_pairing_code 
+      ON connector_pairing(pairing_code)
+    `);
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_connector_pairing_user 
+      ON connector_pairing(connector_id, user_id)
+    `);
+
     console.info('[SystemConfigStore] ✅ 数据库表初始化完成');
   }
 
@@ -773,5 +810,222 @@ export class SystemConfigStore {
    */
   close(): void {
     this.db.close();
+  }
+
+  // ========== 连接器配置管理 ==========
+
+  /**
+   * 保存连接器配置
+   */
+  saveConnectorConfig(connectorId: string, connectorName: string, config: any, enabled: boolean = false): void {
+    const now = Date.now();
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO connector_config 
+      (connector_id, connector_name, enabled, config_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, COALESCE((SELECT created_at FROM connector_config WHERE connector_id = ?), ?), ?)
+    `);
+
+    stmt.run(
+      connectorId,
+      connectorName,
+      enabled ? 1 : 0,
+      JSON.stringify(config),
+      connectorId,
+      now,
+      now
+    );
+
+    console.info('[SystemConfigStore] ✅ 连接器配置已保存:', { connectorId, connectorName, enabled });
+  }
+
+  /**
+   * 获取连接器配置
+   */
+  getConnectorConfig(connectorId: string): { config: any; enabled: boolean } | null {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT config_json, enabled FROM connector_config WHERE connector_id = ?
+      `);
+      const row = stmt.get(connectorId) as any;
+      
+      if (!row) return null;
+
+      return {
+        config: JSON.parse(row.config_json),
+        enabled: row.enabled === 1,
+      };
+    } catch (error) {
+      console.error('[SystemConfigStore] 获取连接器配置失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 获取所有连接器配置
+   */
+  getAllConnectorConfigs(): Array<{ connectorId: string; connectorName: string; config: any; enabled: boolean }> {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT connector_id, connector_name, config_json, enabled FROM connector_config
+      `);
+      const rows = stmt.all() as any[];
+      
+      return rows.map((row) => ({
+        connectorId: row.connector_id,
+        connectorName: row.connector_name,
+        config: JSON.parse(row.config_json),
+        enabled: row.enabled === 1,
+      }));
+    } catch (error) {
+      console.error('[SystemConfigStore] 获取所有连接器配置失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 启用/禁用连接器
+   */
+  setConnectorEnabled(connectorId: string, enabled: boolean): void {
+    const stmt = this.db.prepare(`
+      UPDATE connector_config SET enabled = ?, updated_at = ? WHERE connector_id = ?
+    `);
+    stmt.run(enabled ? 1 : 0, Date.now(), connectorId);
+    console.info('[SystemConfigStore] ✅ 连接器状态已更新:', { connectorId, enabled });
+  }
+
+  /**
+   * 删除连接器配置
+   */
+  deleteConnectorConfig(connectorId: string): void {
+    const stmt = this.db.prepare(`
+      DELETE FROM connector_config WHERE connector_id = ?
+    `);
+    stmt.run(connectorId);
+    console.info('[SystemConfigStore] ✅ 连接器配置已删除:', connectorId);
+  }
+
+  // ========== Pairing 记录管理 ==========
+
+  /**
+   * 保存 Pairing 记录
+   */
+  savePairingRecord(connectorId: string, userId: string, pairingCode: string): void {
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO connector_pairing 
+      (connector_id, user_id, pairing_code, approved, created_at)
+      VALUES (?, ?, ?, 0, ?)
+    `);
+
+    stmt.run(connectorId, userId, pairingCode, Date.now());
+    console.info('[SystemConfigStore] ✅ Pairing 记录已保存:', { connectorId, userId, pairingCode });
+  }
+
+  /**
+   * 获取 Pairing 记录（通过配对码）
+   */
+  getPairingRecordByCode(pairingCode: string): { connectorId: string; userId: string; approved: boolean } | null {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT connector_id, user_id, approved FROM connector_pairing WHERE pairing_code = ?
+      `);
+      const row = stmt.get(pairingCode) as any;
+      
+      if (!row) return null;
+
+      return {
+        connectorId: row.connector_id,
+        userId: row.user_id,
+        approved: row.approved === 1,
+      };
+    } catch (error) {
+      console.error('[SystemConfigStore] 获取 Pairing 记录失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 获取 Pairing 记录（通过用户 ID）
+   */
+  getPairingRecordByUser(connectorId: string, userId: string): { pairingCode: string; approved: boolean } | null {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT pairing_code, approved FROM connector_pairing 
+        WHERE connector_id = ? AND user_id = ?
+      `);
+      const row = stmt.get(connectorId, userId) as any;
+      
+      if (!row) return null;
+
+      return {
+        pairingCode: row.pairing_code,
+        approved: row.approved === 1,
+      };
+    } catch (error) {
+      console.error('[SystemConfigStore] 获取 Pairing 记录失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 批准 Pairing 记录
+   */
+  approvePairingRecord(pairingCode: string): void {
+    const stmt = this.db.prepare(`
+      UPDATE connector_pairing SET approved = 1, approved_at = ? WHERE pairing_code = ?
+    `);
+    stmt.run(Date.now(), pairingCode);
+    console.info('[SystemConfigStore] ✅ Pairing 记录已批准:', pairingCode);
+  }
+
+  /**
+   * 删除 Pairing 记录
+   */
+  deletePairingRecord(connectorId: string, userId: string): void {
+    const stmt = this.db.prepare(`
+      DELETE FROM connector_pairing WHERE connector_id = ? AND user_id = ?
+    `);
+    stmt.run(connectorId, userId);
+    console.info('[SystemConfigStore] ✅ Pairing 记录已删除:', { connectorId, userId });
+  }
+
+  /**
+   * 获取所有 Pairing 记录（用于管理界面）
+   */
+  getAllPairingRecords(connectorId?: string): Array<{
+    connectorId: string;
+    userId: string;
+    pairingCode: string;
+    approved: boolean;
+    createdAt: number;
+    approvedAt?: number;
+  }> {
+    try {
+      let stmt;
+      let rows;
+      
+      if (connectorId) {
+        stmt = this.db.prepare(`
+          SELECT * FROM connector_pairing WHERE connector_id = ? ORDER BY created_at DESC
+        `);
+        rows = stmt.all(connectorId) as any[];
+      } else {
+        stmt = this.db.prepare(`
+          SELECT * FROM connector_pairing ORDER BY created_at DESC
+        `);
+        rows = stmt.all() as any[];
+      }
+      
+      return rows.map((row) => ({
+        connectorId: row.connector_id,
+        userId: row.user_id,
+        pairingCode: row.pairing_code,
+        approved: row.approved === 1,
+        createdAt: row.created_at,
+        approvedAt: row.approved_at,
+      }));
+    } catch (error) {
+      console.error('[SystemConfigStore] 获取所有 Pairing 记录失败:', error);
+      return [];
+    }
   }
 }

@@ -1,0 +1,247 @@
+/**
+ * Connector Manager - 连接器管理器
+ * 
+ * 职责：
+ * - 管理所有 Connector 实例
+ * - 启动/停止 Connector
+ * - 配置管理
+ * - 处理外部消息并转发到 Gateway
+ * 
+ * 参考：Clawdbot Channel Plugin 系统
+ */
+
+import type { Gateway } from '../gateway';
+import type {
+  Connector,
+  ConnectorId,
+  ConnectorConfig,
+  GatewayMessage,
+  FeishuIncomingMessage,
+} from '../../types/connector';
+import { getErrorMessage } from '../../shared/utils/error-handler';
+
+export class ConnectorManager {
+  private connectors: Map<ConnectorId, Connector> = new Map();
+  private gateway: Gateway;
+  
+  constructor(gateway: Gateway) {
+    this.gateway = gateway;
+    console.log('[ConnectorManager] 初始化');
+  }
+  
+  /**
+   * 注册连接器
+   * 
+   * @param connector - 连接器实例
+   */
+  registerConnector(connector: Connector): void {
+    this.connectors.set(connector.id, connector);
+    console.log(`[ConnectorManager] 注册连接器: ${connector.id} (${connector.name})`);
+  }
+  
+  /**
+   * 启动连接器
+   * 
+   * @param connectorId - 连接器 ID
+   */
+  async startConnector(connectorId: ConnectorId): Promise<void> {
+    const connector = this.connectors.get(connectorId);
+    if (!connector) {
+      throw new Error(`连接器不存在: ${connectorId}`);
+    }
+    
+    console.log(`[ConnectorManager] 启动连接器: ${connectorId}`);
+    
+    try {
+      // 加载配置
+      const config = await connector.config.load();
+      if (!config) {
+        throw new Error('配置不存在');
+      }
+      
+      if (!config.enabled) {
+        console.log(`[ConnectorManager] 连接器未启用: ${connectorId}`);
+        return;
+      }
+      
+      // 验证配置
+      if (!connector.config.validate(config)) {
+        throw new Error('配置无效');
+      }
+      
+      // 初始化
+      await connector.initialize(config);
+      
+      // 启动
+      await connector.start();
+      
+      console.log(`[ConnectorManager] ✅ 连接器已启动: ${connectorId}`);
+    } catch (error) {
+      console.error(`[ConnectorManager] ❌ 启动连接器失败: ${connectorId}`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 停止连接器
+   * 
+   * @param connectorId - 连接器 ID
+   */
+  async stopConnector(connectorId: ConnectorId): Promise<void> {
+    const connector = this.connectors.get(connectorId);
+    if (!connector) {
+      throw new Error(`连接器不存在: ${connectorId}`);
+    }
+    
+    console.log(`[ConnectorManager] 停止连接器: ${connectorId}`);
+    
+    try {
+      await connector.stop();
+      console.log(`[ConnectorManager] ✅ 连接器已停止: ${connectorId}`);
+    } catch (error) {
+      console.error(`[ConnectorManager] ❌ 停止连接器失败: ${connectorId}`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 获取连接器
+   * 
+   * @param connectorId - 连接器 ID
+   * @returns 连接器实例
+   */
+  getConnector(connectorId: ConnectorId): Connector | null {
+    return this.connectors.get(connectorId) || null;
+  }
+  
+  /**
+   * 获取所有连接器
+   * 
+   * @returns 连接器列表
+   */
+  getAllConnectors(): Connector[] {
+    return Array.from(this.connectors.values());
+  }
+  
+  /**
+   * 处理外部消息（由 Connector 调用）
+   * 
+   * @param connectorId - 连接器 ID
+   * @param parsedMessage - 解析后的消息
+   */
+  async handleIncomingMessage(
+    connectorId: ConnectorId,
+    parsedMessage: FeishuIncomingMessage
+  ): Promise<void> {
+    console.log(`[ConnectorManager] 收到外部消息: ${connectorId}`, {
+      messageId: parsedMessage.messageId,
+      sender: parsedMessage.sender.name,
+      conversation: parsedMessage.conversation.id,
+    });
+    
+    try {
+      // 转换为 Gateway 格式
+      const gatewayMessage: GatewayMessage = {
+        tabId: '', // 由 Gateway 分配
+        messageId: parsedMessage.messageId,
+        timestamp: parsedMessage.timestamp,
+        source: {
+          type: 'connector',
+          connectorId,
+          conversationId: parsedMessage.conversation.id,
+          senderId: parsedMessage.sender.id,
+          senderName: parsedMessage.sender.name,
+        },
+        content: parsedMessage.content,
+        raw: parsedMessage.raw,
+      };
+      
+      // 转发到 Gateway
+      await this.gateway.handleConnectorMessage(gatewayMessage);
+      
+      console.log(`[ConnectorManager] ✅ 消息已转发到 Gateway`);
+    } catch (error) {
+      console.error(`[ConnectorManager] ❌ 处理消息失败:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 发送消息到外部（由 Gateway 调用）
+   * 
+   * @param connectorId - 连接器 ID
+   * @param conversationId - 会话 ID
+   * @param content - 消息内容
+   */
+  async sendOutgoingMessage(
+    connectorId: ConnectorId,
+    conversationId: string,
+    content: string
+  ): Promise<void> {
+    const connector = this.connectors.get(connectorId);
+    if (!connector) {
+      throw new Error(`连接器不存在: ${connectorId}`);
+    }
+    
+    console.log(`[ConnectorManager] 发送消息到外部: ${connectorId}`, {
+      conversationId,
+      contentLength: content.length,
+    });
+    
+    try {
+      await connector.outbound.sendMessage({
+        conversationId,
+        content,
+      });
+      
+      console.log(`[ConnectorManager] ✅ 消息已发送`);
+    } catch (error) {
+      console.error(`[ConnectorManager] ❌ 发送消息失败:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 健康检查
+   * 
+   * @param connectorId - 连接器 ID
+   * @returns 健康状态
+   */
+  async healthCheck(connectorId: ConnectorId): Promise<any> {
+    const connector = this.connectors.get(connectorId);
+    if (!connector) {
+      return {
+        status: 'unhealthy',
+        message: '连接器不存在',
+      };
+    }
+    
+    try {
+      return await connector.healthCheck();
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        message: getErrorMessage(error),
+      };
+    }
+  }
+  
+  /**
+   * 销毁所有连接器
+   */
+  async destroy(): Promise<void> {
+    console.log('[ConnectorManager] 销毁所有连接器...');
+    
+    for (const [connectorId, connector] of this.connectors.entries()) {
+      try {
+        await connector.stop();
+        console.log(`[ConnectorManager] 已停止连接器: ${connectorId}`);
+      } catch (error) {
+        console.error(`[ConnectorManager] 停止连接器失败: ${connectorId}`, error);
+      }
+    }
+    
+    this.connectors.clear();
+    console.log('[ConnectorManager] ✅ 所有连接器已销毁');
+  }
+}
