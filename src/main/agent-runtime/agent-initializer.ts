@@ -6,16 +6,7 @@
 
 import type { Agent } from '@mariozechner/pi-agent-core';
 import type { Model } from '@mariozechner/pi-ai';
-import { getFileTools } from '../tools/file-tool';
-import { getExecTools } from '../tools/exec-tool';
-import { createBrowserTool } from '../tools/browser-tool';
-import { getCalendarTools } from '../tools/calendar-tool';
-import { createSkillManagerTool } from '../tools/skill-manager-tool';
-import { createScheduledTaskTool } from '../tools/scheduled-task-tool';
-import { createEnvironmentCheckTool } from '../tools/environment-check-tool';
-import { createImageGenerationTool } from '../tools/image-generation-tool';
-import { createWebSearchTool } from '../tools/web-search-tool';
-import { createMemoryTool } from '../tools/memory-tool';
+import { ToolLoader } from '../tools/registry/tool-loader';
 import { startBrowserControlServer, stopBrowserControlServer } from '../browser/server';
 import { buildSystemPrompt, loadContextFiles, buildRuntimeParams } from '../prompts';
 import type { SystemPromptParams } from '../../types/prompt';
@@ -89,18 +80,8 @@ export class AgentInitializer {
    * 加载所有工具
    */
   private async loadTools(): Promise<any[]> {
-    const fileTools = await getFileTools(this.workspaceDir);
-    const execTools = await getExecTools(this.workspaceDir);
-    const browserTool = createBrowserTool();
-    const calendarTools = getCalendarTools();
-    const skillManagerTool = createSkillManagerTool();
-    const scheduledTaskTool = createScheduledTaskTool();
-    const environmentCheckTool = createEnvironmentCheckTool();
-    const imageGenerationTool = createImageGenerationTool(this.configStore);
-    const webSearchTool = createWebSearchTool(this.configStore);
-    const memoryTool = createMemoryTool();
-    
-    return [...fileTools, ...execTools, browserTool, ...calendarTools, skillManagerTool, scheduledTaskTool, environmentCheckTool, imageGenerationTool, webSearchTool, memoryTool];
+    const toolLoader = new ToolLoader(this.workspaceDir, this.sessionId);
+    return await toolLoader.loadAllTools(this.configStore);
   }
 
   /**

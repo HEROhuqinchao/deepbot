@@ -27,6 +27,7 @@ const TAIL_RATIO = 0.2;
 const DEFAULT_BOOTSTRAP_FILES = [
   'AGENT.md',
   'TOOLS.md',
+  'CUSTOM-TOOLS.md',
   'MEMORY-TRIGGER.md',
 ];
 
