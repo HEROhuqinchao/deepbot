@@ -158,6 +158,109 @@ DeepBot adopts a modular architecture with the following layers:
 | **Skill Manager** | Skill management | Install/uninstall/list skill packages |
 | **Scheduled Task** | Scheduled tasks | Create/manage/execute scheduled tasks |
 
+### Creating Custom Tools
+
+DeepBot supports creating custom tools to extend functionality. All tools are built-in tools with code located in the `src/main/tools/` directory.
+
+#### Quick Start
+
+1. **Create Tool File**
+
+Create a new file in `src/main/tools/` (e.g., `my-tool.ts`):
+
+```typescript
+import { Type } from '@sinclair/typebox';
+import type { ToolPlugin } from './registry/tool-interface';
+
+export const myToolPlugin: ToolPlugin = {
+  metadata: {
+    id: 'my-tool',
+    name: 'my_tool',
+    description: 'My custom tool',
+    version: '1.0.0',
+  },
+  
+  create: (options) => ({
+    name: 'my_tool',
+    label: 'My Tool',
+    description: 'Execute custom operations',
+    parameters: Type.Object({
+      input: Type.String({ description: 'Input content' }),
+    }),
+    
+    execute: async (toolCallId, params, signal) => {
+      // Implement tool logic
+      return {
+        content: [{ type: 'text', text: 'Success' }],
+      };
+    },
+  }),
+};
+```
+
+2. **Load in tool-loader.ts**
+
+Edit `src/main/tools/registry/tool-loader.ts` to import and load the tool:
+
+```typescript
+import { myToolPlugin } from '../my-tool';
+
+// Add in loadBuiltinTools() method
+const myTools = myToolPlugin.create({
+  workspaceDir: this.workspaceDir,
+  sessionId: this.sessionId,
+  configStore,
+});
+tools.push(myTools);
+```
+
+3. **Add Tool Prompts**
+
+Edit `src/main/prompts/templates/CUSTOM-TOOLS.md` to add tool usage instructions:
+
+```markdown
+## my_tool - My Tool
+
+**Function**: Execute custom operations
+
+**Use Cases**:
+- Use case 1
+- Use case 2
+
+**Parameters**:
+- `input` (required): Input content
+
+**Example**:
+```json
+{
+  "input": "test content"
+}
+```
+
+**Notes**:
+- Note 1
+- Note 2
+```
+
+4. **Run Type Check**
+
+```bash
+pnpm run type-check
+```
+
+#### Advanced Features
+
+- **Config Files**: Read configuration from `~/.deepbot/tools/<tool-name>/config.json`
+- **External Dependencies**: Use dynamic `require()` to load dependencies without bundling
+- **Cancellation Support**: Support user cancellation via `AbortSignal`
+- **Prompt Management**: Add tool usage instructions in `CUSTOM-TOOLS.md` to help AI better understand and use the tool
+
+#### Examples and Documentation
+
+- 📖 [Complete Development Guide](src/main/tools/registry/README.md)
+- 📝 [Example Tool Template](src/main/tools/registry/example-tool.ts)
+- 🔧 [Email Tool Example](src/main/tools/email-tool.ts) - Complete example with config and external dependencies
+
 ---
 
 ## 🔒 Security Mechanism
@@ -228,13 +331,85 @@ DeepBot: "Scheduled task created, will execute daily at 9:00"
 
 ## 🎨 Skill Extensions
 
-The Skills system allows combining multiple tools to implement complex functions:
+The Skills system allows combining multiple tools to implement complex functions.
 
-### Install Skills
+### Install Existing Skills
 
 ```bash
 # Use Skill Manager tool in DeepBot
 "Install weather skill"
+```
+
+### Create Custom Skills
+
+Users can create their own Skills to implement specific functionality. A Skill is a directory containing a SKILL.md file using YAML frontmatter + Markdown format.
+
+#### 1. Create Skill Directory
+
+```bash
+mkdir -p ~/.deepbot/skills/my-skill
+cd ~/.deepbot/skills/my-skill
+```
+
+#### 2. Create SKILL.md File
+
+Create `SKILL.md` file (YAML frontmatter + Markdown instructions):
+
+```markdown
+---
+name: my-skill
+description: My custom skill for handling specific tasks
+version: 1.0.0
+author: Your Name
+---
+
+# My Custom Skill
+
+## When to use this skill
+
+Use this skill when the user needs to:
+- Operation 1
+- Operation 2
+
+## How to use
+
+### Step 1: Read file
+
+Use file_read tool to read file:
+
+```json
+{
+  "path": "~/example.txt"
+}
+```
+
+### Step 2: Process data
+
+Process the read data...
+
+### Step 3: Save results
+
+Use file_write tool to save results...
+
+## Notes
+
+- Note 1
+- Note 2
+```
+
+#### 3. Install Skill
+
+Two installation methods:
+
+**Method 1: Direct Placement** (Recommended)
+
+Place the Skill directory under `~/.deepbot/skills/`, restart DeepBot to auto-load.
+
+**Method 2: Use Skill Manager**
+
+```bash
+# Use command in DeepBot
+"Install local skill at path ~/.deepbot/skills/my-skill"
 ```
 
 ### Skill Directory
@@ -242,6 +417,12 @@ The Skills system allows combining multiple tools to implement complex functions
 - **Default Path**: `~/.deepbot/skills/`
 - **Auto-Discovery**: Automatically loads all installed Skills at startup
 - **Dynamic Management**: Supports runtime install/uninstall
+
+### Skill Development Documentation
+
+- 📖 Skills can call all built-in tools
+- 📝 Supports async operations and error handling
+- 🔧 Can combine multiple tools for complex functionality
 
 ---
 

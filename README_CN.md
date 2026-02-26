@@ -157,6 +157,109 @@ DeepBot 采用模块化架构，主要包含以下层次：
 | **Skill Manager** | 技能管理 | 安装/卸载/列出技能包 |
 | **Scheduled Task** | 定时任务 | 创建/管理/执行定时任务 |
 
+### 创建自定义工具
+
+DeepBot 支持创建自定义工具来扩展功能。所有工具都是内置工具，代码位于 `src/main/tools/` 目录。
+
+#### 快速开始
+
+1. **创建工具文件**
+
+在 `src/main/tools/` 创建新文件（如 `my-tool.ts`）：
+
+```typescript
+import { Type } from '@sinclair/typebox';
+import type { ToolPlugin } from './registry/tool-interface';
+
+export const myToolPlugin: ToolPlugin = {
+  metadata: {
+    id: 'my-tool',
+    name: 'my_tool',
+    description: '我的自定义工具',
+    version: '1.0.0',
+  },
+  
+  create: (options) => ({
+    name: 'my_tool',
+    label: '我的工具',
+    description: '执行自定义操作',
+    parameters: Type.Object({
+      input: Type.String({ description: '输入内容' }),
+    }),
+    
+    execute: async (toolCallId, params, signal) => {
+      // 实现工具逻辑
+      return {
+        content: [{ type: 'text', text: '执行成功' }],
+      };
+    },
+  }),
+};
+```
+
+2. **在 tool-loader.ts 中加载**
+
+编辑 `src/main/tools/registry/tool-loader.ts`，添加工具导入和加载：
+
+```typescript
+import { myToolPlugin } from '../my-tool';
+
+// 在 loadBuiltinTools() 方法中添加
+const myTools = myToolPlugin.create({
+  workspaceDir: this.workspaceDir,
+  sessionId: this.sessionId,
+  configStore,
+});
+tools.push(myTools);
+```
+
+3. **添加工具提示词**
+
+编辑 `src/main/prompts/templates/CUSTOM-TOOLS.md`，添加工具使用说明：
+
+```markdown
+## my_tool - 我的工具
+
+**功能**: 执行自定义操作
+
+**使用场景**:
+- 场景 1
+- 场景 2
+
+**参数**:
+- `input` (必填): 输入内容
+
+**示例**:
+```json
+{
+  "input": "测试内容"
+}
+```
+
+**注意事项**:
+- 注意事项 1
+- 注意事项 2
+```
+
+4. **运行类型检查**
+
+```bash
+pnpm run type-check
+```
+
+#### 高级功能
+
+- **配置文件**: 从 `~/.deepbot/tools/<tool-name>/config.json` 读取配置
+- **外部依赖**: 使用动态 `require()` 加载，避免打包到主项目
+- **取消支持**: 通过 `AbortSignal` 支持用户取消操作
+- **提示词管理**: 在 `CUSTOM-TOOLS.md` 中添加工具使用说明，帮助 AI 更好地理解和使用工具
+
+#### 示例和文档
+
+- 📖 [完整开发指南](src/main/tools/registry/README.md)
+- 📝 [示例工具模板](src/main/tools/registry/example-tool.ts)
+- 🔧 [邮件工具示例](src/main/tools/email-tool.ts) - 带配置和外部依赖的完整示例
+
 ---
 
 ## 🔒 安全机制
@@ -227,13 +330,85 @@ DeepBot: "已创建定时任务，将在每天 9:00 执行"
 
 ## 🎨 技能扩展 (Skills)
 
-通过 Skills 系统可以组合多个工具实现复杂功能：
+通过 Skills 系统可以组合多个工具实现复杂功能。
 
-### 安装 Skill
+### 安装现有 Skill
 
 ```bash
 # 在 DeepBot 中使用 Skill Manager 工具
 "安装 weather skill"
+```
+
+### 创建自定义 Skill
+
+用户可以创建自己的 Skill 来实现特定功能。Skill 是包含 SKILL.md 文件的目录，使用 YAML frontmatter + Markdown 格式。
+
+#### 1. 创建 Skill 目录
+
+```bash
+mkdir -p ~/.deepbot/skills/my-skill
+cd ~/.deepbot/skills/my-skill
+```
+
+#### 2. 创建 SKILL.md 文件
+
+创建 `SKILL.md` 文件（YAML frontmatter + Markdown 指令）：
+
+```markdown
+---
+name: my-skill
+description: 我的自定义技能，用于处理特定任务
+version: 1.0.0
+author: Your Name
+---
+
+# 我的自定义技能
+
+## 何时使用此技能
+
+当用户需要执行以下操作时使用此技能：
+- 操作 1
+- 操作 2
+
+## 如何使用
+
+### 步骤 1：读取文件
+
+使用 file_read 工具读取文件：
+
+```json
+{
+  "path": "~/example.txt"
+}
+```
+
+### 步骤 2：处理数据
+
+对读取的数据进行处理...
+
+### 步骤 3：保存结果
+
+使用 file_write 工具保存结果...
+
+## 注意事项
+
+- 注意事项 1
+- 注意事项 2
+```
+
+#### 3. 安装 Skill
+
+有两种安装方式：
+
+**方式 1：直接放置**（推荐）
+
+将 Skill 目录放到 `~/.deepbot/skills/` 下，重启 DeepBot 即可自动加载。
+
+**方式 2：使用 Skill Manager**
+
+```bash
+# 在 DeepBot 中使用命令
+"安装本地 skill，路径是 ~/.deepbot/skills/my-skill"
 ```
 
 ### Skill 目录
@@ -241,6 +416,12 @@ DeepBot: "已创建定时任务，将在每天 9:00 执行"
 - **默认路径**: `~/.deepbot/skills/`
 - **自动发现**: 启动时自动加载所有已安装的 Skills
 - **动态管理**: 支持运行时安装/卸载
+
+### Skill 开发文档
+
+- 📖 Skill 可以调用所有内置工具
+- 📝 支持异步操作和错误处理
+- 🔧 可以组合多个工具实现复杂功能
 
 ---
 
