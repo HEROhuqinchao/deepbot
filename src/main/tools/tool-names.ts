@@ -36,6 +36,13 @@ export const TOOL_NAMES = {
   // 环境检查
   ENVIRONMENT_CHECK: 'environment_check',
   
+  // 邮件工具
+  SEND_EMAIL: 'send_email',
+  
+  // 连接器工具
+  CONNECTOR_SEND_IMAGE: 'connector_send_image',
+  CONNECTOR_SEND_FILE: 'connector_send_file',
+  
   // Mock 工具（测试用）
   MOCK_TOOL: 'mock_tool',
   MOCK_LONG_RUNNING: 'mock_long_running',

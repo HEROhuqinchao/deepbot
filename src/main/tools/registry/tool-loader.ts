@@ -24,6 +24,7 @@ import { createImageGenerationTool } from '../image-generation-tool';
 import { createWebSearchTool } from '../web-search-tool';
 import { createMemoryTool } from '../memory-tool';
 import { emailToolPlugin } from '../email-tool';
+import { connectorToolPlugin } from '../connector-tool';
 
 /**
  * 工具加载器类
@@ -162,6 +163,25 @@ export class ToolLoader {
         tools.push(...emailTools);
       } else {
         tools.push(emailTools);
+      }
+      
+      // 连接器工具
+      // 用于在连接器会话中发送图片和文件
+      const connectorToolsResult = connectorToolPlugin.create({
+        workspaceDir: this.workspaceDir,
+        sessionId: this.sessionId,
+        configStore,
+      });
+      
+      // 处理可能的 Promise 返回值
+      const connectorTools = connectorToolsResult instanceof Promise 
+        ? await connectorToolsResult 
+        : connectorToolsResult;
+      
+      if (Array.isArray(connectorTools)) {
+        tools.push(...connectorTools);
+      } else {
+        tools.push(connectorTools);
       }
     } catch (error) {
       console.error('❌ 加载内置工具失败:', error);

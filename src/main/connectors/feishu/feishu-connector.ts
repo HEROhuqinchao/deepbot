@@ -9,6 +9,8 @@
  */
 
 import * as Lark from '@larksuiteoapi/node-sdk';
+import * as fs from 'fs';
+import * as path from 'path';
 import type {
   Connector,
   FeishuConnectorConfig,
@@ -341,6 +343,176 @@ export class FeishuConnector implements Connector {
         console.log('[FeishuConnector] ✅ 消息已发送');
       } catch (error) {
         console.error('[FeishuConnector] ❌ 发送消息失败:', error);
+        throw error;
+      }
+    },
+    
+    sendImage: async (params: {
+      conversationId: string;
+      imagePath: string;
+      caption?: string;
+    }): Promise<void> => {
+      console.log('[FeishuConnector] 发送图片:', {
+        conversationId: params.conversationId,
+        imagePath: params.imagePath,
+      });
+      
+      try {
+        // 1. 读取图片文件
+        const imageBuffer = fs.readFileSync(params.imagePath);
+        const fileName = path.basename(params.imagePath);
+        
+        console.log('[FeishuConnector] 图片文件信息:', {
+          fileName,
+          size: imageBuffer.length,
+          exists: fs.existsSync(params.imagePath),
+        });
+        
+        // 2. 上传图片到飞书服务器
+        console.log('[FeishuConnector] 开始上传图片...');
+        const uploadRes = await this.client.im.image.create({
+          data: {
+            image_type: 'message',
+            image: imageBuffer,
+          },
+        });
+        
+        console.log('[FeishuConnector] 上传响应:', JSON.stringify(uploadRes, null, 2));
+        
+        // 飞书 SDK 返回类型检查
+        // 注意：飞书 SDK 可能返回不同的响应格式
+        if (!uploadRes) {
+          throw new Error('上传图片无响应');
+        }
+        
+        // 检查是否有错误码
+        if ('code' in uploadRes && (uploadRes as any).code !== 0) {
+          const errorMsg = (uploadRes as any)?.msg || (uploadRes as any)?.message || '上传图片失败';
+          throw new Error(`上传失败 (code: ${(uploadRes as any).code}): ${errorMsg}`);
+        }
+        
+        // 尝试从不同的响应格式中获取 image_key
+        const imageKey = (uploadRes as any)?.data?.image_key || (uploadRes as any)?.image_key;
+        if (!imageKey) {
+          console.error('[FeishuConnector] ❌ 响应中未找到 image_key:', uploadRes);
+          throw new Error('未获取到 image_key，响应格式可能不正确');
+        }
+        
+        console.log('[FeishuConnector] ✅ 图片已上传，image_key:', imageKey);
+        
+        // 3. 发送图片消息
+        const sendRes = await this.client.im.message.create({
+          params: {
+            receive_id_type: 'chat_id',
+          },
+          data: {
+            receive_id: params.conversationId,
+            msg_type: 'image',
+            content: JSON.stringify({
+              image_key: imageKey,
+            }),
+          },
+        });
+        
+        if (sendRes && typeof sendRes === 'object' && 'code' in sendRes) {
+          if (sendRes.code !== 0) {
+            const errorMsg = (sendRes as any).msg || (sendRes as any).message || '未知错误';
+            throw new Error(`发送图片消息失败: ${errorMsg}`);
+          }
+        }
+        
+        // 4. 如果有说明文字，再发送一条文本消息
+        if (params.caption) {
+          await this.outbound.sendMessage({
+            conversationId: params.conversationId,
+            content: params.caption,
+          });
+        }
+        
+        console.log('[FeishuConnector] ✅ 图片消息已发送');
+      } catch (error) {
+        console.error('[FeishuConnector] ❌ 发送图片失败:', error);
+        throw error;
+      }
+    },
+    
+    sendFile: async (params: {
+      conversationId: string;
+      filePath: string;
+      fileName?: string;
+    }): Promise<void> => {
+      console.log('[FeishuConnector] 发送文件:', {
+        conversationId: params.conversationId,
+        filePath: params.filePath,
+      });
+      
+      try {
+        // 1. 读取文件
+        const fileBuffer = fs.readFileSync(params.filePath);
+        const fileName = params.fileName || path.basename(params.filePath);
+        
+        console.log('[FeishuConnector] 文件信息:', {
+          fileName,
+          size: fileBuffer.length,
+          exists: fs.existsSync(params.filePath),
+        });
+        
+        // 2. 上传文件到飞书服务器
+        console.log('[FeishuConnector] 开始上传文件...');
+        const uploadRes = await this.client.im.file.create({
+          data: {
+            file_type: 'stream',
+            file_name: fileName,
+            file: fileBuffer,
+          },
+        });
+        
+        console.log('[FeishuConnector] 上传响应:', JSON.stringify(uploadRes, null, 2));
+        
+        // 飞书 SDK 返回类型检查
+        if (!uploadRes) {
+          throw new Error('上传文件无响应');
+        }
+        
+        // 检查是否有错误码
+        if ('code' in uploadRes && (uploadRes as any).code !== 0) {
+          const errorMsg = (uploadRes as any)?.msg || (uploadRes as any)?.message || '上传文件失败';
+          throw new Error(`上传失败 (code: ${(uploadRes as any).code}): ${errorMsg}`);
+        }
+        
+        // 尝试从不同的响应格式中获取 file_key
+        const fileKey = (uploadRes as any)?.data?.file_key || (uploadRes as any)?.file_key;
+        if (!fileKey) {
+          console.error('[FeishuConnector] ❌ 响应中未找到 file_key:', uploadRes);
+          throw new Error('未获取到 file_key，响应格式可能不正确');
+        }
+        
+        console.log('[FeishuConnector] ✅ 文件已上传，file_key:', fileKey);
+        
+        // 3. 发送文件消息
+        const sendRes = await this.client.im.message.create({
+          params: {
+            receive_id_type: 'chat_id',
+          },
+          data: {
+            receive_id: params.conversationId,
+            msg_type: 'file',
+            content: JSON.stringify({
+              file_key: fileKey,
+            }),
+          },
+        });
+        
+        if (sendRes && typeof sendRes === 'object' && 'code' in sendRes) {
+          if (sendRes.code !== 0) {
+            const errorMsg = (sendRes as any).msg || (sendRes as any).message || '未知错误';
+            throw new Error(`发送文件消息失败: ${errorMsg}`);
+          }
+        }
+        
+        console.log('[FeishuConnector] ✅ 文件消息已发送');
+      } catch (error) {
+        console.error('[FeishuConnector] ❌ 发送文件失败:', error);
         throw error;
       }
     },

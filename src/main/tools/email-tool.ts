@@ -18,7 +18,9 @@ import { readFileSync, existsSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { homedir } from 'node:os';
 import { getErrorMessage } from '../../shared/utils/error-handler';
+import { expandUserPath } from '../../shared/utils/path-utils';
 import { TIMEOUTS } from '../config/timeouts';
+import { TOOL_NAMES } from './tool-names';
 
 // 动态导入类型（避免编译时依赖）
 type Transporter = any;
@@ -194,7 +196,7 @@ function createTransporter(nodemailer: any, config: EmailConfig): Transporter {
 export const emailToolPlugin: ToolPlugin = {
   metadata: {
     id: 'email-tool',
-    name: 'send_email',
+    name: TOOL_NAMES.SEND_EMAIL,
     version: '1.0.0',
     description: '通过 SMTP 发送邮件。支持纯文本/HTML 邮件、附件、抄送、密送。兼容所有主流邮件服务商（QQ、Gmail、Outlook、163 等）',
     author: 'DeepBot',
@@ -207,7 +209,7 @@ export const emailToolPlugin: ToolPlugin = {
     const { workspaceDir } = options;
     return [
       {
-        name: 'send_email',
+        name: TOOL_NAMES.SEND_EMAIL,
         label: '发送邮件',
         description: '通过 SMTP 发送邮件。支持纯文本/HTML 邮件、附件、抄送、密送。兼容所有主流邮件服务商（QQ、Gmail、Outlook、163 等）',
         parameters: EmailToolSchema,
@@ -273,12 +275,15 @@ export const emailToolPlugin: ToolPlugin = {
             if (params.body) {
               bodyContent = params.body;
             } else if (params.bodyFile) {
-              if (!existsSync(params.bodyFile)) {
+              // 展开路径（支持 ~ 符号）
+              const expandedBodyFile = expandUserPath(params.bodyFile);
+              
+              if (!existsSync(expandedBodyFile)) {
                 throw new Error(`邮件正文文件不存在: ${params.bodyFile}`);
               }
               
               try {
-                bodyContent = readFileSync(params.bodyFile, 'utf-8');
+                bodyContent = readFileSync(expandedBodyFile, 'utf-8');
               } catch (error) {
                 throw new Error(`读取邮件正文文件失败: ${getErrorMessage(error)}`);
               }
@@ -333,14 +338,17 @@ export const emailToolPlugin: ToolPlugin = {
               mailOptions.attachments = [];
               
               for (const filePath of params.attachments) {
-                if (!existsSync(filePath)) {
+                // 展开路径（支持 ~ 符号）
+                const expandedFilePath = expandUserPath(filePath);
+                
+                if (!existsSync(expandedFilePath)) {
                   console.warn(`⚠️ 附件文件不存在，跳过: ${filePath}`);
                   continue;
                 }
                 
                 mailOptions.attachments.push({
-                  filename: basename(filePath),
-                  path: filePath,
+                  filename: basename(expandedFilePath),
+                  path: expandedFilePath,
                 });
               }
               

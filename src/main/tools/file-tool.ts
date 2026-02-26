@@ -25,6 +25,7 @@ import type { AgentTool } from '@mariozechner/pi-agent-core';
 import * as path from 'path';
 import * as fs from 'fs';
 import { assertPathAllowed } from '../utils/path-security';
+import { expandUserPath } from '../../shared/utils/path-utils';
 
 /**
  * 规范化工具参数（支持 Claude 风格参数）
@@ -90,15 +91,12 @@ function improveReadResult(result: any, filePath: string): any {
   // 如果是图片文件，移除 base64 数据（避免传递大量数据给 AI）
   if (imageBlock) {
     // 获取文件大小信息
-    const expandedPath = filePath.startsWith('~') 
-      ? filePath.replace(/^~/, process.env.HOME || '~')
-      : filePath;
-    const resolvedPath = path.resolve(expandedPath);
+    const expandedPath = expandUserPath(filePath);
     
     let sizeInfo = '';
     let mimeType = imageBlock.mimeType || 'unknown';
-    if (fs.existsSync(resolvedPath)) {
-      const stats = fs.statSync(resolvedPath);
+    if (fs.existsSync(expandedPath)) {
+      const stats = fs.statSync(expandedPath);
       const sizeKB = (stats.size / 1024).toFixed(2);
       sizeInfo = `${sizeKB} KB`;
     }
@@ -122,17 +120,12 @@ function improveReadResult(result: any, filePath: string): any {
   
   // 如果不是图片，检查文本是否为空
   if (textBlock && textBlock.text === '') {
-    // 展开 ~ 为用户主目录
-    const expandedPath = filePath.startsWith('~') 
-      ? filePath.replace(/^~/, process.env.HOME || '~')
-      : filePath;
+    // 展开路径（支持 ~ 符号）
+    const expandedPath = expandUserPath(filePath);
     
-    // 解析为绝对路径
-    const resolvedPath = path.resolve(expandedPath);
-    
-    if (fs.existsSync(resolvedPath)) {
+    if (fs.existsSync(expandedPath)) {
       // 文件存在但内容为空
-      const stats = fs.statSync(resolvedPath);
+      const stats = fs.statSync(expandedPath);
       textBlock.text = `[文件存在，内容为空（${stats.size} 字节）]`;
     } else {
       // 文件不存在

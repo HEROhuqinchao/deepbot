@@ -418,6 +418,10 @@ ${lastPart}
     maxContinuations: number = 100,
     isAutoContinue: boolean = false
   ): AsyncGenerator<string, void, unknown> {
+    // 🔥 设置当前 sessionId 供 connector-tool 使用
+    const { setConnectorToolSessionId } = await import('../tools/connector-tool');
+    setConnectorToolSessionId(this.runtimeConfig.sessionId);
+    
     // 🔥 只在非自动继续时清空操作追踪器
     // 自动继续时保留 tracker，以便检测重复操作
     if (!isAutoContinue) {

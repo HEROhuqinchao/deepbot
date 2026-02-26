@@ -90,6 +90,18 @@ export interface Connector {
       content: string;
       replyTo?: string;
     }): Promise<void>;
+    
+    sendImage?(params: {
+      conversationId: string;
+      imagePath: string;
+      caption?: string;
+    }): Promise<void>;
+    
+    sendFile?(params: {
+      conversationId: string;
+      filePath: string;
+      fileName?: string;
+    }): Promise<void>;
   };
   
   // ========== 安全控制 ==========

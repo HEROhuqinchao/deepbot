@@ -202,6 +202,90 @@ export class ConnectorManager {
   }
   
   /**
+   * 发送图片到外部（由 Gateway 或 Tool 调用）
+   * 
+   * @param connectorId - 连接器 ID
+   * @param conversationId - 会话 ID
+   * @param imagePath - 图片路径
+   * @param caption - 图片说明（可选）
+   */
+  async sendImage(
+    connectorId: ConnectorId,
+    conversationId: string,
+    imagePath: string,
+    caption?: string
+  ): Promise<void> {
+    const connector = this.connectors.get(connectorId);
+    if (!connector) {
+      throw new Error(`连接器不存在: ${connectorId}`);
+    }
+    
+    if (!connector.outbound.sendImage) {
+      throw new Error(`连接器 ${connectorId} 不支持发送图片`);
+    }
+    
+    console.log(`[ConnectorManager] 发送图片到外部: ${connectorId}`, {
+      conversationId,
+      imagePath,
+    });
+    
+    try {
+      await connector.outbound.sendImage({
+        conversationId,
+        imagePath,
+        caption,
+      });
+      
+      console.log(`[ConnectorManager] ✅ 图片已发送`);
+    } catch (error) {
+      console.error(`[ConnectorManager] ❌ 发送图片失败:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 发送文件到外部（由 Gateway 或 Tool 调用）
+   * 
+   * @param connectorId - 连接器 ID
+   * @param conversationId - 会话 ID
+   * @param filePath - 文件路径
+   * @param fileName - 文件名（可选）
+   */
+  async sendFile(
+    connectorId: ConnectorId,
+    conversationId: string,
+    filePath: string,
+    fileName?: string
+  ): Promise<void> {
+    const connector = this.connectors.get(connectorId);
+    if (!connector) {
+      throw new Error(`连接器不存在: ${connectorId}`);
+    }
+    
+    if (!connector.outbound.sendFile) {
+      throw new Error(`连接器 ${connectorId} 不支持发送文件`);
+    }
+    
+    console.log(`[ConnectorManager] 发送文件到外部: ${connectorId}`, {
+      conversationId,
+      filePath,
+    });
+    
+    try {
+      await connector.outbound.sendFile({
+        conversationId,
+        filePath,
+        fileName,
+      });
+      
+      console.log(`[ConnectorManager] ✅ 文件已发送`);
+    } catch (error) {
+      console.error(`[ConnectorManager] ❌ 发送文件失败:`, error);
+      throw error;
+    }
+  }
+  
+  /**
    * 健康检查
    * 
    * @param connectorId - 连接器 ID

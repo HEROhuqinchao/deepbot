@@ -57,6 +57,11 @@ export class Gateway {
     setGatewayForMemoryTool(this);
     console.info('[Gateway] Gateway 实例已传递给 Memory Tool');
     
+    // 🔥 设置 Gateway 实例供 connector-tool 使用
+    const { setGatewayForConnectorTool } = require('./tools/connector-tool');
+    setGatewayForConnectorTool(this);
+    console.info('[Gateway] Gateway 实例已传递给 Connector Tool');
+    
     // 创建默认 Tab
     this.createDefaultTab();
     
@@ -840,10 +845,12 @@ export class Gateway {
       const senderName = message.source.senderName || '用户';
       
       // displayContent: 前端显示的内容（带发送者信息）
-      // content: 发送给 Agent 的内容（原始消息）
       const displayContent = `[来自: ${senderName}]\n${content}`;
       
-      await this.handleSendMessage(content, tab.id, displayContent);
+      // 为连接器会话添加提示词，让 Agent 知道这是外部通讯会话
+      const contentWithHint = `${content}\n\n[系统提示: 这是外部通讯会话，你可以使用 connector_send_image 和 connector_send_file 工具发送图片和文件]`;
+      
+      await this.handleSendMessage(contentWithHint, tab.id, displayContent);
       
       console.log('[Gateway] ✅ 连接器消息已处理');
     } catch (error) {
