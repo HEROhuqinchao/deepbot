@@ -28,7 +28,7 @@ DeepBot Terminal is a desktop AI assistant developed by members of DeepGlint GLI
 - 🎨 **Skill Extensions** - Combine tools to implement complex functions through Skills
 - 🔒 **Security Restrictions** - Strict path whitelist mechanism to protect system security
 - 🤖 **Multi-Model Support** - Qwen, OpenAI, Claude, etc.
-- 🌐 **Future Extensible** - Support for Feishu, Discord, Slack, and other platforms
+- 🌐 **External Communication** - Support integration with Feishu and other external platforms for cross-platform interaction
 
 ---
 
@@ -107,13 +107,14 @@ DeepBot adopts a modular architecture with the following layers:
 ```
 ┌─────────────────────────────────────────┐
 │      User Interface (Electron)          │
-│  Future: Feishu/Discord/Slack           │
+│   External Communication: Feishu        │
 └─────────────────┬───────────────────────┘
-                  │ IPC
+                  │ IPC / WebSocket
 ┌─────────────────▼───────────────────────┐
 │      Gateway (Session Management)       │
 │    • Tab Management (Max 10)            │
 │    • Message Queue                      │
+│    • Connector Management               │
 └─────────────────┬───────────────────────┘
                   │
 ┌─────────────────▼───────────────────────┐
@@ -140,6 +141,44 @@ DeepBot adopts a modular architecture with the following layers:
 - **Agent Runtime**: Based on `@mariozechner/pi-agent-core`, responsible for intelligent decision-making and tool orchestration
 - **Tools**: 10 built-in tools providing core capabilities like file, command, browser operations
 - **Security Check**: All file and command operations are validated through path whitelist
+
+---
+
+## 🌐 External Communication (Connector)
+
+DeepBot supports integration with external platforms through the Connector system for cross-platform interaction.
+
+### Supported Platforms
+
+#### Feishu (Lark)
+
+Interact with DeepBot through Feishu bot, supporting private chats and group chats.
+
+**Features**:
+- ✅ Private messages (requires pairing authorization)
+- ✅ Group messages (supports @mention)
+- ✅ Message deduplication (prevents duplicate responses)
+- ✅ Independent session management (each conversation has its own Tab)
+
+**Configuration Steps**:
+
+1. Open "System Settings" → "External Connections" → "Feishu" in DeepBot
+2. Fill in Feishu app configuration (App ID, App Secret, Bot Name)
+3. Configure security policies (DM policy, group policy)
+4. Click "Save" and "Start" the connector
+
+**Detailed Configuration Guide**:
+
+📖 [Feishu Bot Configuration Guide](docs/飞书机器人配置指南.md) (Chinese)
+
+Includes complete Feishu Open Platform configuration steps, permission settings, security policy explanations, etc.
+
+### Future Plans
+
+- 🔜 Discord
+- 🔜 Slack
+- 🔜 WeChat Work
+- 🔜 DingTalk
 
 ---
 
