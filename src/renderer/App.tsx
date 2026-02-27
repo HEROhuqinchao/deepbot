@@ -154,6 +154,16 @@ function App() {
   // 检查模型配置
   useEffect(() => {
     checkModelConfig();
+    
+    // 监听模型配置更新事件
+    const unsubscribe = window.deepbot.onModelConfigUpdate(() => {
+      console.log('[App] 收到模型配置更新事件');
+      setHasModelConfig(true);
+    });
+    
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const checkModelConfig = async () => {

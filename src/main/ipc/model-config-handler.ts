@@ -63,7 +63,7 @@ export function registerModelConfigHandlers(): void {
   // 保存模型配置
   registerIpcHandler<SaveModelConfigRequest, SaveModelConfigResponse>(
     'model-config:save',
-    async (_event, request): Promise<SaveModelConfigResponse> => {
+    async (event, request): Promise<SaveModelConfigResponse> => {
       try {
         const store = getConfigStore();
         store.saveModelConfig(request.config);
@@ -72,6 +72,9 @@ export function registerModelConfigHandlers(): void {
         if (gatewayInstance) {
           await gatewayInstance.reloadModelConfig();
         }
+        
+        // 🔥 通知前端配置已更新
+        event.sender.send('model-config:updated', { success: true });
         
         return {
           success: true,

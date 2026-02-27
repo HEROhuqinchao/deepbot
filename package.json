@@ -23,7 +23,8 @@
     "dist": "pnpm run build && electron-builder",
     "dist:mac": "pnpm run build && electron-builder --mac",
     "dist:win": "pnpm run build && electron-builder --win",
-    "dist:linux": "pnpm run build && electron-builder --linux"
+    "dist:linux": "pnpm run build && electron-builder --linux",
+    "reset-dev": "bash scripts/reset-dev-data.sh"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",

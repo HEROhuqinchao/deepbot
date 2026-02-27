@@ -40,6 +40,7 @@ const IPC_CHANNELS = {
   SAVE_AGENT_NAME: 'name-config:save-agent-name',
   SAVE_USER_NAME: 'name-config:save-user-name',
   NAME_CONFIG_UPDATED: 'name-config:updated', // 🔥 名字配置更新通知
+  MODEL_CONFIG_UPDATED: 'model-config:updated', // 🔥 模型配置更新通知
   CREATE_TAB: 'tab:create',
   CLOSE_TAB: 'tab:close',
   GET_TABS: 'tab:get-all',
@@ -161,6 +162,16 @@ contextBridge.exposeInMainWorld('deepbot', {
     
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.NAME_CONFIG_UPDATED, listener);
+    };
+  },
+  
+  // 🔥 监听模型配置更新（事件驱动）
+  onModelConfigUpdate: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on(IPC_CHANNELS.MODEL_CONFIG_UPDATED, listener);
+    
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.MODEL_CONFIG_UPDATED, listener);
     };
   },
   
