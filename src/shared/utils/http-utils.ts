@@ -80,14 +80,25 @@ export async function httpRequest<T = any>(
       clearTimeout(timeoutId);
     }
 
-    // 尝试解析 JSON
+    // 🔥 根据 Content-Type 解析响应
     let data: T | undefined;
     const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      try {
-        data = (await response.json()) as T;
-      } catch {
-        // JSON 解析失败，忽略
+    
+    if (contentType) {
+      if (contentType.includes('application/json')) {
+        // JSON 响应
+        try {
+          data = (await response.json()) as T;
+        } catch {
+          // JSON 解析失败，忽略
+        }
+      } else if (contentType.includes('text/')) {
+        // 文本响应（text/plain, text/html, text/markdown 等）
+        try {
+          data = (await response.text()) as T;
+        } catch {
+          // 文本解析失败，忽略
+        }
       }
     }
 

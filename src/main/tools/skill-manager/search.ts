@@ -88,14 +88,26 @@ async function searchInAwesomeSkills(query: string): Promise<SkillSearchResult[]
   try {
     // 1. 获取 README.md 内容
     const { httpGet } = await import('../../../shared/utils/http-utils');
-    const response = await httpGet(AWESOME_SKILLS_README_URL);
+    const response = await httpGet<string>(AWESOME_SKILLS_README_URL, {
+      headers: {
+        'User-Agent': 'DeepBot-Skill-Manager',
+      },
+      timeout: 10000,
+    });
     
     if (!response.ok) {
       console.warn(`[Skill Manager] 获取 README 失败: ${response.status} ${response.statusText}`);
       return [];
     }
     
-    const readme = response.data as string;
+    // 🔥 httpGet 现在会自动根据 Content-Type 解析文本或 JSON
+    const readme = response.data;
+    
+    if (!readme || typeof readme !== 'string' || readme.length === 0) {
+      console.warn('[Skill Manager] README 内容为空');
+      return [];
+    }
+    
     console.info(`[Skill Manager] README 大小: ${readme.length} 字符`);
     
     // 2. 解析所有 Skills
@@ -124,6 +136,7 @@ async function searchInAwesomeSkills(query: string): Promise<SkillSearchResult[]
     console.info(`[Skill Manager] 解析到 ${allSkills.length} 个 Skills`);
     
     if (allSkills.length === 0) {
+      console.warn('[Skill Manager] 未找到任何 Skills，可能 README 格式已变化');
       return [];
     }
     
@@ -139,6 +152,7 @@ async function searchInAwesomeSkills(query: string): Promise<SkillSearchResult[]
     console.error('[Skill Manager] 解析 Awesome Skills 失败:', error);
     if (error instanceof Error) {
       console.error(`[Skill Manager] 错误详情: ${error.message}`);
+      console.error(`[Skill Manager] 错误堆栈:`, error.stack);
     }
     return [];
   }
