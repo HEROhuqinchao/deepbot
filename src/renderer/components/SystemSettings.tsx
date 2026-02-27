@@ -19,9 +19,10 @@ type SettingsTab = 'model' | 'environment' | 'workspace' | 'tools' | 'connectors
 interface SystemSettingsProps {
   isOpen: boolean;
   onClose: () => void;
+  activeTabId?: string; // 当前选中的 Tab ID
 }
 
-export function SystemSettings({ isOpen, onClose }: SystemSettingsProps) {
+export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('model');
 
   if (!isOpen) return null;
@@ -80,7 +81,7 @@ export function SystemSettings({ isOpen, onClose }: SystemSettingsProps) {
           {/* 右侧内容 */}
           <div className="settings-panel">
             {activeTab === 'model' && <ModelConfig onClose={onClose} />}
-            {activeTab === 'environment' && <EnvironmentConfig onClose={onClose} />}
+            {activeTab === 'environment' && <EnvironmentConfig onClose={onClose} activeTabId={activeTabId} />}
             {activeTab === 'workspace' && <WorkspaceConfig onClose={onClose} />}
             {activeTab === 'tools' && <ToolConfig onClose={onClose} />}
             {activeTab === 'connectors' && <ConnectorConfig onClose={onClose} />}

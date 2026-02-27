@@ -28,9 +28,10 @@ interface EnvironmentStatus {
 
 interface EnvironmentConfigProps {
   onClose?: () => void;
+  activeTabId?: string; // 当前选中的 Tab ID
 }
 
-export function EnvironmentConfig({ onClose }: EnvironmentConfigProps) {
+export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigProps) {
   const [status, setStatus] = useState<EnvironmentStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedRef = React.useRef(false);
@@ -62,7 +63,11 @@ export function EnvironmentConfig({ onClose }: EnvironmentConfigProps) {
   const handleCheckEnvironment = () => {
     // 发送提示词到 Main Agent（不等待完成）
     const prompt = `请检查系统环境依赖，使用 environment_check 工具执行检查操作（action: check）。检查完成后，请告诉我结果。`;
-    window.deepbot.sendMessage(prompt).catch((err) => {
+    
+    // 🔥 使用当前选中的 Tab ID，如果没有则使用默认 Tab
+    const sessionId = activeTabId || 'default';
+    
+    window.deepbot.sendMessage(prompt, sessionId).catch((err) => {
       console.error('发送消息失败:', err);
     });
 

@@ -555,6 +555,7 @@ function App() {
       {/* 系统设置 */}
       <SystemSettings
         isOpen={isSystemSettingsOpen}
+        activeTabId={activeTabId}
         onClose={() => {
           setIsSystemSettingsOpen(false);
           // 不要在这里重新检查配置，避免无限循环
