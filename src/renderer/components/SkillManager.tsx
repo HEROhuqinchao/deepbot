@@ -246,51 +246,63 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
         </div>
 
         {/* 搜索栏 */}
-        <div className="px-6 py-4 border-b border-border-medium">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary" size={16} />
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--settings-border)' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <Search 
+                style={{ 
+                  position: 'absolute', 
+                  left: '12px', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)',
+                  color: 'var(--settings-text-dim)'
+                }} 
+                size={16} 
+              />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="搜索 Skill..."
-                className="w-full pl-10 pr-3 py-2 text-sm bg-bg-tertiary border border-border-dark rounded-md text-text-primary placeholder-text-tertiary focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                className="settings-input"
+                style={{ width: '100%', paddingLeft: '40px' }}
               />
             </div>
             <button
               onClick={handleSearch}
               disabled={!searchQuery.trim() || isLoading}
-              className="px-4 py-2 bg-brand-500 text-white text-sm rounded-md hover:bg-brand-600 disabled:bg-border-medium disabled:cursor-not-allowed transition-colors"
+              className="settings-button"
             >
               搜索
             </button>
           </div>
-          <p className="text-xs text-text-tertiary mt-2">
+          <p style={{ fontSize: '12px', color: 'var(--settings-text-dim)', marginTop: '8px' }}>
             💡 提示：搜索功能需要能正常访问 GitHub
           </p>
         </div>
 
         {/* 标签页 */}
-        <div className="flex gap-4 px-6 py-3 border-b border-border-medium">
+        <div style={{ display: 'flex', gap: '16px', padding: '12px 24px', borderBottom: '1px solid var(--settings-border)' }}>
           <button
             onClick={() => setActiveTab('installed')}
-            className={`px-3 py-1.5 text-sm rounded transition-colors ${
-              activeTab === 'installed'
-                ? 'bg-brand-500 text-white'
-                : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
-            }`}
+            className="settings-button"
+            style={{
+              background: activeTab === 'installed' ? 'var(--settings-accent)' : 'transparent',
+              color: activeTab === 'installed' ? 'var(--settings-bg)' : 'var(--settings-text-dim)',
+              borderColor: activeTab === 'installed' ? 'var(--settings-accent)' : 'var(--settings-border)',
+            }}
           >
             已安装 ({installedSkills.length})
           </button>
           <button
             onClick={() => setActiveTab('available')}
-            className={`px-3 py-1.5 text-sm rounded transition-colors ${
-              activeTab === 'available'
-                ? 'bg-brand-500 text-white'
-                : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
-            }`}
+            className="settings-button"
+            style={{
+              background: activeTab === 'available' ? 'var(--settings-accent)' : 'transparent',
+              color: activeTab === 'available' ? 'var(--settings-bg)' : 'var(--settings-text-dim)',
+              borderColor: activeTab === 'available' ? 'var(--settings-accent)' : 'var(--settings-border)',
+            }}
           >
             可用 ({availableSkills.length})
           </button>

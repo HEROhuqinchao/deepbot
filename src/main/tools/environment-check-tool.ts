@@ -69,6 +69,36 @@ function checkCommand(command: string): { installed: boolean; version?: string; 
 }
 
 /**
+ * 检查 Python（同时支持 python3 和 python）
+ */
+function checkPython(): { installed: boolean; version?: string; path?: string; error?: string; command?: string } {
+  // 优先尝试 python3
+  console.info('[EnvironmentCheck] 🔍 尝试检查 python3...');
+  const python3Result = checkCommand('python3');
+  
+  if (python3Result.installed) {
+    console.info('[EnvironmentCheck] ✅ 找到 python3');
+    return { ...python3Result, command: 'python3' };
+  }
+  
+  // 如果 python3 不存在，尝试 python
+  console.info('[EnvironmentCheck] ⚠️  python3 未找到，尝试检查 python...');
+  const pythonResult = checkCommand('python');
+  
+  if (pythonResult.installed) {
+    console.info('[EnvironmentCheck] ✅ 找到 python');
+    return { ...pythonResult, command: 'python' };
+  }
+  
+  // 两者都不存在
+  console.warn('[EnvironmentCheck] ❌ python3 和 python 都未找到');
+  return {
+    installed: false,
+    error: `python3 错误: ${python3Result.error}; python 错误: ${pythonResult.error}`,
+  };
+}
+
+/**
  * 创建环境检查工具
  */
 export function createEnvironmentCheckTool(): AgentTool {
@@ -121,9 +151,9 @@ export function createEnvironmentCheckTool(): AgentTool {
           const { resetShellPathCache } = await import('./shell-env');
           resetShellPathCache();
           
-          // 检查 Python
+          // 检查 Python（同时支持 python3 和 python）
           console.info('[EnvironmentCheck] 🔍 检查 Python 环境...');
-          const pythonResult = checkCommand('python3');
+          const pythonResult = checkPython();
           store.saveEnvironmentConfig({
             id: 'python',
             name: 'python',
@@ -211,7 +241,8 @@ export function createEnvironmentCheckTool(): AgentTool {
           const results = [];
           
           if (pythonResult.installed) {
-            results.push(`✅ Python 已安装\n   版本: ${pythonResult.version}\n   路径: ${pythonResult.path}`);
+            const pythonCommand = (pythonResult as any).command || 'python';
+            results.push(`✅ Python 已安装 (${pythonCommand})\n   版本: ${pythonResult.version}\n   路径: ${pythonResult.path}`);
           } else {
             results.push(`❌ Python 未安装\n   错误: ${pythonResult.error}`);
           }
