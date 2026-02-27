@@ -36,6 +36,7 @@ function getFullPath(): string {
 function checkCommand(command: string): { installed: boolean; version?: string; path?: string; error?: string } {
   try {
     const fullPath = getFullPath();
+    const isWindows = process.platform === 'win32';
     
     // 检查版本
     const versionOutput = execSync(`${command} --version`, { 
@@ -45,8 +46,9 @@ function checkCommand(command: string): { installed: boolean; version?: string; 
       env: { ...process.env, PATH: fullPath },
     }).trim();
 
-    // 检查路径
-    const pathOutput = execSync(`which ${command}`, { 
+    // 检查路径（Windows 使用 where，Unix 使用 which）
+    const pathCommand = isWindows ? 'where' : 'which';
+    const pathOutput = execSync(`${pathCommand} ${command}`, { 
       encoding: 'utf-8',
       timeout: TIMEOUTS.COMMAND_EXECUTION_TIMEOUT,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -80,8 +82,9 @@ export function createEnvironmentCheckTool(): AgentTool {
       action: Type.Union([
         Type.Literal('check'),
         Type.Literal('get_status'),
+        Type.Literal('refresh'),
       ], {
-        description: '操作类型：check=检查环境, get_status=获取状态'
+        description: '操作类型：check=检查环境, get_status=获取状态, refresh=刷新环境变量'
       }),
     }),
     execute: async (
@@ -90,10 +93,34 @@ export function createEnvironmentCheckTool(): AgentTool {
       signal?: AbortSignal,
       onUpdate?: (update: any) => void
     ) => {
-      const typedParams = params as { action: 'check' | 'get_status' };
+      const typedParams = params as { action: 'check' | 'get_status' | 'refresh' };
       
       try {
-        if (typedParams.action === 'check') {
+        if (typedParams.action === 'refresh') {
+          // 刷新环境变量缓存
+          console.info('[EnvironmentCheck] 🔄 刷新环境变量缓存...');
+          const { resetShellPathCache } = await import('./shell-env');
+          resetShellPathCache();
+          
+          const message = '✅ 环境变量缓存已刷新，请重新执行环境检查';
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: message,
+              },
+            ],
+            details: {
+              success: true,
+              message,
+            },
+          };
+        } else if (typedParams.action === 'check') {
+          // 🔥 检查前先刷新环境变量缓存
+          console.info('[EnvironmentCheck] 🔄 检查前刷新环境变量缓存...');
+          const { resetShellPathCache } = await import('./shell-env');
+          resetShellPathCache();
+          
           // 检查 Python
           console.info('[EnvironmentCheck] 🔍 检查 Python 环境...');
           const pythonResult = checkCommand('python3');
@@ -106,6 +133,30 @@ export function createEnvironmentCheckTool(): AgentTool {
             lastChecked: Date.now(),
             error: pythonResult.error,
           });
+          
+          // 🔥 保险机制：将 Python 路径添加到环境变量
+          if (pythonResult.installed && pythonResult.path) {
+            const path = require('path');
+            const pythonDir = path.dirname(pythonResult.path);
+            const pathSeparator = process.platform === 'win32' ? ';' : ':';
+            
+            console.info('[EnvironmentCheck] 🔒 保险机制：检查 Python 路径');
+            console.info(`  Python 完整路径: ${pythonResult.path}`);
+            console.info(`  Python 目录: ${pythonDir}`);
+            console.info(`  当前 PATH 长度: ${process.env.PATH?.length || 0} 字符`);
+            
+            if (!process.env.PATH?.includes(pythonDir)) {
+              const oldPath = process.env.PATH;
+              process.env.PATH = `${pythonDir}${pathSeparator}${process.env.PATH}`;
+              console.info('[EnvironmentCheck] ✅ 已将 Python 路径添加到环境变量');
+              console.info(`  新 PATH 长度: ${process.env.PATH.length} 字符`);
+              console.info(`  增加: ${process.env.PATH.length - (oldPath?.length || 0)} 字符`);
+            } else {
+              console.info('[EnvironmentCheck] ℹ️  Python 路径已存在于 PATH 中，跳过添加');
+            }
+          } else {
+            console.warn('[EnvironmentCheck] ⚠️  Python 未安装或路径为空，跳过保险机制');
+          }
 
           // 检查 Node.js
           console.info('[EnvironmentCheck] 🔍 检查 Node.js 环境...');
@@ -119,6 +170,42 @@ export function createEnvironmentCheckTool(): AgentTool {
             lastChecked: Date.now(),
             error: nodeResult.error,
           });
+          
+          // 🔥 保险机制：将 Node.js 路径添加到环境变量
+          if (nodeResult.installed && nodeResult.path) {
+            const path = require('path');
+            const nodeDir = path.dirname(nodeResult.path);
+            const pathSeparator = process.platform === 'win32' ? ';' : ':';
+            
+            console.info('[EnvironmentCheck] 🔒 保险机制：检查 Node.js 路径');
+            console.info(`  Node.js 完整路径: ${nodeResult.path}`);
+            console.info(`  Node.js 目录: ${nodeDir}`);
+            console.info(`  当前 PATH 长度: ${process.env.PATH?.length || 0} 字符`);
+            
+            if (!process.env.PATH?.includes(nodeDir)) {
+              const oldPath = process.env.PATH;
+              process.env.PATH = `${nodeDir}${pathSeparator}${process.env.PATH}`;
+              console.info('[EnvironmentCheck] ✅ 已将 Node.js 路径添加到环境变量');
+              console.info(`  新 PATH 长度: ${process.env.PATH.length} 字符`);
+              console.info(`  增加: ${process.env.PATH.length - (oldPath?.length || 0)} 字符`);
+            } else {
+              console.info('[EnvironmentCheck] ℹ️  Node.js 路径已存在于 PATH 中，跳过添加');
+            }
+          } else {
+            console.warn('[EnvironmentCheck] ⚠️  Node.js 未安装或路径为空，跳过保险机制');
+          }
+          
+          // 🔥 输出最终 PATH 状态
+          console.info('[EnvironmentCheck] 📊 最终环境变量状态:');
+          console.info(`  PATH 总长度: ${process.env.PATH?.length || 0} 字符`);
+          console.info(`  PATH 包含路径数: ${process.env.PATH?.split(process.platform === 'win32' ? ';' : ':').length || 0} 个`);
+          if (process.env.PATH) {
+            const paths = process.env.PATH.split(process.platform === 'win32' ? ';' : ':');
+            console.info(`  前 5 个路径:`);
+            paths.slice(0, 5).forEach((p, i) => {
+              console.info(`    ${i + 1}. ${p}`);
+            });
+          }
 
           // 构建结果消息
           const results = [];

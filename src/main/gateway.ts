@@ -130,6 +130,10 @@ export class Gateway {
     
     console.log('[Gateway] ✅ 模型配置已重新加载，所有会话已重置');
     
+    // 🔥 等待 100ms 确保数据库写入完成（WAL 模式）
+    await sleep(100);
+    console.log('[Gateway] ⏳ 已等待数据库同步完成');
+    
     // 🔥 通知前端清空所有聊天记录
     sendToWindow(this.mainWindow, 'message:clear-all');
     console.log('[Gateway] 📤 已发送清空聊天记录事件到前端');

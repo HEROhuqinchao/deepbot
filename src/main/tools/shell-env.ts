@@ -417,6 +417,14 @@ export function applyShellPath(
 }
 
 /**
+ * 重置缓存（用于刷新环境变量）
+ */
+export function resetShellPathCache(): void {
+  cachedShellPath = undefined;
+  console.info('[Shell Env] 🔄 PATH 缓存已重置');
+}
+
+/**
  * 重置缓存（仅用于测试）
  */
 export function resetShellPathCacheForTests(): void {

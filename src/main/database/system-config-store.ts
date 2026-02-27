@@ -532,8 +532,11 @@ export class SystemConfigStore {
       config.modelName,
       config.apiKey
     );
+    
+    // 🔥 强制同步到磁盘（WAL 模式下确保立即写入）
+    this.db.pragma('wal_checkpoint(PASSIVE)');
 
-    console.info('[SystemConfigStore] ✅ 模型配置已保存:', {
+    console.info('[SystemConfigStore] ✅ 模型配置已保存并同步到磁盘:', {
       providerType: config.providerType,
       provider: config.providerName,
       model: config.modelName,
