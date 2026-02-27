@@ -21,6 +21,7 @@ import { getErrorMessage } from '../../../shared/utils/error-handler';
 import { safeJsonParse } from '../../../shared/utils/json-utils';
 import type { ConnectorManager } from '../connector-manager';
 import { SystemConfigStore } from '../../database/system-config-store';
+import { FeishuDocumentHandler } from './document-handler';
 
 export class FeishuConnector implements Connector {
   readonly id = 'feishu' as const;
@@ -32,6 +33,7 @@ export class FeishuConnector implements Connector {
   private wsClient?: Lark.WSClient;
   private connectorManager: ConnectorManager;
   private isStarted: boolean = false;
+  private documentHandler!: FeishuDocumentHandler;
   
   // 消息去重：缓存最近 1000 条已处理的消息 ID
   private processedMessages: Set<string> = new Set();
@@ -94,6 +96,9 @@ export class FeishuConnector implements Connector {
       appSecret: config.appSecret,
       loggerLevel: Lark.LoggerLevel.info,
     });
+    
+    // 初始化文档处理器
+    this.documentHandler = new FeishuDocumentHandler(this.client);
     
     console.log('[FeishuConnector] ✅ 初始化完成');
   }
@@ -278,7 +283,46 @@ export class FeishuConnector implements Connector {
         }
       }
       
-      // 3. 安全检查
+      // 4. 检测并读取飞书文档
+      const messageText = feishuMessage.content.text || '';
+      const documentUrls = this.documentHandler.extractDocumentUrls(messageText);
+      if (documentUrls.length > 0) {
+        console.log('[FeishuConnector] 🔍 检测到飞书文档链接:', documentUrls);
+        
+        // 读取文档内容
+        const documents = await this.documentHandler.readDocuments(documentUrls);
+        if (documents.length > 0) {
+          console.log('[FeishuConnector] ✅ 成功读取文档数量:', documents.length);
+          documents.forEach((doc, index) => {
+            console.log(`[FeishuConnector] 文档 ${index + 1}:`, {
+              title: doc.title,
+              contentLength: doc.content.length,
+              url: doc.url,
+            });
+          });
+          
+          // 移除原始 URL，只保留文档内容
+          let cleanedText = messageText;
+          for (const url of documentUrls) {
+            cleanedText = cleanedText.replace(url, '').trim();
+          }
+          
+          // 将文档内容附加到消息中
+          const documentContent = this.documentHandler.formatDocumentContent(documents);
+          feishuMessage.content.text = cleanedText + documentContent;
+          
+          console.log('[FeishuConnector] ✅ 已移除原始 URL，消息总长度:', feishuMessage.content.text.length);
+        } else {
+          console.warn('[FeishuConnector] ⚠️ 未能读取任何文档内容，可能是权限不足或文档不存在');
+          console.warn('[FeishuConnector] 💡 请确保在飞书开放平台配置了以下权限:');
+          console.warn('[FeishuConnector]    - docx:document:readonly (读取云文档内容)');
+          console.warn('[FeishuConnector]    - drive:drive:readonly (访问云空间文件)');
+        }
+      } else {
+        console.log('[FeishuConnector] 消息中未检测到飞书文档链接');
+      }
+      
+      // 5. 安全检查
       if (!this.checkSecurity(feishuMessage)) {
         console.log('[FeishuConnector] 安全检查未通过，忽略消息');
         
@@ -294,7 +338,7 @@ export class FeishuConnector implements Connector {
         return;
       }
       
-      // 4. 转发到 Connector Manager
+      // 6. 转发到 Connector Manager
       await this.connectorManager.handleIncomingMessage('feishu', feishuMessage);
       
       console.log('[FeishuConnector] ✅ 消息已转发');
