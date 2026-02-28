@@ -57,90 +57,243 @@
 ## Browser（浏览器控制工具）
 
 ### browser
-**用途**: 控制浏览器执行自动化任务
+**用途**: 使用 agent-browser 控制浏览器执行自动化任务
+
+**⚠️ 使用前提**:
+
+使用浏览器工具前，需要先手动启动 Chrome 并开启远程调试：
+
+```bash
+# macOS
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
+
+# Windows
+chrome.exe --remote-debugging-port=9222
+
+# Linux
+google-chrome --remote-debugging-port=9222
+```
 
 **⚠️ 核心规则**:
-1. 首次使用必须先 `start` 启动浏览器
-2. 如果返回 "Browser not running"，立即调用 `start`
-3. 每次打开新页面后，必须先 `snapshot` 查看内容
-4. 不要猜测 ref，必须从 `snapshot` 返回的列表中选择
-5. 任务完成后保持浏览器运行
+1. 必须先手动启动 Chrome（端口 9222）
+2. 每次打开新页面后，必须先 `snapshot` 查看内容
+3. 不要猜测 @ref，必须从 `snapshot` 返回的列表中选择
+4. 使用 @ref 系统进行元素定位（如 @e1, @e2, @e36）
+5. @ref 是确定性的：从 snapshot 获取的 ref 直接指向精确元素，无需重新查询 DOM
 
 **支持的操作**:
-- `status`: 获取浏览器状态
-- `start`: 启动浏览器（首次使用必须调用）
-- `stop`: 停止浏览器
-- `tabs`: 获取标签页列表
-- `open`: 打开新标签页（需要 targetUrl）
-- `close`: 关闭标签页（需要 targetId）
-- `snapshot`: 获取页面快照（显示所有可交互元素和文本）
-- `navigate`: 导航到 URL（需要 targetUrl）
-- `act`: 执行交互操作（点击、输入等，需要 request）
-- `console`: 获取控制台消息
-- `pdf`: 生成 PDF
+- `open`: 打开网页（别名：goto, navigate）
+- `snapshot`: 获取页面快照（显示所有可交互元素）
+- `click`: 点击元素
+- `dblclick`: 双击元素
+- `fill`: 填充输入框（清空后输入）
+- `type`: 输入文本（不清空）
+- `press`: 按键（如 Enter, Escape, Control+a）
+- `hover`: 悬停在元素上
+- `check`: 选中复选框
+- `uncheck`: 取消选中复选框
+- `select`: 选择下拉框选项
+- `scroll`: 滚动页面（up/down/left/right）
+- `scrollintoview`: 滚动元素到可见区域
+- `get`: 获取信息（text, value, title, url）
+- `screenshot`: 截图
+- `back`: 后退
+- `forward`: 前进
+- `reload`: 刷新页面
+- `wait`: 等待元素或时间
+- `tab`: 标签页管理（new, list, switch, close）
+- `close`: 关闭浏览器
+
+**标签页管理**:
+- `tab new`: 创建新标签页
+- `tab list`: 列出所有标签页
+- `tab switch`: 切换到指定标签页（需要 tabIndex 参数）
+- `tab close`: 关闭当前标签页
+
+**💡 标签页使用场景**:
+- 需要同时浏览多个网页时，使用新标签页而不是在同一标签页跳转
+- 对比不同页面内容时，在不同标签页打开
+- 保留重要页面时，在新标签页打开其他链接
+- 多任务并行处理（如同时查看多个商品、多个文档）
+
+**⚠️ 在新标签页打开网址的正确步骤**:
+1. 先执行 `{ action: "tab", tabAction: "new" }` 创建新标签页
+2. 新标签页会自动成为当前标签页
+3. 然后执行 `{ action: "open", url: "https://example.com" }` 在新标签页中打开网址
+4. 必须分两步执行，不能在同一个工具调用中同时完成
+
+**标签页工作流程示例**:
+```
+场景：同时打开淘宝和京东对比商品价格
+
+步骤 1: 打开淘宝
+{ action: "open", url: "https://www.taobao.com" }
+{ action: "snapshot", interactive: false }
+
+步骤 2: 创建新标签页并打开京东
+{ action: "tab", tabAction: "new" }
+{ action: "open", url: "https://www.jd.com" }
+{ action: "snapshot", interactive: false }
+
+步骤 3: 切换回淘宝标签页
+{ action: "tab", tabAction: "switch", tabIndex: 1 }
+{ action: "snapshot", interactive: false }
+```
 
 **标准工作流程**:
-1. 打开网页：`start` → `open` → `snapshot`
-2. 交互操作：`snapshot`（找 ref）→ `act`
+1. 打开网页：`open` → `snapshot`
+2. 交互操作：`snapshot`（找 @ref）→ `click/fill/type`
+3. 页面变化后：重新 `snapshot` 获取新的元素列表
 
 **参数示例**:
 ```json
-// 启动浏览器
-{
-  "action": "start"
-}
-
 // 打开网页
 {
   "action": "open",
-  "targetUrl": "https://www.example.com"
+  "url": "https://www.example.com"
 }
 
-// 获取页面快照
+// 获取页面快照（只显示可交互元素）
 {
-  "action": "snapshot"
+  "action": "snapshot",
+  "interactive": true
 }
 
-// 点击元素
+// 点击元素（使用 snapshot 返回的 @ref）
 {
-  "action": "act",
-  "request": {
-    "kind": "click",
-    "selector": "@e36"
-  }
+  "action": "click",
+  "ref": "@e2"
 }
 
-// 输入文本
+// 填充输入框（清空后输入）
 {
-  "action": "act",
-  "request": {
-    "kind": "type",
-    "selector": "@e42",
-    "text": "搜索内容"
-  }
+  "action": "fill",
+  "ref": "@e3",
+  "text": "搜索内容"
+}
+
+// 输入文本（不清空，追加内容）
+{
+  "action": "type",
+  "ref": "@e3",
+  "text": "追加内容"
+}
+
+// 按键
+{
+  "action": "press",
+  "key": "Enter"
+}
+
+// 滚动页面
+{
+  "action": "scroll",
+  "direction": "down",
+  "amount": 500
+}
+
+// 获取元素文本
+{
+  "action": "get",
+  "getType": "text",
+  "ref": "@e1"
+}
+
+// 获取页面标题
+{
+  "action": "get",
+  "getType": "title"
+}
+
+// 获取当前 URL
+{
+  "action": "get",
+  "getType": "url"
 }
 
 // 截图
 {
   "action": "screenshot",
+  "screenshotPath": "~/Desktop/screenshot.png",
   "fullPage": false
+}
+
+// 等待元素出现
+{
+  "action": "wait",
+  "ref": "@e5",
+  "waitTimeout": 5000
+}
+
+// 创建新标签页
+{
+  "action": "tab",
+  "tabAction": "new"
+}
+
+// 列出所有标签页
+{
+  "action": "tab",
+  "tabAction": "list"
+}
+
+// 切换到第 2 个标签页
+{
+  "action": "tab",
+  "tabAction": "switch",
+  "tabIndex": 2
+}
+
+// 关闭当前标签页
+{
+  "action": "tab",
+  "tabAction": "close"
+}
+
+// 关闭浏览器
+{
+  "action": "close"
 }
 ```
 
-**act 操作类型**:
-- `click`: 点击元素（需要 selector）
-- `type`: 输入文本（需要 selector 和 text）
-- `press`: 按键（需要 key，如 "Enter", "Escape"）
-- `hover`: 悬停（需要 selector）
-- `scroll`: 滚动（需要 x 和 y 坐标）
-- `select`: 选择下拉框选项（需要 selector 和 value）
-- `fill`: 填充表单（需要 selector 和 value）
+**@ref 系统说明**:
+- `snapshot` 操作会返回页面上所有可交互元素的列表
+- 每个元素都有一个唯一的 @ref（如 @e1, @e2, @e36）
+- @ref 编号是随机的，每个页面都不同
+- 必须使用 `snapshot` 返回的 @ref，不要猜测
+- @ref 是确定性的：指向 snapshot 时的精确元素，无需重新查询
+
+**snapshot 返回示例**:
+```
+📸 页面快照
+
+标题: Example Domain
+URL: https://www.example.com
+
+可交互元素 (5 个):
+
+  @e1 - heading "Example Domain"
+  @e2 - button "Submit"
+  @e3 - textbox "Search" [值: ]
+  @e4 - link "More information..."
+  @e5 - button "Login"
+
+💡 使用 @ref 进行操作，例如：click 操作使用 ref: "@e2"
+```
+
+**为什么使用 @ref**:
+1. **确定性**: ref 指向 snapshot 时的精确元素
+2. **快速**: 无需重新查询 DOM
+3. **AI 友好**: snapshot + ref 工作流最适合 LLM
 
 **注意事项**:
-- 截图会自动保存到临时文件（`/tmp/screenshot-{timestamp}.png`）
-- 使用 `exec_run` 工具的 `cp` 命令复制到目标位置
-- 不要重复调用 `screenshot`，文件已生成
-- `snapshot` 返回的 ref（如 `@e36`）用于 `act` 操作的 selector
+- 必须先手动启动 Chrome（端口 9222）
+- 截图默认保存到 `/tmp/screenshot-{timestamp}.png`
+- 可以使用 `screenshotPath` 参数指定保存路径
+- `fill` 会清空输入框后输入，`type` 不会清空
+- `get` 操作支持获取：text（文本）、value（值）、title（标题）、url（URL）
+- 页面变化后（如点击、导航），必须重新 `snapshot` 获取新的元素列表
+- @ref 在页面变化后会失效，必须从新的 snapshot 中获取新的 ref
 
 ---
 

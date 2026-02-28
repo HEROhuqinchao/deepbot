@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { WebSearchToolConfig } from './WebSearchToolConfig';
+import { BrowserToolConfig } from './BrowserToolConfig';
 
 interface ToolConfigProps {
   onClose: () => void;
@@ -18,7 +19,7 @@ interface ImageGenerationConfig {
 }
 
 export function ToolConfig({ onClose }: ToolConfigProps) {
-  const [activeTab, setActiveTab] = useState<'image' | 'websearch' | 'email'>('image');
+  const [activeTab, setActiveTab] = useState<'image' | 'websearch' | 'email' | 'browser'>('image');
   const [imageGenConfig, setImageGenConfig] = useState<ImageGenerationConfig>({
     model: 'gemini-3-pro-image-preview',
     apiUrl: 'https://www.im-director.com/api/gemini-proxy',
@@ -123,6 +124,16 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
             网络搜索
           </button>
           <button
+            onClick={() => setActiveTab('browser')}
+            className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'browser'
+                ? 'border-blue-500 text-blue-600 bg-blue-50'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            浏览器
+          </button>
+          <button
             onClick={() => setActiveTab('email')}
             className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'email'
@@ -221,6 +232,11 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
       {/* Web Search 工具配置 */}
       {activeTab === 'websearch' && (
         <WebSearchToolConfig onClose={onClose} />
+      )}
+
+      {/* 浏览器工具配置 */}
+      {activeTab === 'browser' && (
+        <BrowserToolConfig onClose={onClose} />
       )}
 
       {/* 邮件工具配置 */}

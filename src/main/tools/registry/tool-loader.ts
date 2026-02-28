@@ -16,7 +16,7 @@ import { safeJsonParse } from '../../../shared/utils/json-utils';
 // 导入内置工具
 import { getFileTools } from '../file-tool';
 import { getExecTools } from '../exec-tool';
-import { createBrowserTool } from '../browser-tool';
+import { browserToolPlugin } from '../browser-tool';
 import { getCalendarTools } from '../calendar-tool';
 import { createSkillManagerTool } from '../skill-manager-tool';
 import { createScheduledTaskTool } from '../scheduled-task-tool';
@@ -114,8 +114,23 @@ export class ToolLoader {
       tools.push(...execTools);
       
       // 浏览器工具
-      const browserTool = createBrowserTool();
-      tools.push(browserTool);
+      // 使用 agent-browser CLI，无需配置文件
+      const browserToolsResult = browserToolPlugin.create({
+        workspaceDir: this.workspaceDir,
+        sessionId: this.sessionId,
+        configStore,
+      });
+      
+      // 处理可能的 Promise 返回值
+      const browserTools = browserToolsResult instanceof Promise 
+        ? await browserToolsResult 
+        : browserToolsResult;
+      
+      if (Array.isArray(browserTools)) {
+        tools.push(...browserTools);
+      } else {
+        tools.push(browserTools);
+      }
       
       // 日历工具
       const calendarTools = getCalendarTools();

@@ -649,7 +649,115 @@ function registerIpcHandlers() {
       return { success: false, error: getErrorMessage(error) };
     }
   });
+
+  // ==================== 浏览器工具 ====================
   
+  // 启动 Chrome 浏览器（带远程调试）
+  ipcMain.handle(IPC_CHANNELS.LAUNCH_CHROME_WITH_DEBUG, async (_event, { port }) => {
+    try {
+      console.log(`[IPC] 启动 Chrome，端口: ${port}`);
+      
+      // 先检查是否已经有 Chrome 在运行
+      try {
+        const { httpGet } = await import('../shared/utils/http-utils');
+        const response = await httpGet(`http://127.0.0.1:${port}/json/version`, { timeout: 2000 });
+        
+        if (response.ok) {
+          console.log('[IPC] ✅ Chrome 已在运行，无需重复启动');
+          console.log('[IPC] Chrome 版本信息:', response.data);
+          return {
+            success: true,
+            message: `Chrome 已在运行（端口 ${port}）`,
+          };
+        } else {
+          console.log('[IPC] Chrome 未运行，开始启动...');
+          console.log('[IPC] 连接检查失败:', response.error || `HTTP ${response.status}`);
+        }
+      } catch (checkError) {
+        console.log('[IPC] Chrome 未运行，开始启动...');
+        console.log('[IPC] 连接检查异常:', getErrorMessage(checkError));
+      }
+      
+      // 根据平台选择命令
+      const platform = process.platform;
+      let command: string;
+      const { expandUserPath } = await import('../shared/utils/path-utils');
+      
+      if (platform === 'darwin') {
+        // macOS: 使用 open 命令启动，确保窗口可见
+        const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+        command = `open -a "Google Chrome" --args --remote-debugging-port=${port} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
+      } else if (platform === 'win32') {
+        // Windows
+        command = `start chrome --remote-debugging-port=${port} --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile --no-first-run --no-default-browser-check`;
+      } else {
+        // Linux
+        const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+        command = `google-chrome --remote-debugging-port=${port} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check &`;
+      }
+      
+      console.log(`[IPC] 执行命令: ${command}`);
+      
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+      
+      // 执行命令
+      await execAsync(command, {
+        timeout: 5000,
+      });
+      
+      console.log('[IPC] ✅ Chrome 启动命令已执行');
+      
+      // 等待 Chrome 就绪（最多 10 秒）
+      const { httpGet } = await import('../shared/utils/http-utils');
+      let ready = false;
+      for (let i = 0; i < 10; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+          const response = await httpGet(`http://127.0.0.1:${port}/json/version`, { timeout: 2000 });
+          if (response.ok) {
+            ready = true;
+            console.log(`[IPC] ✅ Chrome 已就绪（耗时 ${i + 1} 秒）`);
+            break;
+          }
+        } catch {
+          // 忽略异常，继续等待
+        }
+        console.log(`[IPC] ⏳ 等待 Chrome 启动... (${i + 1}/10)`);
+      }
+      
+      if (!ready) {
+        throw new Error('Chrome 启动超时，请检查是否正确安装');
+      }
+      
+      return {
+        success: true,
+        message: `Chrome 已启动，远程调试端口: ${port}`,
+      };
+    } catch (error) {
+      console.error('[IPC] 启动 Chrome 失败:', error);
+      
+      const errorMsg = getErrorMessage(error);
+      
+      // 提供更友好的错误提示
+      let message = '启动失败';
+      
+      if (errorMsg.includes('not found') || errorMsg.includes('找不到')) {
+        message = 'Chrome 浏览器未安装或不在默认路径';
+      } else if (errorMsg.includes('timeout') || errorMsg.includes('超时')) {
+        message = 'Chrome 启动超时，请检查是否正确安装';
+      } else {
+        message = `启动失败: ${errorMsg}`;
+      }
+      
+      return {
+        success: false,
+        message,
+      };
+    }
+  });
+
   // ==================== 名字配置 ====================
   
   // 获取名字配置

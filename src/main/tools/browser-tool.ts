@@ -1,465 +1,895 @@
 /**
- * Browser Tool
+ * 浏览器工具（插件）
  * 
- * 职责：
- * - 提供浏览器控制能力给 AI Agent
- * - 封装 Browser HTTP Client 调用
- * - 处理结果格式化
+ * 基于 agent-browser CLI 实现浏览器自动化
  * 
+ * 特点：
+ * - 使用 @ref 系统进行元素定位（如 @e1, @e2）
+ * - 运行时安装 Chromium（首次使用自动下载）
+ * - 无需配置文件，开箱即用
  * 
- * 简化版本（MVP）：
- * - 只支持本地浏览器
- * - 不支持多 Profile
- * - 不支持远程节点
+ * 依赖安装：
+ * - agent-browser 已在 package.json 中声明
+ * - Chromium 首次使用时自动下载（~100MB）
  */
 
-import type { AgentTool } from '@mariozechner/pi-agent-core';
-import { BrowserToolSchema, type BrowserToolParams } from './browser-tool.schema';
-import {
-  browserStatus,
-  browserStart,
-  browserStop,
-  browserTabs,
-  browserOpenTab,
-  browserCloseTab,
-  browserSnapshot,
-  browserScreenshot,
-  browserPdf,
-  browserNavigate,
-  browserAct,
-  browserConsoleMessages,
-} from '../browser/client';
-import { getErrorMessage, isAbortError } from '../../shared/utils/error-handler';
+import { Type } from '@sinclair/typebox';
+import type { ToolPlugin, ToolCreateOptions } from './registry/tool-interface';
+import { AgentBrowserWrapper } from '../browser/agent-browser-wrapper';
+import { getErrorMessage } from '../../shared/utils/error-handler';
+import { expandUserPath } from '../../shared/utils/path-utils';
 import { TOOL_NAMES } from './tool-names';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 /**
- * 默认最大字符数
+ * 浏览器操作类型
  */
-const DEFAULT_AI_SNAPSHOT_MAX_CHARS = 80000;
+const BROWSER_ACTIONS = [
+  'open',           // 打开 URL
+  'snapshot',       // 获取页面快照
+  'click',          // 点击元素
+  'dblclick',       // 双击元素
+  'fill',           // 填充输入框（清空后输入）
+  'type',           // 输入文本（不清空）
+  'press',          // 按键
+  'hover',          // 悬停
+  'check',          // 选中复选框
+  'uncheck',        // 取消选中复选框
+  'select',         // 选择下拉框
+  'scroll',         // 滚动页面
+  'scrollintoview', // 滚动元素到可见区域
+  'get',            // 获取信息（text, value, title, url）
+  'screenshot',     // 截图
+  'back',           // 后退
+  'forward',        // 前进
+  'reload',         // 刷新
+  'wait',           // 等待
+  'tab',            // 标签页管理
+  'close',          // 关闭浏览器
+] as const;
 
 /**
- * 默认 Browser Server URL
+ * 获取信息类型
  */
-const DEFAULT_BROWSER_BASE_URL = 'http://127.0.0.1:18791';
+const GET_TYPES = ['text', 'value', 'title', 'url'] as const;
 
 /**
- * 创建 Browser Tool
- * 
- * @returns Browser Tool
+ * 滚动方向
  */
-export function createBrowserTool(): AgentTool {
-  return {
-    name: TOOL_NAMES.BROWSER,
-    label: 'Browser',
-    description: '控制浏览器执行自动化任务。支持：status, start, stop, tabs, open, close, snapshot, screenshot, navigate, act, console, pdf。详细说明请参考 TOOLS.md',
-    parameters: BrowserToolSchema,
-    execute: async (_toolCallId, args, signal) => {
-      const params = args as BrowserToolParams;
-      const action = params.action;
-      const baseUrl = DEFAULT_BROWSER_BASE_URL;
+const SCROLL_DIRECTIONS = ['up', 'down'] as const;
 
-      // 检查是否已被取消（执行前）
-      if (signal?.aborted) {
-        const err = new Error('浏览器操作被取消');
-        err.name = 'AbortError';
-        throw err;
-      }
+/**
+ * 标签页操作类型
+ */
+const TAB_ACTIONS = ['new', 'list', 'switch', 'close'] as const;
 
-      try {
-        switch (action) {
-          case 'status': {
-            const status = await browserStatus(baseUrl);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify(status, null, 2),
-                },
-              ],
-              details: status,
-            };
-          }
-
-          case 'start': {
-            await browserStart(baseUrl);
-            
-            // 检查是否已被取消
-            if (signal?.aborted) {
-              const err = new Error('浏览器操作被取消');
-              err.name = 'AbortError';
-              throw err;
-            }
-            
-            const status = await browserStatus(baseUrl);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `浏览器已启动\n${JSON.stringify(status, null, 2)}`,
-                },
-              ],
-              details: status,
-            };
-          }
-
-          case 'stop': {
-            await browserStop(baseUrl);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: '浏览器已停止',
-                },
-              ],
-              details: { ok: true },
-            };
-          }
-
-          case 'tabs': {
-            const tabs = await browserTabs(baseUrl);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify({ tabs }, null, 2),
-                },
-              ],
-              details: { tabs },
-            };
-          }
-
-          case 'open': {
-            if (!params.targetUrl) {
-              throw new Error('targetUrl is required for open action');
-            }
-            const tab = await browserOpenTab(baseUrl, params.targetUrl);
-            
-            // 检查是否已被取消
-            if (signal?.aborted) {
-              const err = new Error('浏览器操作被取消');
-              err.name = 'AbortError';
-              throw err;
-            }
-            
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `已打开新标签页\n${JSON.stringify(tab, null, 2)}`,
-                },
-              ],
-              details: tab,
-            };
-          }
-
-          case 'close': {
-            if (!params.targetId) {
-              throw new Error('targetId is required for close action');
-            }
-            await browserCloseTab(baseUrl, params.targetId);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `已关闭标签页: ${params.targetId}`,
-                },
-              ],
-              details: { ok: true, targetId: params.targetId },
-            };
-          }
-
-          case 'snapshot': {
-            const maxChars = params.maxChars ?? DEFAULT_AI_SNAPSHOT_MAX_CHARS;
-            const snapshot = await browserSnapshot(
-              baseUrl,
-              params.targetId,
-              maxChars
-            );
-            
-            // 检查是否已被取消
-            if (signal?.aborted) {
-              const err = new Error('浏览器操作被取消');
-              err.name = 'AbortError';
-              throw err;
-            }
-            
-            // 检查快照格式
-            if (snapshot.format === 'ai') {
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: snapshot.snapshot,
-                  },
-                ],
-                details: snapshot,
-              };
-            } else {
-              // ARIA 格式
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: JSON.stringify(snapshot, null, 2),
-                  },
-                ],
-                details: snapshot,
-              };
-            }
-          }
-
-          case 'screenshot': {
-            const type = params.type ?? 'png';
-            const fullPage = params.fullPage ?? false;
-            const result = await browserScreenshot(
-              baseUrl,
-              params.targetId,
-              type,
-              fullPage
-            );
-            
-            // 检查是否已被取消
-            if (signal?.aborted) {
-              const err = new Error('浏览器操作被取消');
-              err.name = 'AbortError';
-              throw err;
-            }
-            
-            const fs = await import('fs/promises');
-            const path = await import('path');
-            const os = await import('os');
-            
-            // 生成文件名：screenshot-{timestamp}.{type}
-            const timestamp = Date.now();
-            const filename = `screenshot-${timestamp}.${type}`;
-            const filepath = path.join(os.tmpdir(), filename);
-            
-            // 保存文件
-            const buffer = Buffer.from(result.data, 'base64');
-            await fs.writeFile(filepath, buffer);
-            
-            // 🔥 关键改进：只返回文件路径，不返回 base64 数据
-            // 这样可以大幅减少传给 AI 的数据量，节省 token
-            // 同时提供清晰的下一步操作指引
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `✅ 截图已保存到临时文件：${filepath}
-
-📝 如何保存到目标位置：
-
-使用 exec_run 工具执行 cp 命令：
-
-示例：
-• 保存到桌面：
-  exec_run({ command: "cp '${filepath}' ~/Desktop/screenshot.png" })
-
-• 保存到工作区：
-  exec_run({ command: "cp '${filepath}' ./screenshot.png" })
-
-⚠️ 重要提示：
-1. 必须使用 exec_run 工具（不是 write 工具）
-2. 文件已生成，不要重复调用 screenshot
-3. 复制完成后，记得回复文本消息说明结果`,
-                },
-              ],
-              details: {
-                ok: result.ok,
-                type: result.type,
-                path: filepath,
-                // 不再包含 data 字段，避免传递大量 base64 数据
-              },
-            };
-          }
-
-          case 'navigate': {
-            if (!params.targetUrl) {
-              throw new Error('targetUrl is required for navigate action');
-            }
-            const result = await browserNavigate(
-              baseUrl,
-              params.targetUrl,
-              params.targetId,
-              params.timeoutMs
-            );
-            
-            // 检查是否已被取消
-            if (signal?.aborted) {
-              const err = new Error('浏览器操作被取消');
-              err.name = 'AbortError';
-              throw err;
-            }
-            
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `已导航到: ${result.url}`,
-                },
-              ],
-              details: result,
-            };
-          }
-
-          case 'console': {
-            const result = await browserConsoleMessages(
-              baseUrl,
-              params.targetId,
-              params.limit
-            );
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify(result, null, 2),
-                },
-              ],
-              details: result,
-            };
-          }
-
-          case 'pdf': {
-            const result = await browserPdf(baseUrl, params.targetId);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `PDF 已生成（base64 编码）\n长度: ${result.data.length} 字符`,
-                },
-              ],
-              details: result,
-            };
-          }
-
-          case 'act': {
-            if (!params.request) {
-              throw new Error('request is required for act action');
-            }
-
-            const request = params.request;
-            const kind = request.kind;
-
-            // 构建操作参数
-            const actOptions: Record<string, unknown> = {
-              targetId: params.targetId,
-            };
-
-            switch (kind) {
-              case 'click':
-                if (!request.selector) {
-                  throw new Error('selector is required for click');
-                }
-                await browserAct(baseUrl, 'click', {
-                  ...actOptions,
-                  selector: request.selector,
-                  timeout: request.timeout,
-                });
-                break;
-
-              case 'type':
-                if (!request.selector || !request.text) {
-                  throw new Error('selector and text are required for type');
-                }
-                await browserAct(baseUrl, 'type', {
-                  ...actOptions,
-                  selector: request.selector,
-                  value: request.text,
-                  timeout: request.timeout,
-                });
-                break;
-
-              case 'press':
-                if (!request.key) {
-                  throw new Error('key is required for press');
-                }
-                await browserAct(baseUrl, 'press', {
-                  ...actOptions,
-                  key: request.key,
-                });
-                break;
-
-              case 'hover':
-                if (!request.selector) {
-                  throw new Error('selector is required for hover');
-                }
-                await browserAct(baseUrl, 'hover', {
-                  ...actOptions,
-                  selector: request.selector,
-                  timeout: request.timeout,
-                });
-                break;
-
-              case 'scroll':
-                await browserAct(baseUrl, 'scroll', {
-                  ...actOptions,
-                  x: request.x ?? 0,
-                  y: request.y ?? 0,
-                });
-                break;
-
-              case 'select':
-                if (!request.selector || !request.value) {
-                  throw new Error('selector and value are required for select');
-                }
-                await browserAct(baseUrl, 'select', {
-                  ...actOptions,
-                  selector: request.selector,
-                  value: request.value,
-                  timeout: request.timeout,
-                });
-                break;
-
-              case 'fill':
-                if (!request.selector || !request.value) {
-                  throw new Error('selector and value are required for fill');
-                }
-                await browserAct(baseUrl, 'fill', {
-                  ...actOptions,
-                  selector: request.selector,
-                  value: request.value,
-                  timeout: request.timeout,
-                });
-                break;
-
-              default:
-                throw new Error(`Unknown act kind: ${kind}`);
-            }
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `已执行操作: ${kind}`,
-                },
-              ],
-              details: { ok: true, action: kind },
-            };
-          }
-
-          default:
-            throw new Error(`Unknown action: ${action}`);
-        }
-      } catch (error) {
-        // 错误处理
-        const errorMessage = getErrorMessage(error);
-        
-        // 检查是否是取消错误
-        if (isAbortError(error)) {
-          throw error; // 重新抛出取消错误
-        }
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `浏览器操作失败: ${errorMessage}`,
-            },
-          ],
-          details: { error: errorMessage },
-          isError: true,
-        };
-      }
-    },
-  };
+/**
+ * 字符串枚举辅助函数
+ */
+function stringEnum<T extends readonly string[]>(values: T) {
+  return Type.Union(values.map((v) => Type.Literal(v)));
 }
+
+/**
+ * 浏览器工具参数 Schema
+ */
+const BrowserToolSchema = Type.Object({
+  action: stringEnum(BROWSER_ACTIONS),
+  
+  // URL（用于 open）
+  url: Type.Optional(Type.String({
+    description: '要打开的网页 URL',
+  })),
+  
+  // 元素引用（用于 click, fill, type, hover 等）
+  ref: Type.Optional(Type.String({
+    description: '⚠️ 极其重要：必须使用 snapshot 返回的 @ref（如 @e1, @e36）。ref 编号是随机的，每个页面都不同，绝对不要猜测！',
+  })),
+  
+  // 文本/值（用于 fill, type, select）
+  text: Type.Optional(Type.String({
+    description: '要输入的文本内容',
+  })),
+  
+  // 按键（用于 press）
+  key: Type.Optional(Type.String({
+    description: '要按下的键（如 Enter, Escape, Control+a）',
+  })),
+  
+  // 快照选项（用于 snapshot）
+  interactive: Type.Optional(Type.Boolean({
+    description: '是否只显示可交互元素（默认 true）。true: 显示可交互元素（按钮、链接、输入框等），用于操作页面；false: 显示页面完整文本内容，用于阅读信息',
+  })),
+  
+  // 获取信息类型（用于 get）
+  getType: Type.Optional(stringEnum(GET_TYPES)),
+  
+  // 滚动方向（用于 scroll）
+  direction: Type.Optional(stringEnum(SCROLL_DIRECTIONS)),
+  
+  // 滚动距离（用于 scroll）
+  amount: Type.Optional(Type.Number({
+    description: '滚动距离（像素），默认 500',
+  })),
+  
+  // 截图选项
+  screenshotPath: Type.Optional(Type.String({
+    description: '截图保存路径（可选）',
+  })),
+  
+  fullPage: Type.Optional(Type.Boolean({
+    description: '是否截取整个页面（默认 false）',
+  })),
+  
+  // 等待超时（用于 wait）
+  waitTimeout: Type.Optional(Type.Number({
+    description: '等待超时时间（毫秒）',
+  })),
+  
+  // 标签页操作（用于 tab）
+  tabAction: Type.Optional(stringEnum(TAB_ACTIONS)),
+  
+  // 标签页索引（用于 tab switch）
+  tabIndex: Type.Optional(Type.Number({
+    description: '标签页索引（从 1 开始）',
+  })),
+});
+
+/**
+ * 浏览器工具插件
+ */
+export const browserToolPlugin: ToolPlugin = {
+  metadata: {
+    id: 'browser-tool',
+    name: TOOL_NAMES.BROWSER,
+    version: '2.0.0',
+    description: '使用 agent-browser 控制浏览器。支持：打开网页、获取快照、点击、填充表单、截图等操作。使用 @ref 系统进行元素定位',
+    author: 'DeepBot',
+    category: 'system',
+    tags: ['browser', 'automation', 'web'],
+    requiresConfig: false,
+  },
+  
+  create: (options: ToolCreateOptions) => {
+    const { sessionId } = options;
+    
+    return [
+      {
+        name: TOOL_NAMES.BROWSER,
+        label: '浏览器控制',
+        description: `使用 agent-browser 控制浏览器。支持：打开网页、获取快照、点击、填充表单、截图、标签页管理等操作。使用 @ref 系统进行元素定位。
+
+⚠️ 核心规则：
+1. 执行任何改变页面的操作后（open、click、fill、type、back、forward、reload、tab 等），必须立即执行 snapshot
+2. snapshot 是查看页面内容的唯一方式
+3. 页面跳转、按钮点击、表单提交、标签页切换后，都需要 snapshot 确认新页面内容
+4. 只有 snapshot 能获取 JS 渲染后的实际页面内容和可交互元素列表
+
+📑 标签页管理：
+• 创建新标签页：{ action: "tab", tabAction: "new" }
+• 列出所有标签页：{ action: "tab", tabAction: "list" }
+• 切换标签页：{ action: "tab", tabAction: "switch", tabIndex: 2 }
+• 关闭当前标签页：{ action: "tab", tabAction: "close" }
+
+⚠️ 在新标签页打开网址：必须分两步执行
+1. { action: "tab", tabAction: "new" } - 创建新标签页
+2. { action: "open", url: "..." } - 在新标签页中打开网址
+
+📋 Snapshot 模式：
+• interactive: false - 获取页面完整文本内容（阅读模式）
+• interactive: true - 获取可交互元素列表（操作模式，默认）
+
+详细使用说明请参考 TOOLS.md`,
+        parameters: BrowserToolSchema,
+        
+        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
+          try {
+            // 固定使用 CDP 端口 9222
+            const cdpPort = 9222;
+            const cdpOptions = { port: cdpPort };
+            
+            const params = args as {
+              action: typeof BROWSER_ACTIONS[number];
+              url?: string;
+              ref?: string;
+              text?: string;
+              key?: string;
+              interactive?: boolean;
+              getType?: typeof GET_TYPES[number];
+              direction?: typeof SCROLL_DIRECTIONS[number];
+              amount?: number;
+              screenshotPath?: string;
+              fullPage?: boolean;
+              waitTimeout?: number;
+              tabAction?: typeof TAB_ACTIONS[number];
+              tabIndex?: number;
+            };
+            
+            console.log(`[Browser Tool] 🌐 执行操作: ${params.action}`);
+            
+            // 检查是否被取消
+            if (signal?.aborted) {
+              const err = new Error('浏览器操作被取消');
+              err.name = 'AbortError';
+              throw err;
+            }
+            
+            // 创建 wrapper（使用 sessionId 和 CDP 选项）
+            const wrapper = new AgentBrowserWrapper(sessionId, cdpOptions);
+            
+            // 尝试连接，如果失败则自动启动 Chrome
+            try {
+              // 先尝试获取当前 URL 来测试连接
+              await wrapper.getUrl();
+              console.log('[Browser Tool] ✅ Chrome 已连接，无需启动');
+            } catch (connectError) {
+              console.log('[Browser Tool] ⚠️ 无法连接到 Chrome，尝试自动启动...');
+              
+              // 尝试启动 Chrome
+              try {
+                const { exec } = await import('child_process');
+                const { promisify } = await import('util');
+                const execAsync = promisify(exec);
+                
+                const platform = process.platform;
+                let command: string;
+                
+                if (platform === 'darwin') {
+                  // macOS: 使用 open 命令启动，确保窗口可见
+                  // 使用通用工具展开路径
+                  const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+                  command = `open -a "Google Chrome" --args --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
+                } else if (platform === 'win32') {
+                  command = `start chrome --remote-debugging-port=${cdpPort} --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile --no-first-run --no-default-browser-check`;
+                } else {
+                  // Linux: 使用通用工具展开路径
+                  const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+                  command = `google-chrome --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check &`;
+                }
+                
+                await execAsync(command, { timeout: 5000 });
+                console.log('[Browser Tool] ✅ Chrome 已自动启动');
+                
+                // 等待 Chrome 启动（最多 10 秒）
+                let connected = false;
+                for (let i = 0; i < 10; i++) {
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  try {
+                    await wrapper.getUrl();
+                    connected = true;
+                    console.log(`[Browser Tool] ✅ Chrome 已就绪（耗时 ${i + 1} 秒）`);
+                    break;
+                  } catch {
+                    console.log(`[Browser Tool] ⏳ 等待 Chrome 启动... (${i + 1}/10)`);
+                  }
+                }
+                
+                if (!connected) {
+                  throw new Error('Chrome 启动超时，请手动启动 Chrome 后重试');
+                }
+              } catch (launchError) {
+                const launchErrorMsg = getErrorMessage(launchError);
+                const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+                
+                const macCommand = `open -a "Google Chrome" --args --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
+                const winCommand = `chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile`;
+                const linuxCommand = `google-chrome --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
+                
+                throw new Error(`无法连接到 Chrome 浏览器。\n\n请先启动 Chrome（使用独立的用户数据目录）：\n\nmacOS:\n${macCommand}\n\nWindows:\n${winCommand}\n\nLinux:\n${linuxCommand}\n\n或在系统配置 > 浏览器工具中点击"启动 Chrome"按钮。\n\n错误详情: ${launchErrorMsg}`);
+              }
+            }
+            
+            // 执行操作
+            switch (params.action) {
+              case 'open': {
+                if (!params.url) {
+                  throw new Error('缺少参数: url');
+                }
+                
+                await wrapper.open(params.url);
+                
+                const text = `✅ 已打开网页: ${params.url}\n\n⚠️ 重要：页面已打开但内容尚未获取。\n\n💡 推荐下一步：\n1. 先用 { action: "snapshot", interactive: false } 查看页面完整文本内容\n2. 如需操作页面，再用 { action: "snapshot", interactive: true } 获取可交互元素`;
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text,
+                  }],
+                  details: {
+                    success: true,
+                    url: params.url,
+                    needsSnapshot: true,
+                  },
+                };
+              }
+              
+              case 'snapshot': {
+                const interactive = params.interactive !== false; // 默认 true
+                const result = await wrapper.snapshot(interactive);
+                
+                // 格式化输出
+                let text = `📸 页面快照${interactive ? '（操作模式）' : '（阅读模式）'}\n\n`;
+                
+                if (result.title) {
+                  text += `📄 标题: ${result.title}\n`;
+                }
+                
+                if (result.url) {
+                  text += `🔗 URL: ${result.url}\n`;
+                }
+                
+                if (interactive) {
+                  // 显示可交互元素
+                  if (result.elements && result.elements.length > 0) {
+                    text += `\n🎯 可交互元素 (共 ${result.elements.length} 个):\n\n`;
+                    
+                    result.elements.forEach((el) => {
+                      text += `  ${el.ref} - ${el.role}`;
+                      if (el.name) {
+                        text += ` "${el.name}"`;
+                      }
+                      if (el.value) {
+                        text += ` [值: ${el.value}]`;
+                      }
+                      text += '\n';
+                    });
+                    
+                    text += `\n💡 操作提示：使用 @ref 进行操作，例如：\n   { action: "click", ref: "${result.elements[0].ref}" }`;
+                    text += `\n\n💡 如需查看页面文字内容（价格、描述等），使用：\n   { action: "snapshot", interactive: false }`;
+                  } else {
+                    text += `\n⚠️ 未找到可交互元素\n\n💡 可能原因：\n   • 页面仍在加载中（尝试 wait 操作等待）\n   • 页面内容为纯静态展示\n   • 需要滚动才能看到更多元素\n\n💡 建议：使用 { action: "snapshot", interactive: false } 查看页面完整文本内容`;
+                  }
+                } else {
+                  // 显示完整文本内容
+                  if (result.raw) {
+                    // 移除标题和 URL 行，只保留内容
+                    const lines = result.raw.split('\n');
+                    const contentLines: string[] = [];
+                    let skipNext = false;
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                      const line = lines[i];
+                      
+                      // 跳过标题行（✓ 开头）
+                      if (line.match(/^✓\s+/)) {
+                        skipNext = true;
+                        continue;
+                      }
+                      
+                      // 跳过 URL 行（紧跟标题的缩进行）
+                      if (skipNext && line.match(/^\s+https?:\/\//)) {
+                        skipNext = false;
+                        continue;
+                      }
+                      
+                      skipNext = false;
+                      
+                      // 跳过空行（开头的）
+                      if (contentLines.length === 0 && line.trim() === '') {
+                        continue;
+                      }
+                      
+                      contentLines.push(line);
+                    }
+                    
+                    const content = contentLines.join('\n').trim();
+                    
+                    if (content) {
+                      text += `\n📝 页面文本内容:\n\n${content}\n\n💡 如需与页面交互（点击按钮等），使用：\n   { action: "snapshot", interactive: true }`;
+                    } else {
+                      text += `\n⚠️ 页面内容为空或仍在加载中\n💡 建议：等待几秒后重试，或使用 wait 操作`;
+                    }
+                  }
+                }
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text,
+                  }],
+                  details: result,
+                };
+              }
+              
+              case 'click': {
+                if (!params.ref) {
+                  throw new Error('缺少参数: ref（必须使用 snapshot 返回的 @ref）');
+                }
+                
+                await wrapper.click(params.ref);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已点击元素: ${params.ref}\n\n⚠️ 页面可能已改变！必须立即执行 snapshot 查看新页面内容。`,
+                  }],
+                  details: {
+                    success: true,
+                    ref: params.ref,
+                    requiresSnapshot: true,
+                  },
+                };
+              }
+              
+              case 'dblclick': {
+                if (!params.ref) {
+                  throw new Error('缺少参数: ref');
+                }
+                
+                await wrapper.doubleClick(params.ref);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已双击元素: ${params.ref}`,
+                  }],
+                  details: {
+                    success: true,
+                    ref: params.ref,
+                  },
+                };
+              }
+              
+              case 'fill': {
+                if (!params.ref || !params.text) {
+                  throw new Error('缺少参数: ref 和 text');
+                }
+                
+                await wrapper.fill(params.ref, params.text);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已填充输入框: ${params.ref}\n\n💡 提示：如果填充后触发了页面变化（如自动提交、下拉建议等），需要执行 snapshot 查看新内容。`,
+                  }],
+                  details: {
+                    success: true,
+                    ref: params.ref,
+                  },
+                };
+              }
+              
+              case 'type': {
+                if (!params.ref || !params.text) {
+                  throw new Error('缺少参数: ref 和 text');
+                }
+                
+                await wrapper.type(params.ref, params.text);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已输入文本: ${params.ref}`,
+                  }],
+                  details: {
+                    success: true,
+                    ref: params.ref,
+                  },
+                };
+              }
+              
+              case 'press': {
+                if (!params.key) {
+                  throw new Error('缺少参数: key');
+                }
+                
+                await wrapper.press(params.key);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已按下键: ${params.key}\n\n💡 提示：如果按键触发了页面变化（如 Enter 提交表单、Tab 切换焦点等），需要执行 snapshot 查看新内容。`,
+                  }],
+                  details: {
+                    success: true,
+                    key: params.key,
+                  },
+                };
+              }
+              
+              case 'hover': {
+                if (!params.ref) {
+                  throw new Error('缺少参数: ref');
+                }
+                
+                await wrapper.hover(params.ref);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已悬停在元素: ${params.ref}`,
+                  }],
+                  details: {
+                    success: true,
+                    ref: params.ref,
+                  },
+                };
+              }
+              
+              case 'check': {
+                if (!params.ref) {
+                  throw new Error('缺少参数: ref');
+                }
+                
+                await wrapper.check(params.ref);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已选中复选框: ${params.ref}`,
+                  }],
+                  details: {
+                    success: true,
+                    ref: params.ref,
+                  },
+                };
+              }
+              
+              case 'uncheck': {
+                if (!params.ref) {
+                  throw new Error('缺少参数: ref');
+                }
+                
+                await wrapper.uncheck(params.ref);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已取消选中复选框: ${params.ref}`,
+                  }],
+                  details: {
+                    success: true,
+                    ref: params.ref,
+                  },
+                };
+              }
+              
+              case 'select': {
+                if (!params.ref || !params.text) {
+                  throw new Error('缺少参数: ref 和 text（选项值）');
+                }
+                
+                await wrapper.select(params.ref, params.text);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已选择下拉框选项: ${params.ref} = ${params.text}\n\n💡 提示：如果选择后触发了页面变化，需要执行 snapshot 查看新内容。`,
+                  }],
+                  details: {
+                    success: true,
+                    ref: params.ref,
+                    value: params.text,
+                  },
+                };
+              }
+              
+              case 'scroll': {
+                const direction = params.direction || 'down';
+                const amount = params.amount || 500;
+                
+                await wrapper.scroll(direction, amount);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已滚动页面: ${direction} ${amount}px\n\n💡 提示：滚动后可能显示新内容，建议执行 snapshot 查看新出现的元素。`,
+                  }],
+                  details: {
+                    success: true,
+                    direction,
+                    amount,
+                  },
+                };
+              }
+              
+              case 'scrollintoview': {
+                if (!params.ref) {
+                  throw new Error('缺少参数: ref');
+                }
+                
+                await wrapper.scrollIntoView(params.ref);
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已滚动元素到可见区域: ${params.ref}`,
+                  }],
+                  details: {
+                    success: true,
+                    ref: params.ref,
+                  },
+                };
+              }
+              
+              case 'get': {
+                if (!params.getType) {
+                  throw new Error('缺少参数: getType（text, value, title, url）');
+                }
+                
+                let result: string;
+                
+                switch (params.getType) {
+                  case 'text':
+                    if (!params.ref) {
+                      throw new Error('获取文本需要 ref 参数');
+                    }
+                    result = await wrapper.getText(params.ref);
+                    break;
+                    
+                  case 'value':
+                    if (!params.ref) {
+                      throw new Error('获取值需要 ref 参数');
+                    }
+                    result = await wrapper.getValue(params.ref);
+                    break;
+                    
+                  case 'title':
+                    result = await wrapper.getTitle();
+                    break;
+                    
+                  case 'url':
+                    result = await wrapper.getUrl();
+                    break;
+                    
+                  default:
+                    throw new Error(`未知的 getType: ${params.getType}`);
+                }
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 获取 ${params.getType}: ${result}`,
+                  }],
+                  details: {
+                    success: true,
+                    type: params.getType,
+                    value: result,
+                  },
+                };
+              }
+              
+              case 'screenshot': {
+                const defaultPath = join(tmpdir(), `screenshot-${Date.now()}.png`);
+                const rawPath = params.screenshotPath || defaultPath;
+                
+                // 展开用户路径（支持 ~ 符号）
+                const path = expandUserPath(rawPath);
+                const fullPage = params.fullPage || false;
+                
+                await wrapper.screenshot({
+                  path,
+                  fullPage,
+                });
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 截图已保存: ${path}${fullPage ? ' (完整页面)' : ' (可见区域)'}`,
+                  }],
+                  details: {
+                    success: true,
+                    path,
+                    fullPage,
+                  },
+                };
+              }
+              
+              case 'back': {
+                await wrapper.back();
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已后退\n\n⚠️ 页面已改变！必须立即执行 snapshot 查看当前页面内容。`,
+                  }],
+                  details: {
+                    success: true,
+                    requiresSnapshot: true,
+                  },
+                };
+              }
+              
+              case 'forward': {
+                await wrapper.forward();
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已前进\n\n⚠️ 页面已改变！必须立即执行 snapshot 查看当前页面内容。`,
+                  }],
+                  details: {
+                    success: true,
+                    requiresSnapshot: true,
+                  },
+                };
+              }
+              
+              case 'reload': {
+                await wrapper.reload();
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已刷新页面\n\n⚠️ 页面已重新加载！必须立即执行 snapshot 查看刷新后的内容。`,
+                  }],
+                  details: {
+                    success: true,
+                    requiresSnapshot: true,
+                  },
+                };
+              }
+              
+              case 'wait': {
+                if (params.ref) {
+                  await wrapper.wait(params.ref, params.waitTimeout);
+                  
+                  return {
+                    content: [{
+                      type: 'text',
+                      text: `✅ 已等待元素出现: ${params.ref}`,
+                    }],
+                    details: {
+                      success: true,
+                      ref: params.ref,
+                    },
+                  };
+                } else if (params.waitTimeout) {
+                  await wrapper.waitTime(params.waitTimeout);
+                  
+                  return {
+                    content: [{
+                      type: 'text',
+                      text: `✅ 已等待 ${params.waitTimeout}ms`,
+                    }],
+                    details: {
+                      success: true,
+                      duration: params.waitTimeout,
+                    },
+                  };
+                } else {
+                  throw new Error('缺少参数: ref 或 waitTimeout');
+                }
+              }
+              
+              case 'tab': {
+                if (!params.tabAction) {
+                  throw new Error('缺少参数: tabAction（new, list, switch, close）');
+                }
+                
+                switch (params.tabAction) {
+                  case 'new': {
+                    await wrapper.newTab();
+                    
+                    return {
+                      content: [{
+                        type: 'text',
+                        text: `✅ 已创建新标签页\n\n⚠️ 已切换到新标签页！必须立即执行 snapshot 查看新标签页内容。\n\n💡 提示：新标签页默认显示空白页（about:blank），使用 open 操作打开网址。`,
+                      }],
+                      details: {
+                        success: true,
+                        requiresSnapshot: true,
+                      },
+                    };
+                  }
+                  
+                  case 'list': {
+                    const list = await wrapper.listTabs();
+                    
+                    return {
+                      content: [{
+                        type: 'text',
+                        text: `📑 标签页列表:\n\n${list}\n\n💡 提示：使用 { action: "tab", tabAction: "switch", tabIndex: N } 切换到指定标签页`,
+                      }],
+                      details: {
+                        success: true,
+                        list,
+                      },
+                    };
+                  }
+                  
+                  case 'switch': {
+                    if (!params.tabIndex) {
+                      throw new Error('缺少参数: tabIndex（标签页索引，从 1 开始）');
+                    }
+                    
+                    await wrapper.switchTab(params.tabIndex);
+                    
+                    return {
+                      content: [{
+                        type: 'text',
+                        text: `✅ 已切换到标签页 ${params.tabIndex}\n\n⚠️ 已切换标签页！必须立即执行 snapshot 查看当前标签页内容。`,
+                      }],
+                      details: {
+                        success: true,
+                        tabIndex: params.tabIndex,
+                        requiresSnapshot: true,
+                      },
+                    };
+                  }
+                  
+                  case 'close': {
+                    await wrapper.closeTab();
+                    
+                    return {
+                      content: [{
+                        type: 'text',
+                        text: `✅ 已关闭当前标签页\n\n⚠️ 已自动切换到其他标签页！必须立即执行 snapshot 查看当前标签页内容。`,
+                      }],
+                      details: {
+                        success: true,
+                        requiresSnapshot: true,
+                      },
+                    };
+                  }
+                  
+                  default:
+                    throw new Error(`未知的 tabAction: ${params.tabAction}`);
+                }
+              }
+              
+              case 'close': {
+                await wrapper.close();
+                
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `✅ 已关闭浏览器`,
+                  }],
+                  details: {
+                    success: true,
+                  },
+                };
+              }
+              
+              default:
+                throw new Error(`未知操作: ${params.action}`);
+            }
+          } catch (error) {
+            console.error('[Browser Tool] ❌ 操作失败:', error);
+            
+            // 构建错误消息
+            let errorMessage = `❌ 浏览器操作失败: ${getErrorMessage(error)}\n\n`;
+            
+            // 添加常见问题提示
+            const errorStr = getErrorMessage(error).toLowerCase();
+            
+            if (errorStr.includes('connect') || errorStr.includes('econnrefused')) {
+              errorMessage += `💡 无法连接到 Chrome 浏览器\n\n`;
+              errorMessage += `请先手动启动 Chrome 并开启远程调试（使用独立的用户数据目录）：\n\n`;
+              errorMessage += `macOS:\n`;
+              errorMessage += `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug-9222\n\n`;
+              errorMessage += `Windows:\n`;
+              errorMessage += `chrome.exe --remote-debugging-port=9222 --user-data-dir=%TEMP%\\chrome-debug-9222\n\n`;
+              errorMessage += `Linux:\n`;
+              errorMessage += `google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug-9222\n`;
+            } else if (errorStr.includes('timeout')) {
+              errorMessage += `💡 操作超时，可能原因：\n`;
+              errorMessage += `   • 网络连接较慢\n`;
+              errorMessage += `   • 页面加载时间过长\n`;
+              errorMessage += `   • 元素未找到\n`;
+            } else if (errorStr.includes('ref') || errorStr.includes('@e')) {
+              errorMessage += `💡 元素引用错误，请注意：\n`;
+              errorMessage += `   • 必须先使用 snapshot 获取元素列表\n`;
+              errorMessage += `   • 使用 snapshot 返回的 @ref（如 @e1, @e36）\n`;
+              errorMessage += `   • 不要猜测 ref 编号\n`;
+            }
+            
+            return {
+              content: [{
+                type: 'text',
+                text: errorMessage,
+              }],
+              details: {
+                success: false,
+                error: getErrorMessage(error),
+              },
+              isError: true,
+            };
+          }
+        },
+      },
+    ];
+  },
+};

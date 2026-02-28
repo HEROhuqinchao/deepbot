@@ -56,6 +56,9 @@ export const IPC_CHANNELS = {
   GET_WEB_SEARCH_TOOL_CONFIG: 'tool-config:web-search:get',
   SAVE_WEB_SEARCH_TOOL_CONFIG: 'tool-config:web-search:save',
   
+  // 浏览器工具
+  LAUNCH_CHROME_WITH_DEBUG: 'browser:launch-chrome-with-debug',
+  
   // 名字配置
   GET_NAME_CONFIG: 'name-config:get',
   SAVE_AGENT_NAME: 'name-config:save-agent-name',

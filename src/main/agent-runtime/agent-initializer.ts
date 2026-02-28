@@ -7,7 +7,6 @@
 import type { Agent } from '@mariozechner/pi-agent-core';
 import type { Model } from '@mariozechner/pi-ai';
 import { ToolLoader } from '../tools/registry/tool-loader';
-import { startBrowserControlServer, stopBrowserControlServer } from '../browser/server';
 import { buildSystemPrompt, loadContextFiles, buildRuntimeParams } from '../prompts';
 import type { SystemPromptParams } from '../../types/prompt';
 import { SystemConfigStore } from '../database/system-config-store';
@@ -42,11 +41,6 @@ export class AgentInitializer {
    */
   async initialize(): Promise<{ agent: Agent; tools: any[] }> {
     console.log('🔄 开始异步初始化 Agent...');
-    
-    // 启动 Browser Control Server
-    console.log('🔄 启动 Browser Control Server...');
-    await startBrowserControlServer();
-    console.log('✅ Browser Control Server 已启动');
     
     // 动态加载 ESM 模块（pi-agent-core）
     // eslint-disable-next-line no-eval
@@ -180,11 +174,9 @@ export class AgentInitializer {
   }
 
   /**
-   * 停止 Browser Control Server
+   * 清理资源
    */
   async cleanup(): Promise<void> {
-    console.log('🔄 停止 Browser Control Server...');
-    await stopBrowserControlServer();
-    console.log('✅ Browser Control Server 已停止');
+    console.log('✅ Agent 资源清理完成');
   }
 }

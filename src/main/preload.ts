@@ -36,6 +36,7 @@ const IPC_CHANNELS = {
   SAVE_IMAGE_GENERATION_TOOL_CONFIG: 'tool-config:image-generation:save',
   GET_WEB_SEARCH_TOOL_CONFIG: 'tool-config:web-search:get',
   SAVE_WEB_SEARCH_TOOL_CONFIG: 'tool-config:web-search:save',
+  LAUNCH_CHROME_WITH_DEBUG: 'browser:launch-chrome-with-debug',
   GET_NAME_CONFIG: 'name-config:get',
   SAVE_AGENT_NAME: 'name-config:save-agent-name',
   SAVE_USER_NAME: 'name-config:save-user-name',
@@ -141,7 +142,11 @@ contextBridge.exposeInMainWorld('deepbot', {
   saveWebSearchToolConfig: (config: { model: string; apiUrl: string; apiKey: string }) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SAVE_WEB_SEARCH_TOOL_CONFIG, { config });
   },
-  
+
+  launchChromeWithDebug: (port: number) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LAUNCH_CHROME_WITH_DEBUG, { port });
+  },
+
   // 名字配置
   getNameConfig: () => {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_NAME_CONFIG);
