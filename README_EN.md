@@ -22,7 +22,7 @@ DeepBot Terminal is a desktop AI assistant developed by members of DeepGlint GLI
 ### ✨ Core Features
 
 - 🎯 **Multi-Task Parallel Processing** - Handle multiple tasks simultaneously without interference
-- 🔧 **10 Built-in Tools** - File operations, command execution, browser control, image generation, etc.
+- 🔧 **13 Built-in Tools** - File operations, command execution, browser control, image generation, AI chat, cross-session communication, web content fetching, etc.
 - 🧠 **Memory System** - Long-term memory of user preferences and important information
 - ⏰ **Scheduled Tasks** - Automated execution of periodic tasks
 - 🎨 **Skill Extensions** - Combine tools to implement complex functions through Skills
@@ -125,7 +125,7 @@ DeepBot adopts a modular architecture with the following layers:
 └─────────────────┬───────────────────────┘
                   │
 ┌─────────────────▼───────────────────────┐
-│      10 Tools + Security Check          │
+│      13 Tools + Security Check          │
 │    🔒 Path Whitelist • Workspace Isolation│
 └─────────────────┬───────────────────────┘
                   │
@@ -139,7 +139,7 @@ DeepBot adopts a modular architecture with the following layers:
 
 - **Gateway**: Manages all sessions, each Tab corresponds to an independent session
 - **Agent Runtime**: Based on `@mariozechner/pi-agent-core`, responsible for intelligent decision-making and tool orchestration
-- **Tools**: 10 built-in tools providing core capabilities like file, command, browser operations
+- **Tools**: 13 built-in tools providing core capabilities like file, command, browser operations, AI chat, cross-session communication, web content fetching
 - **Security Check**: All file and command operations are validated through path whitelist
 
 ---
@@ -182,7 +182,7 @@ Includes complete Feishu Open Platform configuration steps, permission settings,
 
 ---
 
-## 🔧 10 Built-in Tools
+## 🔧 13 Built-in Tools
 
 | Tool | Function | Typical Use Cases |
 |------|----------|-------------------|
@@ -193,9 +193,12 @@ Includes complete Feishu Open Platform configuration steps, permission settings,
 | **Environment Check** | Environment inspection | Detect system info, verify dependencies, diagnose issues |
 | **Image Generation** | AI image generation | Create images, design materials, visual content |
 | **Web Search** | Web search | Real-time info queries, data collection, content research |
+| **Web Fetch** | Web content fetching | Get webpage content, extract articles, download web data |
 | **Memory Tool** | Memory management | Store user preferences, read historical information |
 | **Skill Manager** | Skill management | Install/uninstall/list skill packages |
 | **Scheduled Task** | Scheduled tasks | Create/manage/execute scheduled tasks |
+| **Chat Tool** | AI conversation processing | Internal tool AI calls, backend AI processing, independent from main Agent context |
+| **Connector Tool** | Cross-session communication | Send messages to other Tabs, multi-task collaboration |
 
 ### Creating Custom Tools
 
@@ -257,7 +260,7 @@ tools.push(myTools);
 
 Edit `src/main/prompts/templates/CUSTOM-TOOLS.md` to add tool usage instructions:
 
-```markdown
+````markdown
 ## my_tool - My Tool
 
 **Function**: Execute custom operations
@@ -279,7 +282,7 @@ Edit `src/main/prompts/templates/CUSTOM-TOOLS.md` to add tool usage instructions
 **Notes**:
 - Note 1
 - Note 2
-```
+````
 
 #### Advanced Features
 
@@ -388,7 +391,7 @@ cd ~/.deepbot/skills/my-skill
 
 Create `SKILL.md` file (YAML frontmatter + Markdown instructions):
 
-```markdown
+````markdown
 ---
 name: my-skill
 description: My custom skill for handling specific tasks
@@ -428,7 +431,7 @@ Use file_write tool to save results...
 
 - Note 1
 - Note 2
-```
+````
 
 #### 3. Install Skill
 
@@ -547,10 +550,24 @@ DeepBot's development was inspired by the following projects:
 
 ---
 
+## 📝 Changelog
+
+### 2026-02-28
+
+**New Features**:
+- ✨ **Feishu Integration**: Support interaction with DeepBot through Feishu bot, supporting private chats and group chats with independent session management
+- ✨ **Web Fetch Tool**: New web content fetching tool for extracting webpage content and downloading web data
+- ✨ **Chat Tool**: New AI conversation processing tool for internal tool AI calls, independent from main Agent context
+
+**Improvements**:
+- 🔧 Streaming Output Optimization: Chat Tool supports real-time display of processing progress
+- 🔧 AutoContinue Enhancement: Preserve execution step history for complete task execution records
+- 🔧 Frontend Experience Optimization: Fixed execution step display timing issues to ensure tool call progress is visible in real-time
+
+---
+
 <div align="center">
 
 **⭐ If this project helps you, please give it a Star!**
-
-Made with ❤️ by Kevin Luo
 
 </div>

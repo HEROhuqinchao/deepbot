@@ -301,8 +301,30 @@ export class AgentRuntime {
       return false;
     }
     
+    // 🔥 从 Agent 的最后一条消息中提取纯文本内容（排除工具返回结果）
+    let agentTextOnly = '';
+    if (this.instanceManager.agent) {
+      const messages = this.instanceManager.agent.state.messages;
+      const lastMessage = messages[messages.length - 1];
+      
+      if (lastMessage?.role === 'assistant' && Array.isArray(lastMessage.content)) {
+        // 只提取 text 类型的内容，忽略 toolResult
+        const textParts = lastMessage.content
+          .filter(c => typeof c === 'object' && 'type' in c && c.type === 'text')
+          .map(c => (c as any).text || '')
+          .join('\n');
+        
+        agentTextOnly = textParts.trim();
+        console.log(`   Agent 纯文本长度: ${agentTextOnly.length} 字符`);
+        console.log(`   Agent 纯文本最后 100 字符: ${agentTextOnly.slice(-100)}`);
+      }
+    }
+    
+    // 如果提取到了 Agent 的纯文本，使用它；否则使用原始 response
+    const textToAnalyze = agentTextOnly || response;
+    
     // 提取最后 400 字符作为判断依据（增加上下文）
-    const lastPart = response.slice(-400).trim();
+    const lastPart = textToAnalyze.slice(-400).trim();
     
     // 1. 检测重复响应
     console.log('🔍 [detectUnfinishedIntent] 检查重复响应...');
@@ -490,7 +512,8 @@ ${lastPart}
       
       // 使用 MessageHandler 处理消息
       console.log('🔄 开始调用 MessageHandler.sendMessage...');
-      for await (const chunk of this.messageHandler.sendMessage(content)) {
+      // 🔥 自动继续时保留执行步骤历史
+      for await (const chunk of this.messageHandler.sendMessage(content, isAutoContinue)) {
         fullResponse += chunk;
         yield chunk;
       }

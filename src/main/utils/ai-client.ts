@@ -101,12 +101,6 @@ export async function callAI(
   
   try {
     config = getConfig();
-    console.log('[AI Client] 获取到的配置:', {
-      providerName: config.providerName,
-      modelId: config.modelId,
-      baseUrl: config.baseUrl,
-      hasApiKey: !!config.apiKey,
-    });
   } catch (error) {
     throw new Error('模型未配置，请在系统设置中配置 AI 模型后再使用');
   }
@@ -131,12 +125,6 @@ export async function callAI(
   
   // 创建 Model
   const model = createModel(options);
-  console.log('[AI Client] 创建的 Model 对象:', {
-    api: model.api,
-    id: model.id,
-    provider: model.provider,
-    baseUrl: model.baseUrl,
-  });
   
   // 动态导入 pi-ai（ESM 模块）
   // eslint-disable-next-line no-eval
@@ -163,15 +151,6 @@ export async function callAI(
   if (maxTokens) {
     piOptions.maxTokens = maxTokens;
   }
-  
-  console.log('[AI Client] 调用参数:', {
-    modelId: model.id,
-    modelProvider: model.provider,
-    messagesCount: formattedMessages.length,
-    hasApiKey: !!piOptions.apiKey,
-    apiKeyLength: piOptions.apiKey?.length,
-    temperature: piOptions.temperature,
-  });
   
   try {
     // 创建一个可以被 signal 中止的 Promise
@@ -203,20 +182,11 @@ export async function callAI(
       result = await completePromise;
     }
     
-    // 检查是否有错误（在记录日志之前）
+    // 检查是否有错误
     if (result.stopReason === 'error' && result.errorMessage) {
-      console.error('[AI Client] ❌ AI 调用失败');
-      console.error('[AI Client] 错误原因:', result.errorMessage);
+      console.error('[AI Client] ❌ AI 调用失败:', result.errorMessage);
       throw new Error(`AI API 错误: ${result.errorMessage}`);
     }
-    
-    console.log('[AI Client] ✅ AI 调用成功');
-    console.log('[AI Client] 响应类型:', typeof result);
-    console.log('[AI Client] 响应结构:', {
-      role: result.role,
-      contentLength: result.content?.length,
-      stopReason: result.stopReason,
-    });
     
     // 提取文本内容
     // AssistantMessage.content 是 (TextContent | ThinkingContent | ToolCall)[]
@@ -229,9 +199,6 @@ export async function callAI(
         // responseText += item.thinking;
       }
     }
-    
-    console.log('[AI Client] 提取的文本长度:', responseText.length);
-    console.log('[AI Client] 文本内容:', responseText.substring(0, 100));
     
     if (!responseText || responseText.trim().length === 0) {
       throw new Error('AI 返回空响应');

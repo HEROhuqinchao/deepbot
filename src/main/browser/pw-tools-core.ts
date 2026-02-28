@@ -369,7 +369,7 @@ export async function scroll(page: Page, x: number, y: number): Promise<void> {
 
   await page.evaluate(
     ({ scrollX, scrollY }: { scrollX: number; scrollY: number }) => {
-      // @ts-expect-error - window 在浏览器上下文中可用
+      // @ts-ignore - window 在浏览器上下文中可用
       window.scrollBy(scrollX, scrollY);
     },
     { scrollX: x, scrollY: y }

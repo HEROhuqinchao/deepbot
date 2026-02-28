@@ -66,6 +66,12 @@ const WebSearchSchema = Type.Object({
 });
 
 /**
+ * 查询文本长度限制（字符数）
+ * 超过此限制会返回错误，避免 API 调用失败或超时
+ */
+const MAX_QUERY_LENGTH = 10000; // 约 10K 字符，对应约 3-4K tokens
+
+/**
  * 调用 Qwen API 进行网络搜索
  */
 async function performQwenWebSearch(params: {
@@ -196,6 +202,11 @@ async function performQwenWebSearch(params: {
 
   const choice = result.choices[0];
   const answer = choice.message?.content || '';
+  
+  // 检查是否有有效回答
+  if (!answer || answer.trim().length === 0) {
+    throw new Error('API 返回空回答，可能是输入文本过长或 API 限制');
+  }
   
   // 提取搜索来源（如果有）
   const sources: Array<{ title: string; url: string }> = [];
@@ -368,6 +379,11 @@ async function performGeminiWebSearch(params: {
     }
   }
   
+  // 检查是否有有效回答
+  if (!answer || answer.trim().length === 0) {
+    throw new Error('API 返回空回答，可能是输入文本过长或 API 限制');
+  }
+  
   // 提取搜索来源（从 groundingMetadata）
   const sources: Array<{ title: string; url: string }> = [];
   if (candidate.groundingMetadata?.groundingChunks) {
@@ -412,6 +428,14 @@ export function createWebSearchTool(configStore: SystemConfigStore): AgentTool {
 
         if (!params.query || !params.query.trim()) {
           throw new Error('搜索查询词不能为空');
+        }
+
+        // 检查查询文本长度
+        if (params.query.length > MAX_QUERY_LENGTH) {
+          throw new Error(
+            `查询文本过长（${params.query.length} 字符），超过限制（${MAX_QUERY_LENGTH} 字符）。` +
+            `建议：1) 缩短查询文本；2) 分段处理；3) 使用摘要后再查询。`
+          );
         }
 
         // 获取工具配置

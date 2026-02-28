@@ -30,22 +30,12 @@ export interface DeepBotConfig {
  * 3. 抛出错误（需要用户配置）
  */
 export function getConfig(): DeepBotConfig {
-  console.log('[Config] 🔍 开始读取模型配置...');
-  
   // 尝试从数据库读取配置
   try {
     const store = SystemConfigStore.getInstance();
     const modelConfig = store.getModelConfig();
     
-    console.log('[Config] 数据库配置:', {
-      exists: !!modelConfig,
-      hasApiKey: !!modelConfig?.apiKey,
-      baseUrl: modelConfig?.baseUrl,
-      modelId: modelConfig?.modelId,
-    });
-    
     if (modelConfig && modelConfig.apiKey && modelConfig.baseUrl && modelConfig.modelId) {
-      console.log('[Config] ✅ 使用数据库配置');
       return {
         apiKey: modelConfig.apiKey,
         baseUrl: modelConfig.baseUrl,
@@ -53,8 +43,6 @@ export function getConfig(): DeepBotConfig {
         modelName: modelConfig.modelName,
         providerName: modelConfig.providerId,
       };
-    } else {
-      console.log('[Config] ⚠️ 数据库配置不完整');
     }
   } catch (error) {
     console.warn('[Config] ❌ 从数据库读取配置失败:', error);
@@ -67,19 +55,12 @@ export function getConfig(): DeepBotConfig {
   const modelName = process.env.AI_MODEL_NAME || '';
   const providerName = process.env.AI_PROVIDER_NAME || '';
   
-  console.log('[Config] 环境变量配置:', {
-    hasApiKey: !!apiKey,
-    hasBaseUrl: !!baseUrl,
-    hasModelId: !!modelId,
-  });
-  
   // 如果没有配置，抛出错误
   if (!apiKey || !baseUrl || !modelId) {
     console.error('[Config] ❌ 模型未配置');
     throw new Error('模型未配置，请在系统设置中配置 AI 模型');
   }
   
-  console.log('[Config] ✅ 使用环境变量配置');
   return {
     apiKey,
     baseUrl,

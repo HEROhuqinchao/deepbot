@@ -30,6 +30,9 @@ export const TOOL_NAMES = {
   // Web 搜索
   WEB_SEARCH: 'web_search',
   
+  // Web 内容获取
+  WEB_FETCH: 'web_fetch',
+  
   // 记忆管理
   MEMORY: 'memory',
   
@@ -42,6 +45,9 @@ export const TOOL_NAMES = {
   // 连接器工具
   CONNECTOR_SEND_IMAGE: 'connector_send_image',
   CONNECTOR_SEND_FILE: 'connector_send_file',
+  
+  // AI 对话工具
+  CHAT: 'chat',
   
   // Mock 工具（测试用）
   MOCK_TOOL: 'mock_tool',

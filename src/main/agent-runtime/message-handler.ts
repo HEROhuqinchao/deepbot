@@ -76,13 +76,16 @@ export class MessageHandler {
    * 发送消息并获取流式响应
    * 
    * @param content - 用户消息内容
+   * @param keepExecutionSteps - 是否保留之前的执行步骤（用于 autoContinue）
    * @returns 异步生成器，逐块返回 AI 响应
    */
-  async *sendMessage(content: string): AsyncGenerator<string, void, unknown> {
+  async *sendMessage(content: string, keepExecutionSteps = false): AsyncGenerator<string, void, unknown> {
     // console.log('📤 发送消息到 AI:', content.substring(0, 50));
 
-    // 清空执行步骤
-    this.executionSteps = [];
+    // 清空执行步骤（除非是 autoContinue）
+    if (!keepExecutionSteps) {
+      this.executionSteps = [];
+    }
 
     // 🔥 重置用户停止标志
     this.userAborted = false;
@@ -191,6 +194,20 @@ export class MessageHandler {
           }
         }
         
+        // 监听 Turn 事件（Agent 的每一轮思考）
+        if (event.type === 'turn_start') {
+          console.log(`🔄 Agent 开始新的 Turn（思考轮次）`);
+          console.log(`   当前消息数: ${this.agent?.state.messages.length || 0}`);
+        }
+        
+        if (event.type === 'turn_end') {
+          console.log(`✅ Agent 完成一轮 Turn`);
+          console.log(`   工具调用数: ${event.toolResults?.length || 0}`);
+          if (event.toolResults && event.toolResults.length > 0) {
+            console.log(`   工具列表: ${event.toolResults.map((r: any) => r.toolName).join(', ')}`);
+          }
+        }
+        
         // 其他事件类型（已注释，减少日志输出）
         // if (event.type === 'turn_start') {
         //   console.log(`🔄 新的 Turn 开始`);
@@ -239,7 +256,28 @@ export class MessageHandler {
         
         // 启动 Agent.prompt()
         // Agent 内部会自动处理工具调用循环，直到完成
+        
+        // 添加进度监控定时器
+        let progressTimer: NodeJS.Timeout | null = null;
+        let elapsedSeconds = 0;
+        
+        progressTimer = setInterval(() => {
+          elapsedSeconds += 5;
+          console.log(`⏳ Agent 正在处理... 已耗时 ${elapsedSeconds} 秒`);
+          
+          // 如果超过 30 秒，输出警告
+          if (elapsedSeconds >= 30 && elapsedSeconds % 10 === 0) {
+            console.warn(`⚠️ Agent 处理时间较长 (${elapsedSeconds}秒)，可能在处理大量数据或等待 AI 响应`);
+          }
+        }, 5000);
+        
         void this.agent.prompt(content).then(() => {
+          // 清除进度定时器
+          if (progressTimer) {
+            clearInterval(progressTimer);
+            progressTimer = null;
+          }
+          
           const duration = Date.now() - startTime;
           console.log(`✅ agent.prompt() 完成，耗时: ${duration}ms`);
           console.log(`📊 Agent 最终状态:`);
@@ -247,8 +285,15 @@ export class MessageHandler {
           console.log(`   工具调用数: ${toolCallCount}`);
           console.log(`   最终响应长度: ${fullResponse.length} 字符`);
           console.log(`   最终响应预览: ${fullResponse.substring(0, 200)}...`);
+          console.log(`🎯 agent.prompt() 完成，准备返回结果...`);
           resolvePrompt?.();
         }).catch((error) => {
+          // 清除进度定时器
+          if (progressTimer) {
+            clearInterval(progressTimer);
+            progressTimer = null;
+          }
+          
           console.error(`❌ agent.prompt() 失败:`, error);
           rejectPrompt?.(error);
         });
@@ -256,6 +301,8 @@ export class MessageHandler {
         // 流式输出：定期检查 fullResponse 并 yield 新内容
         let isPromptDone = false;
         let lastYieldedLength = 0;
+        
+        console.log(`🔄 开始流式输出循环...`);
         
         // 使用 Promise.race 来检测 prompt 是否完成
         const checkInterval = 50; // 每 50ms 检查一次
@@ -303,13 +350,18 @@ export class MessageHandler {
           
           if (raceResult === 'done') {
             isPromptDone = true;
+            console.log(`✅ 流式输出循环完成，Agent 已完成`);
           }
         }
+        
+        console.log(`📝 确保所有内容都已 yield...`);
         
         // 确保所有内容都已 yield
         if (fullResponse.length > lastYieldedLength) {
           yield fullResponse.substring(lastYieldedLength);
         }
+        
+        console.log(`✅ 流式输出完成，总长度: ${fullResponse.length} 字符`);
         
         // console.log(`✅ AI 响应完成，总长度: ${fullResponse.length} 字符`);
         // console.log(`📝 AI 响应内容: ${fullResponse.substring(0, 200)}...`);

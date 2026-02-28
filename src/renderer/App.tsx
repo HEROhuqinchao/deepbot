@@ -390,22 +390,57 @@ function App() {
       setTabs(prev => prev.map(tab => {
         if (tab.id !== targetTabId) return tab;
         
-        const updatedMessages = (tab.messages || []).map(msg =>
-          msg.id === data.messageId
-            ? { ...msg, executionSteps: data.executionSteps }
-            : msg
-        );
+        const existingMessages = tab.messages || [];
+        const existingIndex = existingMessages.findIndex(msg => msg.id === data.messageId);
+        
+        let updatedMessages: Message[];
+        if (existingIndex >= 0) {
+          // 更新现有消息
+          updatedMessages = existingMessages.map(msg =>
+            msg.id === data.messageId
+              ? { ...msg, executionSteps: data.executionSteps }
+              : msg
+          );
+        } else {
+          // 🔥 消息不存在，创建一个空的 assistant 消息（用于显示执行步骤）
+          const newMessage: Message = {
+            id: data.messageId,
+            role: 'assistant',
+            content: '',
+            timestamp: Date.now(),
+            isStreaming: true,
+            executionSteps: data.executionSteps,
+          };
+          updatedMessages = [...existingMessages, newMessage];
+        }
         
         return { ...tab, messages: updatedMessages };
       }));
       
       // 如果是当前 Tab，同步更新 messages 状态
       if (targetTabId === activeTabId) {
-        setMessages(prev => prev.map(msg =>
-          msg.id === data.messageId
-            ? { ...msg, executionSteps: data.executionSteps }
-            : msg
-        ));
+        setMessages(prev => {
+          const existingIndex = prev.findIndex(msg => msg.id === data.messageId);
+          
+          if (existingIndex >= 0) {
+            return prev.map(msg =>
+              msg.id === data.messageId
+                ? { ...msg, executionSteps: data.executionSteps }
+                : msg
+            );
+          } else {
+            // 🔥 消息不存在，创建一个空的 assistant 消息（用于显示执行步骤）
+            const newMessage: Message = {
+              id: data.messageId,
+              role: 'assistant',
+              content: '',
+              timestamp: Date.now(),
+              isStreaming: true,
+              executionSteps: data.executionSteps,
+            };
+            return [...prev, newMessage];
+          }
+        });
       }
     });
 
