@@ -15,9 +15,19 @@
 
 ---
 
+## 📝 Changelog
+
+### 2026-03-01
+- 🔧 Browser Tool Optimization: More robust browser automation with improved success rate | 🔧 Build Optimization: Reduced package size
+
+### 2026-02-28
+- ✨ Feishu Integration: Private & group chat support with independent session management | ✨ Web Fetch Tool: Web content fetching | ✨ Chat Tool: AI conversation processing | 🔧 Streaming output optimization, AutoContinue improvements, frontend experience enhancements
+
+---
+
 ## 📖 Introduction
 
-DeepBot Terminal is a desktop AI assistant developed by members of DeepGlint GLINT LAB. Think of it as installing an intelligent brain for your computer. Whether it's organizing files, setting reminders, web automation, or complex multi-step tasks, DeepBot handles it all effortlessly through AI Agent technology. It supports multi-task parallel processing, scheduled tasks, skill extensions, while protecting your system security through strict safety mechanisms.
+DeepBot Terminal is a system-level AI assistant that acts like an intelligent brain for your computer. Whether it's organizing files, setting reminders, web automation, or complex multi-step tasks, DeepBot handles it all effortlessly through AI Agent technology. It supports multi-task parallel processing, scheduled tasks, skill extensions, while protecting your system security through strict safety mechanisms.
 
 ### ✨ Core Features
 
@@ -546,24 +556,8 @@ DeepBot's development was inspired by the following projects:
 
 ## 📧 Contact
 
-- **Author**: Kevin Luo
+- **Author**: K罗@格灵深瞳 (Kevin Luo @ Deepglint)
 - **Issue Reporting**: [GitHub Issues](https://github.com/kevinluosl/deepbot/issues)
-
----
-
-## 📝 Changelog
-
-### 2026-02-28
-
-**New Features**:
-- ✨ **Feishu Integration**: Support interaction with DeepBot through Feishu bot, supporting private chats and group chats with independent session management
-- ✨ **Web Fetch Tool**: New web content fetching tool for extracting webpage content and downloading web data
-- ✨ **Chat Tool**: New AI conversation processing tool for internal tool AI calls, independent from main Agent context
-
-**Improvements**:
-- 🔧 Streaming Output Optimization: Chat Tool supports real-time display of processing progress
-- 🔧 AutoContinue Enhancement: Preserve execution step history for complete task execution records
-- 🔧 Frontend Experience Optimization: Fixed execution step display timing issues to ensure tool call progress is visible in real-time
 
 ---
 
