@@ -684,28 +684,39 @@ function registerIpcHandlers() {
       const { expandUserPath } = await import('../shared/utils/path-utils');
       
       if (platform === 'darwin') {
-        // macOS: 使用 open 命令启动，确保窗口可见
+        // macOS: 直接调用 Chrome 可执行文件，前台运行
         const userDataDir = expandUserPath('~/.deepbot/browser-profile');
-        command = `open -a "Google Chrome" --args --remote-debugging-port=${port} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
+        const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+        command = `"${chromePath}" --remote-debugging-port=${port} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
       } else if (platform === 'win32') {
         // Windows
         command = `start chrome --remote-debugging-port=${port} --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile --no-first-run --no-default-browser-check`;
       } else {
         // Linux
         const userDataDir = expandUserPath('~/.deepbot/browser-profile');
-        command = `google-chrome --remote-debugging-port=${port} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check &`;
+        command = `google-chrome --remote-debugging-port=${port} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
       }
+      
+      // 执行命令（使用 spawn 而不是 exec，避免阻塞）
+      const { spawn } = await import('child_process');
       
       console.log(`[IPC] 执行命令: ${command}`);
       
-      const { exec } = await import('child_process');
-      const { promisify } = await import('util');
-      const execAsync = promisify(exec);
-      
-      // 执行命令
-      await execAsync(command, {
-        timeout: 5000,
-      });
+      // 使用 spawn 启动 Chrome，不等待进程结束
+      if (platform === 'darwin' || platform === 'linux') {
+        // macOS 和 Linux: 使用 shell 执行
+        spawn(command, [], {
+          shell: true,
+          detached: true,
+          stdio: 'ignore',
+        }).unref();
+      } else {
+        // Windows: 使用 cmd 执行
+        spawn('cmd', ['/c', command], {
+          detached: true,
+          stdio: 'ignore',
+        }).unref();
+      }
       
       console.log('[IPC] ✅ Chrome 启动命令已执行');
       

@@ -98,7 +98,7 @@ export function BrowserToolConfig({ onClose }: BrowserToolConfigProps) {
             <div>
               <p className="text-xs text-gray-700 font-medium">macOS:</p>
               <code className="block mt-1 p-2 bg-white border border-gray-300 rounded text-xs text-gray-800 overflow-x-auto">
-                open -a "Google Chrome" --args --remote-debugging-port=9222 --user-data-dir="$HOME/.deepbot/browser-profile"
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="$HOME/.deepbot/browser-profile"
               </code>
             </div>
             <div>

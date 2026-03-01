@@ -228,27 +228,38 @@ export const browserToolPlugin: ToolPlugin = {
               
               // 尝试启动 Chrome
               try {
-                const { exec } = await import('child_process');
-                const { promisify } = await import('util');
-                const execAsync = promisify(exec);
+                const { spawn } = await import('child_process');
                 
                 const platform = process.platform;
                 let command: string;
                 
                 if (platform === 'darwin') {
-                  // macOS: 使用 open 命令启动，确保窗口可见
-                  // 使用通用工具展开路径
+                  // macOS: 直接调用 Chrome 可执行文件，前台运行
                   const userDataDir = expandUserPath('~/.deepbot/browser-profile');
-                  command = `open -a "Google Chrome" --args --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
+                  const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+                  command = `"${chromePath}" --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
                 } else if (platform === 'win32') {
                   command = `start chrome --remote-debugging-port=${cdpPort} --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile --no-first-run --no-default-browser-check`;
                 } else {
-                  // Linux: 使用通用工具展开路径
+                  // Linux
                   const userDataDir = expandUserPath('~/.deepbot/browser-profile');
-                  command = `google-chrome --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check &`;
+                  command = `google-chrome --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
                 }
                 
-                await execAsync(command, { timeout: 5000 });
+                // 使用 spawn 启动 Chrome，不等待进程结束
+                if (platform === 'darwin' || platform === 'linux') {
+                  spawn(command, [], {
+                    shell: true,
+                    detached: true,
+                    stdio: 'ignore',
+                  }).unref();
+                } else {
+                  spawn('cmd', ['/c', command], {
+                    detached: true,
+                    stdio: 'ignore',
+                  }).unref();
+                }
+                
                 console.log('[Browser Tool] ✅ Chrome 已自动启动');
                 
                 // 等待 Chrome 启动（最多 10 秒）
@@ -272,7 +283,7 @@ export const browserToolPlugin: ToolPlugin = {
                 const launchErrorMsg = getErrorMessage(launchError);
                 const userDataDir = expandUserPath('~/.deepbot/browser-profile');
                 
-                const macCommand = `open -a "Google Chrome" --args --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
+                const macCommand = `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
                 const winCommand = `chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile`;
                 const linuxCommand = `google-chrome --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
                 
