@@ -27,6 +27,7 @@ import { createWebFetchTool } from '../web-fetch-tool';
 import { createMemoryTool } from '../memory-tool';
 import { createChatTool } from '../chat-tool';
 import { emailToolPlugin } from '../email-tool';
+import { apiToolPlugin } from '../api-tool';
 import { connectorToolPlugin } from '../connector-tool';
 
 /**
@@ -191,6 +192,24 @@ export class ToolLoader {
         tools.push(...emailTools);
       } else {
         tools.push(emailTools);
+      }
+      
+      // API 工具（系统配置访问）
+      const apiToolsResult = apiToolPlugin.create({
+        workspaceDir: this.workspaceDir,
+        sessionId: this.sessionId,
+        configStore,
+      });
+      
+      // 处理可能的 Promise 返回值
+      const apiTools = apiToolsResult instanceof Promise 
+        ? await apiToolsResult 
+        : apiToolsResult;
+      
+      if (Array.isArray(apiTools)) {
+        tools.push(...apiTools);
+      } else {
+        tools.push(apiTools);
       }
       
       // 连接器工具

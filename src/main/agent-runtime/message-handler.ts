@@ -507,10 +507,15 @@ export class MessageHandler {
    * 检测结果中是否有错误
    */
   private detectErrorInResult(resultText: string): boolean {
+    // 如果结果为空，不算错误
+    if (!resultText || resultText.trim() === '') {
+      return false;
+    }
+    
     const errorPatterns = [
-      /Error:/i,
-      /error:/i,
-      /错误/,
+      /^Error:/i,  // 行首的 Error:
+      /\nError:/i, // 换行后的 Error:
+      /错误[:：]/,  // 中文错误
       /permission denied/i,
       /权限被拒绝/,
       /command not found/i,

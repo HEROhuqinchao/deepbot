@@ -3,13 +3,6 @@
  */
 
 /**
- * 提示词模式
- * - full: 完整提示词（Main Agent）
- * - minimal: 精简提示词（Sub Agents）
- */
-export type PromptMode = 'full' | 'minimal';
-
-/**
  * 上下文文件
  */
 export interface ContextFile {
@@ -63,9 +56,6 @@ export interface SystemPromptParams {
   
   /** Agent ID */
   agentId?: string;
-  
-  /** 提示词模式 */
-  promptMode?: PromptMode;
   
   /** 可用工具名称列表 */
   toolNames?: string[];

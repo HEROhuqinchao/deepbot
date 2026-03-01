@@ -109,7 +109,6 @@ export class AgentInitializer {
         imageDir: settings.imageDir,
         memoryDir: settings.memoryDir,
         agentId: 'main',
-        promptMode: 'full',
         toolNames,
         runtimeInfo: runtimeParams.runtimeInfo,
         userTimezone: runtimeParams.userTimezone,

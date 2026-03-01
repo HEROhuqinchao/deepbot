@@ -27,14 +27,22 @@
 
 ## 🔧 工作目录规范
 
-**Python 脚本统一保存到**：`{{scriptDir}}`
+**重要**：使用 `api_get_config` 工具查询当前配置的工作目录。
+
+**查询配置**：
+```json
+{
+  "tool": "api_get_config",
+  "configType": "workspace"
+}
+```
 
 **创建脚本**：
 ```json
 {
   "tool": "file",
   "action": "write",
-  "path": "{{scriptDir}}/my_script.py",
+  "path": "<scriptDir>/my_script.py",  // 使用查询到的 scriptDir
   "content": "#!/usr/bin/env python3\n..."
 }
 ```
@@ -43,12 +51,12 @@
 ```json
 {
   "tool": "exec",
-  "command": "python3 {{scriptDir}}/my_script.py"
+  "command": "python3 <scriptDir>/my_script.py"  // 使用查询到的 scriptDir
 }
 ```
 
 **注意**：
-- ✅ 始终使用 `{{scriptDir}}` 目录
+- ✅ 使用前先调用 `api_get_config` 查询配置
 - ✅ 脚本命名要有意义（如 `file_organizer.py`）
 - ❌ 不要保存到桌面或临时目录
 
@@ -535,7 +543,7 @@ URL: https://www.example.com
 ### skill_manager
 **用途**: 搜索、安装、管理 DeepBot Skills
 
-**安装路径**: `{{defaultSkillDir}}`
+**安装路径**: 使用 `api_get_config` 查询 `defaultSkillDir`
 
 **⚠️ 使用时机**
 
@@ -564,7 +572,7 @@ URL: https://www.example.com
 ```
 
 #### install - 安装 Skill
-下载并安装 Skill 到本地（保存到 `{{defaultSkillDir}}`）
+下载并安装 Skill 到本地（保存到默认 Skill 目录，通过 `api_get_config` 查询）
 
 **支持两种安装方式**：
 
@@ -608,8 +616,8 @@ URL: https://www.example.com
 ```
 
 **本地安装行为**：
-- 如果 Skill 已在 `{{defaultSkillDir}}` 中：直接注册，不复制文件
-- 如果 Skill 在其他位置：复制到 `{{defaultSkillDir}}`
+- 如果 Skill 已在默认 Skill 目录中：直接注册，不复制文件
+- 如果 Skill 在其他位置：复制到默认 Skill 目录
 - 自动验证 SKILL.md 是否存在
 
 **返回结果包含**:
@@ -672,7 +680,7 @@ URL: https://www.example.com
 ### 📋 执行命令提取规则
 
 从 `readme` 中查找以下信息：
-- **完整路径**：如 `{{defaultSkillDir}}/skill-name/scripts/main.py`
+- **完整路径**：如 `<defaultSkillDir>/skill-name/scripts/main.py`（使用 `api_get_config` 查询 defaultSkillDir）
 - **脚本名称**：精确匹配 readme 中的文件名（不要猜测或修改）
 - **参数格式**：精确使用 readme 中的参数名（如 `--input` 不是 `--file`）
 - **执行方式**：如 `python3`、`node`、`bash`（根据 readme 说明）
@@ -687,13 +695,13 @@ URL: https://www.example.com
 }
 
 // 步骤 2: 从 readme 中提取到的执行命令示例：
-// python3 {{defaultSkillDir}}/example-skill/scripts/process.py \
+// python3 <defaultSkillDir>/example-skill/scripts/process.py \
 //   --input "data.txt" \
 //   --output "result.txt"
 
 // 步骤 3: 执行（使用提取的完整路径和参数）
 {
-  "command": "cd {{defaultSkillDir}}/example-skill && python3 scripts/process.py --input 'data.txt' --output 'result.txt'"
+  "command": "cd <defaultSkillDir>/example-skill && python3 scripts/process.py --input 'data.txt' --output 'result.txt'"
 }
 ```
 
@@ -702,17 +710,17 @@ URL: https://www.example.com
 ```json
 // ❌ 错误 1: 没有先调用 info，直接猜测执行命令
 {
-  "command": "python3 {{defaultSkillDir}}/example-skill/main.py ..."  // 文件名可能错误！
+  "command": "python3 <defaultSkillDir>/example-skill/main.py ..."  // 文件名可能错误！
 }
 
 // ❌ 错误 2: 调用了 info 但没有仔细阅读 readme，自己编造文件名
 {
-  "command": "python3 {{defaultSkillDir}}/example-skill/scripts/run.py ..."  // readme 中是 process.py！
+  "command": "python3 <defaultSkillDir>/example-skill/scripts/run.py ..."  // readme 中是 process.py！
 }
 
 // ❌ 错误 3: 参数名自己编造
 {
-  "command": "python3 {{defaultSkillDir}}/example-skill/scripts/process.py --file ... --out ..."  // readme 中是 --input 和 --output！
+  "command": "python3 <defaultSkillDir>/example-skill/scripts/process.py --file ... --out ..."  // readme 中是 --input 和 --output！
 }
 ```
 
@@ -877,7 +885,7 @@ URL: https://www.example.com
 
 **核心规则**：
 1. **直接使用 outputPath 参数**：当用户指定保存路径时，必须在调用 `image_generation` 工具时直接传递 `outputPath` 参数
-2. **不要生成后再移动**：❌ 不要先生成到默认目录（`{{imageDir}}`），再用 `exec` 工具移动文件
+2. **不要生成后再移动**：❌ 不要先生成到默认目录，再用 `exec` 工具移动文件
 3. **一步到位**：✅ 直接在 `image_generation` 调用中指定 `outputPath`，工具会直接保存到目标位置
 
 **✅ 正确做法（用户指定路径）**：
@@ -899,7 +907,7 @@ URL: https://www.example.com
 // 第 2 步：移动文件（错误：不需要这一步）
 {
   "tool": "exec",
-  "command": "cp {{imageDir}}/generated-123.jpg ~/Desktop/cat_123.jpg"
+  "command": "cp <imageDir>/generated-123.jpg ~/Desktop/cat_123.jpg"  // imageDir 需要通过 api_get_config 查询
 }
 ```
 
@@ -941,7 +949,7 @@ URL: https://www.example.com
 {
   "prompt": "一只可爱的小猫"
   // ⚠️ 不要添加 outputPath 参数！
-  // 工具会自动保存到默认目录：{{imageDir}}
+  // 工具会自动保存到默认目录（通过 api_get_config 查询 imageDir）
 }
 ```
 
@@ -1026,7 +1034,7 @@ URL: https://www.example.com
 3. **使用 Markdown 图片语法**：`![图片描述](生成的图片路径)`
 
 **如何识别生成的图片路径**：
-- 工具返回结果中的 `path` 字段（通常是 `{{imageDir}}/generated-*.jpeg`）
+- 工具返回结果中的 `path` 字段（通常是 `<imageDir>/generated-*.jpeg`）
 - **不是** `referenceImages` 参数中的路径
 - **不是** 用户上传的图片路径（`~/.deepbot/temp/uploads/`，系统临时目录）
 
@@ -1034,9 +1042,9 @@ URL: https://www.example.com
 ```
 ✅ 图片生成成功！
 
-![生成的小狗图片]({{imageDir}}/generated-1234567890.jpeg)
+![生成的小狗图片](/path/to/generated-1234567890.jpeg)
 
-📁 保存路径：{{imageDir}}/generated-1234567890.jpeg
+📁 保存路径：/path/to/generated-1234567890.jpeg
 📐 分辨率：1K (1024px)
 📏 宽高比：4:3
 💾 文件大小：856 KB
@@ -1046,9 +1054,9 @@ URL: https://www.example.com
 ```
 ✅ 基于参考图生成成功！
 
-![生成的新图片]({{imageDir}}/generated-1234567890.jpeg)
+![生成的新图片](/path/to/generated-1234567890.jpeg)
 
-📁 保存路径：{{imageDir}}/generated-1234567890.jpeg
+📁 保存路径：/path/to/generated-1234567890.jpeg
 📐 分辨率：1K (1024px)
 📏 宽高比：4:3
 🖼️ 参考图片：1 张
@@ -1072,7 +1080,7 @@ URL: https://www.example.com
 ✅ 基于参考图生成成功！
 
 ![参考图](~/Desktop/reference.jpg)
-![生成的图片]({{imageDir}}/generated-1234567890.jpeg)
+![生成的图片](/path/to/generated-1234567890.jpeg)
 ```
 **错误原因**：不要显示任何参考图路径，只显示生成的新图。
 
@@ -1082,11 +1090,11 @@ URL: https://www.example.com
 
 ![生成的图片](~/.deepbot/temp/uploads/abc123.jpg)
 ```
-**错误原因**：显示的是上传的参考图路径，不是生成的图片路径。生成的图片路径应该是 `{{imageDir}}/generated-*.jpeg`。
+**错误原因**：显示的是上传的参考图路径，不是生成的图片路径。生成的图片路径应该是工具返回的 `path` 字段。
 
 **检查清单**：
 - [ ] 响应中只有一个 Markdown 图片语法
-- [ ] 图片路径是 `{{imageDir}}/generated-*.jpeg`（工具返回的 `path` 字段）
+- [ ] 图片路径是工具返回的 `path` 字段
 - [ ] 没有显示任何参考图路径（`~/.deepbot/temp/uploads/` 或用户指定的路径）
 - [ ] 没有显示多张图片（只显示生成的新图）
 
@@ -1195,7 +1203,7 @@ URL: https://www.example.com
 - ✅ 允许执行常规命令（如 `ls`, `cat`, `python3`）
 
 **常用场景**:
-- 执行 Python 脚本：`python3 {{scriptDir}}/my_script.py`
+- 执行 Python 脚本：`python3 <scriptDir>/my_script.py`（使用 api_get_config 查询 scriptDir）
 - 复制文件：`cp source.txt destination.txt`
 - 创建目录：`mkdir -p ~/Documents/new_folder`
 - 查看文件：`cat file.txt`
@@ -1497,3 +1505,205 @@ URL: https://www.example.com
 - 使用系统设置中配置的 AI 模型
 - 需要有效的 API Key
 - 分段处理会产生多次 API 调用
+
+
+---
+
+## API（系统配置访问工具）
+
+### api_get_config
+**用途**: 查询 DeepBot 的系统配置
+
+**参数**:
+- `configType`: 配置类型
+  - `workspace`: 工作目录配置
+  - `model`: 模型配置
+  - `image-generation`: 图片生成工具配置
+  - `web-search`: Web 搜索工具配置
+  - `all`: 所有配置
+
+**示例**:
+
+1. 查询所有配置：
+```json
+{
+  "configType": "all"
+}
+```
+
+2. 查询工作目录配置：
+```json
+{
+  "configType": "workspace"
+}
+```
+
+3. 查询模型配置：
+```json
+{
+  "configType": "model"
+}
+```
+
+**返回结果**:
+- 配置详情（包括路径、API Key 状态等）
+- 成功/失败状态
+
+### api_set_workspace_config
+**用途**: 更新工作目录配置
+
+**参数**:
+- `workspaceDir`: 默认工作目录（可选）
+- `scriptDir`: Python 脚本目录（可选）
+- `skillDirs`: Skill 目录列表（可选）
+- `defaultSkillDir`: 默认 Skill 目录（可选）
+- `imageDir`: 图片生成目录（可选）
+- `memoryDir`: 记忆管理目录（可选）
+
+**示例**:
+
+1. 更新脚本目录：
+```json
+{
+  "scriptDir": "/Users/username/my-scripts"
+}
+```
+
+2. 更新多个配置：
+```json
+{
+  "scriptDir": "/Users/username/my-scripts",
+  "imageDir": "/Users/username/my-images"
+}
+```
+
+**⚠️ 注意**:
+- 配置更新后，下次创建新会话时生效
+- 只需提供要更新的字段，其他字段保持不变
+
+### api_set_model_config
+**用途**: 更新模型配置
+
+**默认值**（首次使用或数据库清空后）:
+- `providerType`: `qwen`
+- `providerId`: `qwen`
+- `providerName`: `通义千问`
+- `baseUrl`: `https://dashscope.aliyuncs.com/compatible-mode/v1`
+- `modelId`: `qwen-plus`
+- `modelName`: `Qwen Plus`
+- `apiKey`: 空（需要用户设置）
+
+**参数**:
+- `providerType`: 提供商类型（qwen/deepseek/custom，可选）
+- `providerId`: 提供商 ID（可选）
+- `providerName`: 提供商名称（可选）
+- `baseUrl`: API 地址（可选）
+- `modelId`: 模型 ID（可选）
+- `modelName`: 模型名称（可选）
+- `apiKey`: API Key（可选）
+
+**示例**:
+
+1. 更新 API Key（使用默认配置）：
+```json
+{
+  "apiKey": "sk-your-api-key-here"
+}
+```
+
+2. 切换模型：
+```json
+{
+  "modelId": "qwen-max",
+  "modelName": "通义千问 Max"
+}
+```
+
+**⚠️ 注意**:
+- 配置更新后，下次创建新会话时生效
+- 如果数据库中没有配置，会自动使用默认值
+- 只需提供要更新的字段，其他字段使用当前配置或默认值
+
+### api_set_image_generation_config
+**用途**: 更新图片生成工具配置
+
+**默认值**（首次使用或数据库清空后）:
+- `model`: `gemini-3-pro-image-preview`
+- `apiUrl`: `https://www.im-director.com/api/gemini-proxy`
+- `apiKey`: 空（需要用户设置）
+
+**参数**:
+- `model`: 模型名称（可选）
+- `apiUrl`: API 地址（可选）
+- `apiKey`: API Key（可选）
+
+**示例**:
+
+1. 更新 API Key（使用默认配置）：
+```json
+{
+  "apiKey": "your-api-key-here"
+}
+```
+
+2. 更新完整配置：
+```json
+{
+  "model": "gemini-3-pro-image-preview",
+  "apiUrl": "https://www.im-director.com/api/gemini-proxy",
+  "apiKey": "your-api-key-here"
+}
+```
+
+**⚠️ 注意**:
+- 配置更新后，下次创建新会话时生效
+- 如果数据库中没有配置，会自动使用默认值
+- 只需提供要更新的字段，其他字段使用当前配置或默认值
+
+### api_set_web_search_config
+**用途**: 更新 Web 搜索工具配置
+
+**默认值**（首次使用或数据库清空后）:
+- `provider`: `qwen`
+- `model`: `qwen-plus`
+- `apiUrl`: `https://dashscope.aliyuncs.com/compatible-mode/v1`
+- `apiKey`: 空（需要用户设置）
+
+**参数**:
+- `provider`: 提供商 ID（qwen/gemini，可选）
+- `model`: 模型名称（可选）
+- `apiUrl`: API 地址（可选）
+- `apiKey`: API Key（可选）
+
+**示例**:
+
+1. 更新 API Key（使用默认配置）：
+```json
+{
+  "apiKey": "sk-your-api-key-here"
+}
+```
+
+2. 切换到 Gemini：
+```json
+{
+  "provider": "gemini",
+  "model": "gemini-pro",
+  "apiUrl": "https://www.im-director.com/api/gemini-proxy",
+  "apiKey": "your-gemini-api-key"
+}
+```
+
+**⚠️ 注意**:
+- 配置更新后，下次创建新会话时生效
+- 如果数据库中没有配置，会自动使用默认值（通义千问）
+- 只需提供要更新的字段，其他字段使用当前配置或默认值
+
+**典型使用场景**:
+- 用户询问当前配置时，使用 `api_get_config` 查询
+- 用户要求修改配置时，使用对应的 `api_set_*` 工具
+- 批量查看系统状态时，使用 `api_get_config` 的 `all` 选项
+
+**⚠️ 名字管理**:
+- 智能体名字和用户称呼由 `memory` 工具管理，不在 API 工具中处理
+- 如果用户要求修改名字，使用 `memory` 工具更新记忆

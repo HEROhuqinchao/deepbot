@@ -42,6 +42,13 @@ export const TOOL_NAMES = {
   // 邮件工具
   SEND_EMAIL: 'send_email',
   
+  // API 工具（系统配置访问）
+  API_GET_CONFIG: 'api_get_config',
+  API_SET_WORKSPACE_CONFIG: 'api_set_workspace_config',
+  API_SET_MODEL_CONFIG: 'api_set_model_config',
+  API_SET_IMAGE_GENERATION_CONFIG: 'api_set_image_generation_config',
+  API_SET_WEB_SEARCH_CONFIG: 'api_set_web_search_config',
+  
   // 连接器工具
   CONNECTOR_SEND_IMAGE: 'connector_send_image',
   CONNECTOR_SEND_FILE: 'connector_send_file',

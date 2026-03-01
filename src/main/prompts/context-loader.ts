@@ -32,20 +32,21 @@ const DEFAULT_BOOTSTRAP_FILES = [
 ];
 
 /**
- * 替换模板变量
+ * 替换模板变量（已废弃）
+ * 
+ * 注意：配置信息不再通过模板变量注入，改用 api_get_config 工具动态查询
+ * 保留此函数是为了向后兼容，但不再替换任何变量
  * 
  * @param content 模板内容
- * @param settings 工作区配置
- * @returns 替换后的内容
+ * @param settings 工作区配置（未使用）
+ * @returns 原始内容
  */
 function replaceTemplateVariables(
   content: string,
   settings: WorkspaceSettings
 ): string {
-  return content
-    .replace(/\{\{scriptDir\}\}/g, settings.scriptDir)
-    .replace(/\{\{defaultSkillDir\}\}/g, settings.defaultSkillDir)
-    .replace(/\{\{imageDir\}\}/g, settings.imageDir);
+  // 不再替换变量，保持原样
+  return content;
 }
 
 /**
