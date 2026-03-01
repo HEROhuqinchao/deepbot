@@ -65,17 +65,32 @@ const SCROLL_DIRECTIONS = ['up', 'down'] as const;
 const TAB_ACTIONS = ['new', 'list', 'switch', 'close'] as const;
 
 /**
- * 字符串枚举辅助函数
- */
-function stringEnum<T extends readonly string[]>(values: T) {
-  return Type.Union(values.map((v) => Type.Literal(v)));
-}
-
-/**
  * 浏览器工具参数 Schema
  */
 const BrowserToolSchema = Type.Object({
-  action: stringEnum(BROWSER_ACTIONS),
+  action: Type.Union([
+    Type.Literal('open', { description: '打开网页 URL' }),
+    Type.Literal('snapshot', { description: '获取页面快照（可交互元素列表或完整文本内容）' }),
+    Type.Literal('click', { description: '点击元素（需要 ref 参数）' }),
+    Type.Literal('dblclick', { description: '双击元素（需要 ref 参数）' }),
+    Type.Literal('fill', { description: '填充输入框，清空后输入（需要 ref 和 text 参数）' }),
+    Type.Literal('type', { description: '输入文本，不清空原内容（需要 ref 和 text 参数）' }),
+    Type.Literal('press', { description: '按键（需要 key 参数，如 Enter、Escape）' }),
+    Type.Literal('hover', { description: '鼠标悬停在元素上（需要 ref 参数）' }),
+    Type.Literal('check', { description: '选中复选框（需要 ref 参数）' }),
+    Type.Literal('uncheck', { description: '取消选中复选框（需要 ref 参数）' }),
+    Type.Literal('select', { description: '选择下拉框选项（需要 ref 和 text 参数）' }),
+    Type.Literal('scroll', { description: '滚动页面（需要 direction 和 amount 参数）' }),
+    Type.Literal('scrollintoview', { description: '滚动元素到可见区域（需要 ref 参数）' }),
+    Type.Literal('get', { description: '获取信息（需要 getType 参数：text、value、title、url）' }),
+    Type.Literal('screenshot', { description: '截图（可选 screenshotPath 和 fullPage 参数）' }),
+    Type.Literal('back', { description: '浏览器后退' }),
+    Type.Literal('forward', { description: '浏览器前进' }),
+    Type.Literal('reload', { description: '刷新页面' }),
+    Type.Literal('wait', { description: '等待元素出现或等待指定时间（需要 ref 或 waitTimeout 参数）' }),
+    Type.Literal('tab', { description: '标签页管理（需要 tabAction 参数：new、list、switch、close）' }),
+    Type.Literal('close', { description: '关闭浏览器' }),
+  ]),
   
   // URL（用于 open）
   url: Type.Optional(Type.String({
@@ -103,10 +118,18 @@ const BrowserToolSchema = Type.Object({
   })),
   
   // 获取信息类型（用于 get）
-  getType: Type.Optional(stringEnum(GET_TYPES)),
+  getType: Type.Optional(Type.Union([
+    Type.Literal('text', { description: '获取元素文本内容' }),
+    Type.Literal('value', { description: '获取输入框的值' }),
+    Type.Literal('title', { description: '获取页面标题' }),
+    Type.Literal('url', { description: '获取当前页面 URL' }),
+  ])),
   
   // 滚动方向（用于 scroll）
-  direction: Type.Optional(stringEnum(SCROLL_DIRECTIONS)),
+  direction: Type.Optional(Type.Union([
+    Type.Literal('up', { description: '向上滚动' }),
+    Type.Literal('down', { description: '向下滚动' }),
+  ])),
   
   // 滚动距离（用于 scroll）
   amount: Type.Optional(Type.Number({
@@ -128,7 +151,12 @@ const BrowserToolSchema = Type.Object({
   })),
   
   // 标签页操作（用于 tab）
-  tabAction: Type.Optional(stringEnum(TAB_ACTIONS)),
+  tabAction: Type.Optional(Type.Union([
+    Type.Literal('new', { description: '创建新标签页' }),
+    Type.Literal('list', { description: '列出所有标签页' }),
+    Type.Literal('switch', { description: '切换到指定标签页（需要 tabIndex 参数）' }),
+    Type.Literal('close', { description: '关闭当前标签页' }),
+  ])),
   
   // 标签页索引（用于 tab switch）
   tabIndex: Type.Optional(Type.Number({

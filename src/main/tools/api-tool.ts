@@ -28,14 +28,12 @@ import {
  */
 const GetConfigSchema = Type.Object({
   configType: Type.Union([
-    Type.Literal('workspace'),
-    Type.Literal('model'),
-    Type.Literal('image-generation'),
-    Type.Literal('web-search'),
-    Type.Literal('all'),
-  ], {
-    description: '配置类型：workspace（工作目录）、model（模型）、image-generation（图片生成工具）、web-search（Web搜索工具）、all（所有配置）',
-  }),
+    Type.Literal('workspace', { description: '工作目录配置' }),
+    Type.Literal('model', { description: '模型配置' }),
+    Type.Literal('image-generation', { description: '图片生成工具配置' }),
+    Type.Literal('web-search', { description: 'Web 搜索工具配置' }),
+    Type.Literal('all', { description: '所有配置' }),
+  ]),
 });
 
 /**
@@ -72,12 +70,10 @@ const SetWorkspaceConfigSchema = Type.Object({
  */
 const SetModelConfigSchema = Type.Object({
   providerType: Type.Optional(Type.Union([
-    Type.Literal('qwen'),
-    Type.Literal('deepseek'),
-    Type.Literal('custom'),
-  ], {
-    description: '提供商类型',
-  })),
+    Type.Literal('qwen', { description: '通义千问' }),
+    Type.Literal('deepseek', { description: 'DeepSeek' }),
+    Type.Literal('custom', { description: '自定义提供商' }),
+  ])),
   
   providerId: Type.Optional(Type.String({
     description: '提供商 ID',
@@ -132,11 +128,9 @@ const SetImageGenerationConfigSchema = Type.Object({
  */
 const SetWebSearchConfigSchema = Type.Object({
   provider: Type.Optional(Type.Union([
-    Type.Literal('qwen'),
-    Type.Literal('gemini'),
-  ], {
-    description: '提供商 ID',
-  })),
+    Type.Literal('qwen', { description: '通义千问' }),
+    Type.Literal('gemini', { description: 'Google Gemini' }),
+  ])),
   
   model: Type.Optional(Type.String({
     description: '模型名称',

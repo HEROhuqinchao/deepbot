@@ -67,11 +67,9 @@ const httpsAgent = new https.Agent({
  */
 const ImageGenerationSchema = Type.Object({
   action: Type.Optional(Type.Union([
-    Type.Literal('generate'),
-    Type.Literal('analyze'),
-  ], {
-    description: '操作类型：generate (生成图片，默认), analyze (解析图片生成提示词)',
-  })),
+    Type.Literal('generate', { description: '生成图片（默认）' }),
+    Type.Literal('analyze', { description: '解析图片生成提示词' }),
+  ])),
   prompt: Type.Optional(Type.String({
     description: '图片生成提示词（中文或英文）。action=generate 时必填',
   })),
@@ -79,26 +77,22 @@ const ImageGenerationSchema = Type.Object({
     description: '要解析的图片路径。action=analyze 时必填',
   })),
   aspectRatio: Type.Optional(Type.Union([
-    Type.Literal('1:1'),
-    Type.Literal('4:3'),
-    Type.Literal('16:9'),
-    Type.Literal('9:16'),
-    Type.Literal('3:4'),
-    Type.Literal('3:2'),
-    Type.Literal('2:3'),
-    Type.Literal('4:5'),
-    Type.Literal('5:4'),
-    Type.Literal('21:9'),
-  ], {
-    description: '图片宽高比。支持：1:1 (正方形), 4:3 (横向), 16:9 (宽屏，默认), 9:16 (竖屏), 3:4, 3:2, 2:3, 4:5, 5:4, 21:9 (超宽)。默认 16:9',
-  })),
+    Type.Literal('1:1', { description: '正方形' }),
+    Type.Literal('4:3', { description: '横向标准' }),
+    Type.Literal('16:9', { description: '宽屏（默认）' }),
+    Type.Literal('9:16', { description: '竖屏' }),
+    Type.Literal('3:4', { description: '竖向标准' }),
+    Type.Literal('3:2', { description: '横向照片' }),
+    Type.Literal('2:3', { description: '竖向照片' }),
+    Type.Literal('4:5', { description: '社交媒体竖屏' }),
+    Type.Literal('5:4', { description: '社交媒体横屏' }),
+    Type.Literal('21:9', { description: '超宽屏' }),
+  ])),
   resolution: Type.Optional(Type.Union([
-    Type.Literal('1K'),
-    Type.Literal('2K'),
-    Type.Literal('4K'),
-  ], {
-    description: '输出分辨率：1K (约1024px，默认), 2K (约2048px), 4K (约4096px)。注意：必须大写 K',
-  })),
+    Type.Literal('1K', { description: '约1024px（默认）' }),
+    Type.Literal('2K', { description: '约2048px' }),
+    Type.Literal('4K', { description: '约4096px' }),
+  ])),
   referenceImages: Type.Optional(Type.Array(Type.String(), {
     description: '参考图片路径列表（可选，最多5张）。用于风格参考或图片编辑。按顺序使用',
   })),

@@ -110,12 +110,10 @@ export function createEnvironmentCheckTool(): AgentTool {
     description: '检查系统环境依赖（Python、Node.js）并将结果保存到数据库',
     parameters: Type.Object({
       action: Type.Union([
-        Type.Literal('check'),
-        Type.Literal('get_status'),
-        Type.Literal('refresh'),
-      ], {
-        description: '操作类型：check=检查环境, get_status=获取状态, refresh=刷新环境变量'
-      }),
+        Type.Literal('check', { description: '检查环境依赖' }),
+        Type.Literal('get_status', { description: '获取环境状态' }),
+        Type.Literal('refresh', { description: '刷新环境变量' }),
+      ]),
     }),
     execute: async (
       toolCallId: string,

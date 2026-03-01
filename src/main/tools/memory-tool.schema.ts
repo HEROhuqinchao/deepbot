@@ -12,17 +12,13 @@ import { Type } from '@sinclair/typebox';
 const MEMORY_TOOL_ACTIONS = ['read', 'update'] as const;
 
 /**
- * 字符串枚举辅助函数
- */
-function stringEnum<T extends readonly string[]>(values: T) {
-  return Type.Union(values.map((v) => Type.Literal(v)));
-}
-
-/**
  * Memory Tool Schema
  */
 export const MemoryToolSchema = Type.Object({
-  action: stringEnum(MEMORY_TOOL_ACTIONS),
+  action: Type.Union([
+    Type.Literal('read', { description: '读取记忆内容' }),
+    Type.Literal('update', { description: '更新记忆内容（需要 userMessage 参数）' }),
+  ]),
   userMessage: Type.Optional(Type.String({
     description: '用户消息（用于 update 操作）',
   })),

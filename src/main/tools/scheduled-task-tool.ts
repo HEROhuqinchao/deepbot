@@ -120,26 +120,26 @@ export function createScheduledTaskTool(): AgentTool {
     
     parameters: Type.Object({
       action: Type.Union([
-        Type.Literal('create'),
-        Type.Literal('list'),
-        Type.Literal('update'),
-        Type.Literal('updateSchedule'),
-        Type.Literal('delete'),
-        Type.Literal('pause'),
-        Type.Literal('resume'),
-        Type.Literal('trigger'),
-        Type.Literal('history'),
-      ], { description: '操作类型' }),
+        Type.Literal('create', { description: '创建新任务' }),
+        Type.Literal('list', { description: '列出所有任务' }),
+        Type.Literal('update', { description: '更新任务配置' }),
+        Type.Literal('updateSchedule', { description: '更新任务调度' }),
+        Type.Literal('delete', { description: '删除任务' }),
+        Type.Literal('pause', { description: '暂停任务' }),
+        Type.Literal('resume', { description: '恢复任务' }),
+        Type.Literal('trigger', { description: '手动触发任务' }),
+        Type.Literal('history', { description: '查看任务执行历史' }),
+      ]),
       
       // create 操作参数
       name: Type.Optional(Type.String({ description: '任务名称（create 操作）' })),
       description: Type.Optional(Type.String({ description: '任务描述（create 操作）' })),
       schedule: Type.Optional(Type.Object({
         type: Type.Union([
-          Type.Literal('once'),
-          Type.Literal('interval'),
-          Type.Literal('cron'),
-        ], { description: '调度类型' }),
+          Type.Literal('once', { description: '一次性任务' }),
+          Type.Literal('interval', { description: '间隔重复任务' }),
+          Type.Literal('cron', { description: 'Cron 表达式任务' }),
+        ]),
         executeAt: Type.Optional(Type.Number({ description: '执行时间戳（once 类型）' })),
         intervalMs: Type.Optional(Type.Number({ description: '间隔毫秒数（interval 类型）' })),
         startAt: Type.Optional(Type.Number({ description: '开始时间戳（interval 类型）' })),
