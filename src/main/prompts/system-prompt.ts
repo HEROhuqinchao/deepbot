@@ -8,7 +8,6 @@
  */
 
 import type { SystemPromptParams } from '../../types/prompt';
-import { buildWorkspaceSection } from './sections/workspace';
 import { buildTimeSection } from './sections/time';
 import { buildContextSection } from './sections/context';
 import { buildRuntimeSection } from './sections/runtime';
@@ -55,7 +54,18 @@ export async function buildSystemPrompt(params: SystemPromptParams): Promise<str
     const memoryContent = await getMemoryContent();
     
     if (memoryContent && memoryContent.trim().length > 0) {
-      lines.push('## 核心记忆', '', memoryContent, '');
+      lines.push(
+        '## 核心记忆',
+        '',
+        '**重要提示**：以下是你与用户长期互动中积累的重要信息。请在对话中主动使用这些记忆：',
+        '- 使用用户的名字和你的名字',
+        '- 遵循用户的习惯和偏好',
+        '- 避免重复之前的错误',
+        '- 体现你对用户的了解和关注',
+        '',
+        memoryContent,
+        ''
+      );
     }
   } catch (error) {
     console.warn('⚠️ 加载核心记忆失败:', error);
