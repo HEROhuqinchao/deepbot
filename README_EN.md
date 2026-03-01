@@ -15,16 +15,6 @@
 
 ---
 
-## 📝 Changelog
-
-### 2026-03-01
-- 🔧 Browser Tool Optimization: More robust browser automation with improved success rate | 🔧 Build Optimization: Reduced package size
-
-### 2026-02-28
-- ✨ Feishu Integration: Private & group chat support with independent session management | ✨ Web Fetch Tool: Web content fetching | ✨ Chat Tool: AI conversation processing | 🔧 Streaming output optimization, AutoContinue improvements, frontend experience enhancements
-
----
-
 ## 📖 Introduction
 
 DeepBot Terminal is a system-level AI assistant that acts like an intelligent brain for your computer. Whether it's organizing files, setting reminders, web automation, or complex multi-step tasks, DeepBot handles it all effortlessly through AI Agent technology. It supports multi-task parallel processing, scheduled tasks, skill extensions, while protecting your system security through strict safety mechanisms.
@@ -39,6 +29,13 @@ DeepBot Terminal is a system-level AI assistant that acts like an intelligent br
 - 🔒 **Security Restrictions** - Strict path whitelist mechanism to protect system security
 - 🤖 **Multi-Model Support** - Qwen, OpenAI, Claude, etc.
 - 🌐 **External Communication** - Support integration with Feishu and other external platforms for cross-platform interaction
+
+---
+
+## 📝 Changelog
+
+**2026-03-01**: 🔧 Browser Tool Optimization: More robust browser automation with improved success rate | 🔧 Build Optimization: Reduced package size  
+**2026-02-28**: ✨ Feishu Integration: Private & group chat support with independent session management | ✨ Web Fetch Tool: Web content fetching | ✨ Chat Tool: Background AI conversation processing | 🔧 Streaming output optimization, AutoContinue improvements, frontend experience enhancements
 
 ---
 
