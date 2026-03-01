@@ -31,7 +31,7 @@ export async function buildSystemPrompt(params: SystemPromptParams): Promise<str
   lines.push(`你的名字: ${nameConfig.agentName}`);
   lines.push(`用户称呼: ${nameConfig.userName}`);
   lines.push('');
-  lines.push('注意：如果用户要求修改你的名字或用户称呼，使用 memory 工具更新记忆，系统会自动同步到数据库和提示符。');
+  // lines.push('注意：如果用户要求修改你的名字或用户称呼，使用 memory 工具更新记忆，系统会自动同步到数据库和提示符。');
   lines.push('');
 
   // 2. 时间信息
