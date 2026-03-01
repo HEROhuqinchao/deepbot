@@ -265,31 +265,95 @@ tools.push(myTools);
 
 3. **Add Tool Prompts**
 
-Edit `src/main/prompts/templates/CUSTOM-TOOLS.md` to add tool usage instructions:
+Edit `src/main/prompts/templates/CUSTOM-TOOLS.md` to add tool usage instructions.
+
+Using Email tool as an example, the documentation should include the following sections:
 
 ````markdown
-## my_tool - My Tool
+## Email (Email Sending Tool)
 
-**Function**: Execute custom operations
+### Core Principles
+1. SMTP account must be configured before use
+2. Configuration file path is fixed, don't tell users wrong paths
+3. When sending fails, guide users to fix configuration based on error messages
+4. Don't retry repeatedly, inform users of the reason after one failure
 
-**Use Cases**:
-- Use case 1
-- Use case 2
+### Prerequisites
 
-**Parameters**:
-- `input` (required): Input content
+**Configuration File Path** (searched in priority order):
+1. Project level: `<workspace>/.deepbot/tools/email-tool/config.json`
+2. User level: `~/.deepbot/tools/email-tool/config.json`
 
-**Example**:
+**Configuration File Format**:
 ```json
 {
-  "input": "test content"
+  "user": "your-email@example.com",
+  "password": "your-password-or-auth-code",
+  "smtpServer": "smtp.example.com",
+  "smtpPort": 465,
+  "useSsl": true,
+  "fromName": "Your Name"
 }
 ```
 
-**Notes**:
-- Note 1
-- Note 2
+**Common Email Provider Settings**:
+- QQ Mail: Must use authorization code (not QQ password)
+- Gmail: Must use app-specific password
+- 163 Mail: Must enable SMTP service and use authorization code
+
+### Use Cases
+- ✅ Send notification emails, report emails
+- ✅ Send emails with attachments
+- ✅ Send HTML formatted emails
+- ❌ Don't use for bulk marketing emails (may get banned)
+- ❌ Don't send sensitive information (emails are not encrypted)
+
+### Examples
+
+1. Send simple text email:
+```json
+{
+  "to": "recipient@example.com",
+  "subject": "Test Email",
+  "body": "This is a test email"
+}
+```
+
+2. Send HTML email:
+```json
+{
+  "to": "team@company.com",
+  "subject": "Project Progress Report",
+  "body": "<h1>Progress</h1><ul><li>Feature A: Completed</li></ul>",
+  "html": true
+}
+```
+
+3. Send email with attachments:
+```json
+{
+  "to": "client@example.com",
+  "subject": "Contract Documents",
+  "body": "Please find the contract in the attachment",
+  "attachments": ["~/Documents/contract.pdf"]
+}
+```
+
+### Error Handling
+
+| Error Message | Cause | Solution |
+|--------------|-------|----------|
+| "nodemailer not installed" | Dependency not installed | Tell user to install nodemailer |
+| "Email tool not configured" | Config file doesn't exist | Tell user to create config file |
+| "Authentication failed" | Wrong credentials | Check account and authorization code |
 ````
+
+**Documentation Structure**:
+- **Core Principles**: Rules that AI must follow
+- **Prerequisites**: Conditions that must be met before using the tool (e.g., config files, dependencies)
+- **Use Cases**: When to use/not use this tool
+- **Examples**: Real usage examples (from simple to complex)
+- **Error Handling**: Common errors and solutions
 
 #### Advanced Features
 

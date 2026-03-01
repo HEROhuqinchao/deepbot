@@ -264,31 +264,95 @@ tools.push(myTools);
 
 3. **添加工具提示词**
 
-编辑 `src/main/prompts/templates/CUSTOM-TOOLS.md`，添加工具使用说明：
+编辑 `src/main/prompts/templates/CUSTOM-TOOLS.md`，添加工具使用说明。
+
+以 Email 工具为例，说明文档应包含以下部分：
 
 ````markdown
-## my_tool - 我的工具
+## Email（邮件发送工具）
 
-**功能**: 执行自定义操作
+### 核心原则
+1. 必须先配置 SMTP 账号才能使用
+2. 配置文件路径固定，不要告诉用户错误路径
+3. 发送失败时，根据错误信息指导用户修复配置
+4. 不要重复调用，失败一次就告知用户原因
 
-**使用场景**:
-- 场景 1
-- 场景 2
+### 使用前提
 
-**参数**:
-- `input` (必填): 输入内容
+**配置文件路径**（按优先级查找）：
+1. 项目级别：`<workspace>/.deepbot/tools/email-tool/config.json`
+2. 用户级别：`~/.deepbot/tools/email-tool/config.json`
 
-**示例**:
+**配置文件格式**：
 ```json
 {
-  "input": "测试内容"
+  "user": "your-email@example.com",
+  "password": "your-password-or-auth-code",
+  "smtpServer": "smtp.example.com",
+  "smtpPort": 465,
+  "useSsl": true,
+  "fromName": "Your Name"
 }
 ```
 
-**注意事项**:
-- 注意事项 1
-- 注意事项 2
+**常见邮箱配置**：
+- QQ 邮箱：必须使用授权码（不是 QQ 密码）
+- Gmail：必须使用应用专用密码
+- 163 邮箱：必须开启 SMTP 服务并使用授权码
+
+### 使用场景
+- ✅ 发送通知邮件、报告邮件
+- ✅ 发送带附件的邮件
+- ✅ 发送 HTML 格式的邮件
+- ❌ 不要用于批量营销邮件（可能被封号）
+- ❌ 不要发送敏感信息（邮件不加密）
+
+### 示例
+
+1. 发送简单文本邮件：
+```json
+{
+  "to": "recipient@example.com",
+  "subject": "测试邮件",
+  "body": "这是一封测试邮件"
+}
+```
+
+2. 发送 HTML 邮件：
+```json
+{
+  "to": "team@company.com",
+  "subject": "项目进度报告",
+  "body": "<h1>项目进度</h1><ul><li>功能 A：已完成</li></ul>",
+  "html": true
+}
+```
+
+3. 发送带附件的邮件：
+```json
+{
+  "to": "client@example.com",
+  "subject": "合同文件",
+  "body": "请查收附件中的合同",
+  "attachments": ["~/Documents/contract.pdf"]
+}
+```
+
+### 错误处理
+
+| 错误信息 | 原因 | 解决方案 |
+|---------|------|---------|
+| "nodemailer 未安装" | 依赖未安装 | 告诉用户需要安装 nodemailer |
+| "邮件工具未配置" | 配置文件不存在 | 告诉用户需要创建配置文件 |
+| "认证失败" | 账号或密码错误 | 检查配置中的账号和授权码 |
 ````
+
+**说明文档结构**：
+- **核心原则**：AI 必须遵守的规则
+- **使用前提**：使用工具前需要满足的条件（如配置文件、依赖安装）
+- **使用场景**：什么时候用/不用这个工具
+- **示例**：实际使用案例（从简单到复杂）
+- **错误处理**：常见错误和解决方案
 
 #### 高级功能
 
