@@ -1,0 +1,552 @@
+/**
+ * API 工具处理函数
+ * 
+ * 实现所有 API 工具的执行逻辑
+ */
+
+import { getErrorMessage } from '../../shared/utils/error-handler';
+import { 
+  DEFAULT_MODEL_CONFIG, 
+  DEFAULT_IMAGE_GENERATION_CONFIG, 
+  DEFAULT_WEB_SEARCH_CONFIG 
+} from '../../shared/config/default-configs';
+import * as formatters from './api-tool.formatters';
+
+// ==================== 类型定义 ====================
+
+interface ToolResult {
+  content: Array<{ type: 'text'; text: string }>;
+  details: any;
+  isError?: boolean;
+}
+
+// ==================== 获取配置 ====================
+
+/**
+ * 获取系统配置
+ */
+export async function handleGetConfig(
+  params: { configType: 'workspace' | 'model' | 'image-generation' | 'web-search' | 'all' },
+  signal?: AbortSignal
+): Promise<ToolResult> {
+  try {
+    console.log('[API Tool] 📋 获取配置:', params.configType);
+    
+    // 检查是否被取消
+    if (signal?.aborted) {
+      const err = new Error('获取配置操作被取消');
+      err.name = 'AbortError';
+      throw err;
+    }
+    
+    // 加载 SystemConfigStore
+    const { SystemConfigStore } = await import('../database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    
+    let result: any = {};
+    
+    // 根据类型获取配置
+    if (params.configType === 'workspace' || params.configType === 'all') {
+      result.workspace = store.getWorkspaceSettings();
+    }
+    
+    if (params.configType === 'model' || params.configType === 'all') {
+      result.model = store.getModelConfig();
+    }
+    
+    if (params.configType === 'image-generation' || params.configType === 'all') {
+      result.imageGeneration = store.getImageGenerationToolConfig();
+    }
+    
+    if (params.configType === 'web-search' || params.configType === 'all') {
+      result.webSearch = store.getWebSearchToolConfig();
+    }
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatters.formatGetConfigResult(result),
+        },
+      ],
+      details: {
+        success: true,
+        config: result,
+      },
+    };
+  } catch (error) {
+    console.error('[API Tool] ❌ 获取配置失败:', error);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ 获取配置失败: ${getErrorMessage(error)}`,
+        },
+      ],
+      details: {
+        success: false,
+        error: getErrorMessage(error),
+      },
+      isError: true,
+    };
+  }
+}
+
+// ==================== 设置工作目录配置 ====================
+
+/**
+ * 设置工作目录配置
+ */
+export async function handleSetWorkspaceConfig(
+  params: Partial<{
+    workspaceDir: string;
+    scriptDir: string;
+    skillDirs: string[];
+    defaultSkillDir: string;
+    imageDir: string;
+    memoryDir: string;
+  }>,
+  signal?: AbortSignal
+): Promise<ToolResult> {
+  try {
+    console.log('[API Tool] 💾 设置工作目录配置:', params);
+    
+    // 检查是否被取消
+    if (signal?.aborted) {
+      const err = new Error('设置配置操作被取消');
+      err.name = 'AbortError';
+      throw err;
+    }
+    
+    // 加载 SystemConfigStore
+    const { SystemConfigStore } = await import('../database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    
+    // 获取当前配置
+    const currentSettings = store.getWorkspaceSettings();
+    
+    // 合并配置
+    const newSettings = {
+      workspaceDir: params.workspaceDir || currentSettings.workspaceDir,
+      scriptDir: params.scriptDir || currentSettings.scriptDir,
+      skillDirs: params.skillDirs || currentSettings.skillDirs,
+      defaultSkillDir: params.defaultSkillDir || currentSettings.defaultSkillDir,
+      imageDir: params.imageDir || currentSettings.imageDir,
+      memoryDir: params.memoryDir || currentSettings.memoryDir,
+    };
+    
+    // 保存配置
+    store.saveWorkspaceSettings(newSettings);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatters.formatSetWorkspaceConfigResult(params),
+        },
+      ],
+      details: {
+        success: true,
+        settings: newSettings,
+      },
+    };
+  } catch (error) {
+    console.error('[API Tool] ❌ 设置工作目录配置失败:', error);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ 设置工作目录配置失败: ${getErrorMessage(error)}`,
+        },
+      ],
+      details: {
+        success: false,
+        error: getErrorMessage(error),
+      },
+      isError: true,
+    };
+  }
+}
+
+// ==================== 设置模型配置 ====================
+
+/**
+ * 设置模型配置
+ */
+export async function handleSetModelConfig(
+  params: Partial<{
+    providerType: 'qwen' | 'deepseek' | 'custom';
+    providerId: string;
+    providerName: string;
+    baseUrl: string;
+    modelId: string;
+    modelId2: string;
+    modelName: string;
+    apiKey: string;
+    contextWindow: number;
+  }>,
+  signal?: AbortSignal
+): Promise<ToolResult> {
+  try {
+    console.log('[API Tool] 💾 设置模型配置:', params);
+    
+    // 检查是否被取消
+    if (signal?.aborted) {
+      const err = new Error('设置配置操作被取消');
+      err.name = 'AbortError';
+      throw err;
+    }
+    
+    // 加载 SystemConfigStore
+    const { SystemConfigStore } = await import('../database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    
+    // 获取当前配置（如果没有则使用默认值）
+    const currentConfig = store.getModelConfig();
+    
+    // 合并配置（优先级：用户输入 > 当前配置 > 默认配置）
+    const newConfig = {
+      providerType: params.providerType || currentConfig?.providerType || DEFAULT_MODEL_CONFIG.providerType,
+      providerId: params.providerId || currentConfig?.providerId || DEFAULT_MODEL_CONFIG.providerId,
+      providerName: params.providerName || currentConfig?.providerName || DEFAULT_MODEL_CONFIG.providerName,
+      baseUrl: params.baseUrl || currentConfig?.baseUrl || DEFAULT_MODEL_CONFIG.baseUrl,
+      modelId: params.modelId || currentConfig?.modelId || DEFAULT_MODEL_CONFIG.modelId,
+      modelId2: params.modelId2 !== undefined ? params.modelId2 : currentConfig?.modelId2,
+      modelName: params.modelName || currentConfig?.modelName || DEFAULT_MODEL_CONFIG.modelName,
+      apiKey: params.apiKey || currentConfig?.apiKey || DEFAULT_MODEL_CONFIG.apiKey,
+      contextWindow: params.contextWindow || currentConfig?.contextWindow,
+      lastFetched: params.contextWindow ? Date.now() : currentConfig?.lastFetched,
+    };
+    
+    // 保存配置
+    store.saveModelConfig(newConfig);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatters.formatSetModelConfigResult(params),
+        },
+      ],
+      details: {
+        success: true,
+        config: newConfig,
+      },
+    };
+  } catch (error) {
+    console.error('[API Tool] ❌ 设置模型配置失败:', error);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ 设置模型配置失败: ${getErrorMessage(error)}`,
+        },
+      ],
+      details: {
+        success: false,
+        error: getErrorMessage(error),
+      },
+      isError: true,
+    };
+  }
+}
+
+// ==================== 设置图片生成工具配置 ====================
+
+/**
+ * 设置图片生成工具配置
+ */
+export async function handleSetImageGenerationConfig(
+  params: Partial<{
+    model: string;
+    apiUrl: string;
+    apiKey: string;
+  }>,
+  signal?: AbortSignal
+): Promise<ToolResult> {
+  try {
+    console.log('[API Tool] 💾 设置图片生成工具配置:', params);
+    
+    // 检查是否被取消
+    if (signal?.aborted) {
+      const err = new Error('设置配置操作被取消');
+      err.name = 'AbortError';
+      throw err;
+    }
+    
+    // 加载 SystemConfigStore
+    const { SystemConfigStore } = await import('../database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    
+    // 获取当前配置（如果没有则使用默认值）
+    const currentConfig = store.getImageGenerationToolConfig();
+    
+    // 合并配置（优先级：用户输入 > 当前配置 > 默认配置）
+    const newConfig = {
+      model: params.model || currentConfig?.model || DEFAULT_IMAGE_GENERATION_CONFIG.model,
+      apiUrl: params.apiUrl || currentConfig?.apiUrl || DEFAULT_IMAGE_GENERATION_CONFIG.apiUrl,
+      apiKey: params.apiKey || currentConfig?.apiKey || DEFAULT_IMAGE_GENERATION_CONFIG.apiKey,
+    };
+    
+    // 保存配置
+    store.saveImageGenerationToolConfig(newConfig);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatters.formatSetImageGenerationConfigResult(params),
+        },
+      ],
+      details: {
+        success: true,
+        config: newConfig,
+      },
+    };
+  } catch (error) {
+    console.error('[API Tool] ❌ 设置图片生成工具配置失败:', error);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ 设置图片生成工具配置失败: ${getErrorMessage(error)}`,
+        },
+      ],
+      details: {
+        success: false,
+        error: getErrorMessage(error),
+      },
+      isError: true,
+    };
+  }
+}
+
+// ==================== 设置 Web 搜索工具配置 ====================
+
+/**
+ * 设置 Web 搜索工具配置
+ */
+export async function handleSetWebSearchConfig(
+  params: Partial<{
+    provider: 'qwen' | 'gemini';
+    model: string;
+    apiUrl: string;
+    apiKey: string;
+  }>,
+  signal?: AbortSignal
+): Promise<ToolResult> {
+  try {
+    console.log('[API Tool] 💾 设置 Web 搜索工具配置:', params);
+    
+    // 检查是否被取消
+    if (signal?.aborted) {
+      const err = new Error('设置配置操作被取消');
+      err.name = 'AbortError';
+      throw err;
+    }
+    
+    // 加载 SystemConfigStore
+    const { SystemConfigStore } = await import('../database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    
+    // 获取当前配置（如果没有则使用默认值）
+    const currentConfig = store.getWebSearchToolConfig();
+    
+    // 合并配置（优先级：用户输入 > 当前配置 > 默认配置）
+    const newConfig = {
+      provider: params.provider || currentConfig?.provider || DEFAULT_WEB_SEARCH_CONFIG.provider,
+      model: params.model || currentConfig?.model || DEFAULT_WEB_SEARCH_CONFIG.model,
+      apiUrl: params.apiUrl || currentConfig?.apiUrl || DEFAULT_WEB_SEARCH_CONFIG.apiUrl,
+      apiKey: params.apiKey || currentConfig?.apiKey || DEFAULT_WEB_SEARCH_CONFIG.apiKey,
+    };
+    
+    // 保存配置
+    store.saveWebSearchToolConfig(newConfig);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatters.formatSetWebSearchConfigResult(params),
+        },
+      ],
+      details: {
+        success: true,
+        config: newConfig,
+      },
+    };
+  } catch (error) {
+    console.error('[API Tool] ❌ 设置 Web 搜索工具配置失败:', error);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ 设置 Web 搜索工具配置失败: ${getErrorMessage(error)}`,
+        },
+      ],
+      details: {
+        success: false,
+        error: getErrorMessage(error),
+      },
+      isError: true,
+    };
+  }
+}
+
+// ==================== 获取名字配置 ====================
+
+/**
+ * 获取名字配置
+ */
+export async function handleGetNameConfig(
+  signal?: AbortSignal
+): Promise<ToolResult> {
+  try {
+    console.log('[API Tool] 📋 获取名字配置');
+    
+    // 检查是否被取消
+    if (signal?.aborted) {
+      const err = new Error('获取配置操作被取消');
+      err.name = 'AbortError';
+      throw err;
+    }
+    
+    // 加载 SystemConfigStore
+    const { SystemConfigStore } = await import('../database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    
+    const nameConfig = store.getNameConfig();
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatters.formatGetNameConfigResult(nameConfig),
+        },
+      ],
+      details: {
+        success: true,
+        nameConfig,
+      },
+    };
+  } catch (error) {
+    console.error('[API Tool] ❌ 获取名字配置失败:', error);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ 获取名字配置失败: ${getErrorMessage(error)}`,
+        },
+      ],
+      details: {
+        success: false,
+        error: getErrorMessage(error),
+      },
+      isError: true,
+    };
+  }
+}
+
+// ==================== 设置名字配置 ====================
+
+/**
+ * 设置名字配置
+ */
+export async function handleSetNameConfig(
+  params: Partial<{
+    agentName: string;
+    userName: string;
+  }>,
+  signal?: AbortSignal
+): Promise<ToolResult> {
+  try {
+    console.log('[API Tool] 💾 设置名字配置:', params);
+    
+    // 检查是否被取消
+    if (signal?.aborted) {
+      const err = new Error('设置配置操作被取消');
+      err.name = 'AbortError';
+      throw err;
+    }
+    
+    // 至少需要提供一个参数
+    if (!params.agentName && !params.userName) {
+      throw new Error('至少需要提供 agentName 或 userName 参数');
+    }
+    
+    // 加载 SystemConfigStore
+    const { SystemConfigStore } = await import('../database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    
+    // 获取当前配置
+    const currentConfig = store.getNameConfig();
+    
+    // 更新配置
+    if (params.agentName) {
+      store.saveAgentName(params.agentName);
+    }
+    
+    if (params.userName) {
+      store.saveUserName(params.userName);
+    }
+    
+    // 获取更新后的配置
+    const updatedConfig = store.getNameConfig();
+    
+    // 🔥 发送事件到前端
+    const { BrowserWindow } = require('electron');
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (mainWindow) {
+      const { sendToWindow } = await import('../../shared/utils/webcontents-utils');
+      sendToWindow(mainWindow, 'name-config:updated', updatedConfig);
+      console.log('[API Tool] 📤 已发送名字配置更新事件到前端:', updatedConfig);
+    }
+    
+    // 🔥 重新加载系统提示词（确保下一次对话使用新名字）
+    const { getGatewayInstance } = await import('../gateway');
+    const gateway = getGatewayInstance();
+    if (gateway) {
+      console.log('[API Tool] 🔄 触发系统提示词重新加载...');
+      await gateway.reloadSystemPrompts();
+      console.log('[API Tool] ✅ 系统提示词已重新加载');
+    } else {
+      console.warn('[API Tool] ⚠️ Gateway 实例未设置，无法重新加载系统提示词');
+    }
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatters.formatSetNameConfigResult(params, currentConfig),
+        },
+      ],
+      details: {
+        success: true,
+        oldConfig: currentConfig,
+        newConfig: updatedConfig,
+      },
+    };
+  } catch (error) {
+    console.error('[API Tool] ❌ 设置名字配置失败:', error);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ 设置名字配置失败: ${getErrorMessage(error)}`,
+        },
+      ],
+      details: {
+        success: false,
+        error: getErrorMessage(error),
+      },
+      isError: true,
+    };
+  }
+}
