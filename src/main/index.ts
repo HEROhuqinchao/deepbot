@@ -801,8 +801,12 @@ function registerIpcHandlers() {
       // 如果不是主 Tab，检查是否有独立配置
       if (tabId && tabId !== 'default') {
         const tabConfig = configStore.getTabConfig(tabId);
+        console.log('[IPC] Tab 配置:', tabConfig); // 🔥 调试日志
         if (tabConfig?.agentName) {
           agentName = tabConfig.agentName;
+          console.log('[IPC] 使用 Tab 独立名字:', agentName); // 🔥 调试日志
+        } else {
+          console.log('[IPC] Tab 没有独立名字，使用全局名字:', agentName); // 🔥 调试日志
         }
       }
       

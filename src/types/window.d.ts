@@ -32,7 +32,7 @@ interface DeepBotAPI {
   getTabAgentName: (tabId: string) => Promise<{ success: boolean; agentName: string; userName: string; error?: string }>;
   saveAgentName: (agentName: string) => Promise<{ success: boolean; error?: string }>;
   saveUserName: (userName: string) => Promise<{ success: boolean; error?: string }>;
-  onNameConfigUpdate: (callback: (config: { agentName: string; userName: string }) => void) => () => void;
+  onNameConfigUpdate: (callback: (config: { agentName?: string; userName?: string; tabId?: string; isGlobalUpdate?: boolean }) => void) => () => void;
   onModelConfigUpdate: (callback: () => void) => () => void;
   createTab: (title?: string) => Promise<{ success: boolean; tab?: import('./agent-tab').AgentTab; error?: string }>;
   closeTab: (tabId: string) => Promise<{ success: boolean; error?: string }>;

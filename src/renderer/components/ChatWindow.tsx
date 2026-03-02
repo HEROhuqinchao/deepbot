@@ -68,8 +68,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     }
     
     // 🔥 监听名字配置变化事件（全局更新时也需要刷新）
-    const handleNameConfigUpdate = () => {
-      loadTabAgentName();
+    const handleNameConfigUpdate = (config: any) => {
+      // 🔥 优化：只在与当前 Tab 相关时才重新加载
+      // 1. 如果是全局更新（没有 tabId），所有 Tab 都需要更新
+      // 2. 如果是特定 Tab 更新（有 tabId），只更新对应的 Tab
+      const currentTabId = activeTabId || 'default';
+      
+      if (!config.tabId || config.tabId === currentTabId) {
+        // 直接使用事件中的数据，避免重复查询
+        if (config.agentName) {
+          setAgentName(config.agentName);
+        }
+        if (config.userName) {
+          setUserName(config.userName);
+        }
+      }
     };
     
     window.deepbot.onNameConfigUpdate(handleNameConfigUpdate);

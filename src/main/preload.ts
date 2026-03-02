@@ -166,7 +166,7 @@ contextBridge.exposeInMainWorld('deepbot', {
   },
   
   // 🔥 监听名字配置更新（事件驱动）
-  onNameConfigUpdate: (callback: (config: { agentName: string; userName: string }) => void) => {
+  onNameConfigUpdate: (callback: (config: { agentName?: string; userName?: string; tabId?: string; isGlobalUpdate?: boolean }) => void) => {
     const listener = (_event: any, config: any) => callback(config);
     ipcRenderer.on(IPC_CHANNELS.NAME_CONFIG_UPDATED, listener);
     

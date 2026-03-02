@@ -711,9 +711,14 @@ export class Gateway {
    * 创建默认 Tab
    */
   private createDefaultTab(): void {
+    // 🔥 获取全局 Agent 名字
+    const { SystemConfigStore } = require('./database/system-config-store');
+    const configStore = SystemConfigStore.getInstance();
+    const nameConfig = configStore.getNameConfig();
+    
     const defaultTab: AgentTab = {
       id: 'default',
-      title: 'Agent 1',
+      title: nameConfig.agentName, // 🔥 使用全局 Agent 名字
       messages: [],
       isLoading: false,
       createdAt: Date.now(),
@@ -721,7 +726,7 @@ export class Gateway {
     };
     
     this.tabs.set('default', defaultTab);
-    console.log('[Gateway] 创建默认 Tab:', defaultTab.id);
+    console.log('[Gateway] 创建默认 Tab:', defaultTab.id, defaultTab.title);
   }
   
   /**
@@ -750,10 +755,6 @@ export class Gateway {
     this.tabIdCounter++;
     const tabId = generateTabId(this.tabIdCounter);
     
-    // 生成默认标题
-    const tabTitle = options.title || `Agent ${this.tabCounter + 1}`;
-    this.tabCounter++;
-    
     // 🔥 确定 Tab 类型（用于数据库）
     let tabType: 'manual' | 'task' | 'connector' = 'manual';
     if (options.type === 'scheduled_task') {
@@ -761,6 +762,31 @@ export class Gateway {
     } else if (options.type === 'connector') {
       tabType = 'connector';
     }
+    
+    // 🔥 生成默认标题（根据 Tab 类型和 Agent 名字）
+    let tabTitle: string;
+    
+    if (options.title) {
+      // 如果明确指定了标题，直接使用
+      tabTitle = options.title;
+    } else if (tabType === 'task' || tabType === 'connector') {
+      // 定时任务和外连 Tab 保持原有逻辑（在调用处已经设置了 title）
+      tabTitle = `Agent ${this.tabCounter + 1}`;
+    } else {
+      // 普通 Tab：根据是否有 agentName 决定标题
+      if (options.agentName) {
+        // 如果有独立的 Agent 名字，使用 Agent 名字作为标题
+        tabTitle = options.agentName;
+      } else {
+        // 如果没有独立名字，使用"主 Agent 名字 + 数字"
+        const { SystemConfigStore } = await import('./database/system-config-store');
+        const configStore = SystemConfigStore.getInstance();
+        const nameConfig = configStore.getNameConfig();
+        tabTitle = `${nameConfig.agentName} ${this.tabCounter + 1}`;
+      }
+    }
+    
+    this.tabCounter++;
     
     // 🔥 确定是否持久化（默认：手动创建的 Tab 持久化）
     const isPersistent = options.isPersistent !== undefined 
@@ -943,6 +969,17 @@ export class Gateway {
     if (runtime) {
       await runtime.destroy();
       this.agentRuntimes.delete(tabId);
+    }
+    
+    // 🔥 删除 Tab 的 memory 文件（必须在删除数据库配置之前）
+    if (tab.memoryFile) {
+      try {
+        const { deleteTabMemoryFile } = await import('./tools/memory-tool');
+        await deleteTabMemoryFile(tabId, tab.memoryFile);
+      } catch (error) {
+        console.error('[Gateway] ❌ 删除 Tab memory 文件失败:', error);
+        // 继续关闭 Tab，即使删除失败
+      }
     }
     
     // 🔥 如果是持久化 Tab，从数据库删除配置

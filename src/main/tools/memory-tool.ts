@@ -535,3 +535,53 @@ export async function getMemoryContent(sessionId?: string): Promise<string> {
     return MEMORY_TEMPLATE;
   }
 }
+
+/**
+ * 删除 Tab 的 memory 文件
+ * @param tabId - Tab ID
+ * @param memoryFileName - memory 文件名（可选，如果不提供则从数据库读取）
+ */
+export async function deleteTabMemoryFile(tabId: string, memoryFileName?: string): Promise<void> {
+  try {
+    console.log(`[Memory Tool] 🗑️ 删除 Tab ${tabId} 的 memory 文件...`);
+    
+    // 确定 memory 文件名
+    let memoryFile = memoryFileName;
+    
+    if (!memoryFile) {
+      // 尝试从数据库读取
+      const configStore = SystemConfigStore.getInstance();
+      const tabConfig = configStore.getTabConfig(tabId);
+      memoryFile = tabConfig?.memoryFile;
+    }
+    
+    // 如果没有独立的 memory 文件配置，直接返回
+    if (!memoryFile) {
+      console.log(`[Memory Tool] ℹ️ Tab ${tabId} 没有独立的 memory 文件，跳过删除`);
+      return;
+    }
+    
+    // 获取完整路径
+    const configStore = SystemConfigStore.getInstance();
+    const settings = configStore.getWorkspaceSettings();
+    const memoryDir = settings.memoryDir;
+    const memoryFilePath = path.join(memoryDir, memoryFile);
+    
+    console.log(`[Memory Tool] 📂 Memory 文件路径: ${memoryFilePath}`);
+    
+    // 检查文件是否存在
+    try {
+      await fs.access(memoryFilePath);
+    } catch {
+      console.log(`[Memory Tool] ℹ️ Memory 文件不存在: ${memoryFilePath}`);
+      return;
+    }
+    
+    // 删除文件
+    await fs.unlink(memoryFilePath);
+    console.log(`[Memory Tool] ✅ 已删除 memory 文件: ${memoryFilePath}`);
+  } catch (error) {
+    console.error(`[Memory Tool] ❌ 删除 Tab ${tabId} 的 memory 文件失败:`, getErrorMessage(error));
+    // 不抛出错误，避免影响 Tab 关闭流程
+  }
+}

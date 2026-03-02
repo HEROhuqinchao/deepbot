@@ -511,18 +511,61 @@ export async function handleSetNameConfig(
       // 获取更新后的配置
       const updatedConfig = store.getNameConfig();
       
-      // 发送事件到前端
+      // 🔥 更新 Gateway 中所有相关 Tab 的 title
+      const { getGatewayInstance } = await import('../gateway');
+      const gateway = getGatewayInstance();
+      if (gateway && params.agentName) {
+        const tabs = (gateway as any).tabs as Map<string, any>;
+        
+        // 更新主 Tab 的 title
+        const defaultTab = tabs.get('default');
+        if (defaultTab) {
+          defaultTab.title = params.agentName;
+          console.log('[API Tool] 📝 已更新主 Tab title:', params.agentName);
+        }
+        
+        // 🔥 遍历所有 Tab，更新没有独立名字的 Tab
+        const updatedTabIds: string[] = ['default']; // 记录已更新的 Tab ID
+        
+        for (const [tabId, tab] of tabs.entries()) {
+          if (tabId === 'default') continue; // 跳过主 Tab
+          
+          // 检查 Tab 是否有独立的 Agent 名字
+          const tabConfig = store.getTabConfig(tabId);
+          const hasIndependentName = tabConfig?.agentName != null;
+          
+          if (!hasIndependentName) {
+            // 没有独立名字的 Tab，需要更新 title
+            // 提取原 title 中的数字部分（例如 "沐沐 2" -> 2）
+            const match = tab.title.match(/\s+(\d+)$/);
+            const number = match ? match[1] : '';
+            
+            if (number) {
+              tab.title = `${params.agentName} ${number}`;
+              console.log(`[API Tool] 📝 已更新 Tab ${tabId} title: ${tab.title}`);
+              updatedTabIds.push(tabId);
+            }
+          }
+        }
+        
+        console.log(`[API Tool] ✅ 共更新了 ${updatedTabIds.length} 个 Tab 的 title`);
+      }
+      
+      // 发送事件到前端（包含完整的名字配置）
       const { BrowserWindow } = require('electron');
       const mainWindow = BrowserWindow.getAllWindows()[0];
       if (mainWindow) {
         const { sendToWindow } = await import('../../shared/utils/webcontents-utils');
-        sendToWindow(mainWindow, 'name-config:updated', updatedConfig);
+        // 🔥 发送全局更新事件（不设置 tabId，表示所有继承的 Tab 都需要更新）
+        sendToWindow(mainWindow, 'name-config:updated', {
+          agentName: updatedConfig.agentName,
+          userName: updatedConfig.userName,
+          isGlobalUpdate: true, // 🔥 标记为全局更新
+        });
         console.log('[API Tool] 📤 已发送名字配置更新事件到前端:', updatedConfig);
       }
       
       // 重新加载系统提示词（确保下一次对话使用新名字）
-      const { getGatewayInstance } = await import('../gateway');
-      const gateway = getGatewayInstance();
       if (gateway) {
         console.log('[API Tool] 🔄 触发系统提示词重新加载...');
         await gateway.reloadSystemPrompts();
@@ -557,27 +600,57 @@ export async function handleSetNameConfig(
         // 保存 Tab 独立的 Agent 名字
         store.updateTabAgentName(sessionId, params.agentName);
         
+        // 🔥 更新 Tab 的 title
+        const { getGatewayInstance } = await import('../gateway');
+        const gateway = getGatewayInstance();
+        if (gateway) {
+          // 使用 Gateway 的内部方法访问 tabs
+          const tabs = (gateway as any).tabs as Map<string, any>;
+          const tab = tabs.get(sessionId);
+          
+          if (tab) {
+            tab.title = params.agentName;
+            console.log(`[API Tool] 📝 已更新 Tab title: ${sessionId} -> ${params.agentName}`);
+            
+            // 如果 Tab 是持久化的，更新数据库
+            if (tab.isPersistent) {
+              const { saveTabConfig } = await import('../database/tab-config');
+              const tabType = tab.type === 'scheduled_task' ? 'task' : tab.type === 'connector' ? 'connector' : 'manual';
+              
+              saveTabConfig((store as any).db, {
+                id: tab.id,
+                title: tab.title,
+                type: tabType,
+                memoryFile: tab.memoryFile || null,
+                agentName: params.agentName,
+                isPersistent: tab.isPersistent,
+                createdAt: tab.createdAt,
+                lastActiveAt: tab.lastActiveAt,
+              });
+            }
+          }
+        }
+        
         // 🔥 发送事件到前端（触发前端刷新显示）
         const { BrowserWindow } = require('electron');
         const mainWindow = BrowserWindow.getAllWindows()[0];
         if (mainWindow) {
           const { sendToWindow } = await import('../../shared/utils/webcontents-utils');
-          // 发送 Tab 名字更新事件（前端会根据当前 activeTabId 重新获取名字）
+          // 🔥 发送 Tab 名字更新事件，包含完整信息避免前端重复查询
           sendToWindow(mainWindow, 'name-config:updated', { 
             tabId: sessionId,
-            agentName: params.agentName 
+            agentName: params.agentName,
+            userName: currentConfig.userName, // 🔥 包含用户名，避免前端查询
           });
           console.log('[API Tool] 📤 已发送 Tab 名字更新事件到前端:', { sessionId, agentName: params.agentName });
         }
         
         // 只重新加载当前 Tab 的系统提示词
-        const { getGatewayInstance } = await import('../gateway');
-        const gateway = getGatewayInstance();
         if (gateway) {
           console.log('[API Tool] 🔄 触发当前 Tab 系统提示词重新加载...');
           await gateway.reloadSessionSystemPrompt(sessionId);
           console.log('[API Tool] ✅ 当前 Tab 系统提示词已重新加载');
-        } else {
+        } else{
           console.warn('[API Tool] ⚠️ Gateway 实例未设置，无法重新加载系统提示词');
         }
         

@@ -30,7 +30,7 @@ function App() {
     loadTabs();
     
     // 监听 Tab 创建事件（定时任务等后台创建的 Tab）
-    const unsubscribe = window.deepbot.onTabCreated((data) => {
+    const unsubscribeTabCreated = window.deepbot.onTabCreated((data) => {
       console.log('[App] 收到 Tab 创建通知:', data.tab);
       setTabs(prev => {
         // 检查是否已存在（避免重复）
@@ -41,8 +41,41 @@ function App() {
       });
     });
     
+    // 🔥 监听名字配置更新事件（更新 Tab 标题）
+    const unsubscribeNameUpdate = window.deepbot.onNameConfigUpdate((config) => {
+      console.log('[App] 收到名字配置更新:', config);
+      
+      // 🔥 如果是全局更新，需要更新所有继承的 Tab
+      if (config.isGlobalUpdate && config.agentName) {
+        setTabs(prev => prev.map(tab => {
+          // 主 Tab 直接使用新名字
+          if (tab.id === 'default') {
+            return { ...tab, title: config.agentName! };
+          }
+          
+          // 其他 Tab：提取数字部分，更新为新名字 + 数字
+          const match = tab.title.match(/\s+(\d+)$/);
+          if (match) {
+            const number = match[1];
+            return { ...tab, title: `${config.agentName} ${number}` };
+          }
+          
+          // 如果没有数字后缀，说明是有独立名字的 Tab，不更新
+          return tab;
+        }));
+      } else if (config.tabId && config.agentName) {
+        // 特定 Tab 的名字更新
+        setTabs(prev => prev.map(tab => 
+          tab.id === config.tabId 
+            ? { ...tab, title: config.agentName! }
+            : tab
+        ));
+      }
+    });
+    
     return () => {
-      unsubscribe();
+      unsubscribeTabCreated();
+      unsubscribeNameUpdate();
     };
   }, []);
   
@@ -73,18 +106,8 @@ function App() {
   // 创建新 Tab
   const handleCreateTab = async () => {
     try {
-      // 计算新 Tab 的编号
-      const tabNumbers = tabs
-        .map(t => {
-          const match = t.title.match(/^Agent (\d+)$/);
-          return match ? parseInt(match[1], 10) : 0;
-        })
-        .filter(n => n > 0);
-      
-      const nextNumber = tabNumbers.length > 0 ? Math.max(...tabNumbers) + 1 : tabs.length + 1;
-      const title = `Agent ${nextNumber}`;
-      
-      const result = await window.deepbot.createTab(title);
+      // 🔥 不传递 title，让后端根据全局 Agent 名字自动生成
+      const result = await window.deepbot.createTab();
       if (result.success && result.tab) {
         // 🔥 不需要手动添加到 tabs，onTabCreated 监听器会自动添加
         // setTabs(prev => [...prev, result.tab!]);
@@ -101,6 +124,19 @@ function App() {
   // 关闭 Tab
   const handleCloseTab = async (tabId: string) => {
     try {
+      // 🔥 删除前确认（主 Tab 不能删除，所以不会走到这里）
+      const tabToDelete = tabs.find(t => t.id === tabId);
+      if (!tabToDelete) return;
+      
+      // 🔥 显示确认对话框
+      const confirmed = window.confirm(
+        `确定要删除 "${tabToDelete.title}" 吗？\n\n删除后将清空该窗口的所有对话记忆，此操作不可恢复。`
+      );
+      
+      if (!confirmed) {
+        return; // 用户取消删除
+      }
+      
       const result = await window.deepbot.closeTab(tabId);
       if (result.success) {
         setTabs(prev => prev.filter(t => t.id !== tabId));
