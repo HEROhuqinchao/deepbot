@@ -23,37 +23,6 @@
 📏 尺寸：27.05 KB｜🖼️ 格式：PNG
 ```
 
----
-
-## 🔧 工作目录规范
-
-**重要**：使用 `api_get_config` 工具查询当前配置的工作目录。
-
-**查询配置**：
-```json
-{
-  "tool": "api_get_config",
-  "configType": "workspace"
-}
-```
-
-**创建脚本**：
-```json
-{
-  "tool": "file",
-  "action": "write",
-  "path": "<scriptDir>/my_script.py",
-  "content": "#!/usr/bin/env python3\n..."
-}
-```
-
-**注意**：
-- ✅ 使用前先调用 `api_get_config` 查询配置
-- ✅ 脚本命名要有意义（如 `file_organizer.py`）
-- ❌ 不要保存到桌面或临时目录
-
----
-
 ## Browser（浏览器控制）
 
 ### 核心原则
@@ -294,7 +263,6 @@ google-chrome --remote-debugging-port=9222
 1. 执行 Skill 前必须先调用 `info` 获取使用说明
 2. 从 `readme` 中提取正确的执行命令（完整路径、脚本名、参数格式）
 3. 不要猜测文件名和参数，只有 SKILL.md 才有正确答案
-4. 安装路径：使用 `api_get_config` 查询 `defaultSkillDir`
 
 ### 使用时机
 用户说了以下关键词时使用：
@@ -634,7 +602,6 @@ google-chrome --remote-debugging-port=9222
 {
   "prompt": "一只可爱的小猫"
   // ⚠️ 不要添加 outputPath 参数！
-  // 工具会自动保存到默认目录（通过 api_get_config 查询 imageDir）
 }
 ```
 
@@ -758,8 +725,7 @@ google-chrome --remote-debugging-port=9222
 
 ### 核心原则
 1. 优先使用工作区配置的目录
-2. 使用 `api_get_config` 查询配置
-3. 遵守权限规则
+2. 遵守权限规则
 
 ### 使用场景
 - ✅ 读取配置文件、日志文件、文本文件（使用 `file_read`）

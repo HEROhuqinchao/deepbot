@@ -467,7 +467,8 @@ ${lastPart}
 
     console.log('📋 使用系统提示词 (前100字符):', this.systemPrompt.substring(0, 100));
     
-    // 🔥 临时测试：捕获完整 prompt 到文件
+    // 🔥 临时测试：捕获完整 prompt 到文件（已禁用，需要时取消注释）
+    /*
     try {
       const fs = await import('fs');
       const path = await import('path');
@@ -599,6 +600,7 @@ ${lastPart}
     } catch (error) {
       console.error('❌ [Prompt Capture] 保存失败:', error);
     }
+    */
     
     // ✅ 新增：上下文管理（在发送消息前）
     if (this.instanceManager.agent) {
