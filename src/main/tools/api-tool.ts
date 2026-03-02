@@ -91,6 +91,10 @@ const SetModelConfigSchema = Type.Object({
     description: '模型 ID',
   })),
   
+  modelId2: Type.Optional(Type.String({
+    description: '快速模型 ID（可选，用于轻量级任务）',
+  })),
+  
   modelName: Type.Optional(Type.String({
     description: '模型名称',
   })),
@@ -241,7 +245,10 @@ export const apiToolPlugin: ToolPlugin = {
               resultMessage += `🤖 模型配置：\n`;
               resultMessage += `  • 提供商类型: ${result.model.providerType}\n`;
               resultMessage += `  • 提供商: ${result.model.providerName}\n`;
-              resultMessage += `  • 模型: ${result.model.modelName}\n`;
+              resultMessage += `  • 主模型: ${result.model.modelName}\n`;
+              if (result.model.modelId2) {
+                resultMessage += `  • 快速模型: ${result.model.modelId2}\n`;
+              }
               resultMessage += `  • API 地址: ${result.model.baseUrl}\n`;
               resultMessage += `  • API Key: ${result.model.apiKey ? '已配置' : '未配置'}\n`;
               resultMessage += `  • 上下文窗口: ${result.model.contextWindow ? result.model.contextWindow.toLocaleString() + ' tokens' : '未设置'}\n\n`;
@@ -412,6 +419,7 @@ export const apiToolPlugin: ToolPlugin = {
               providerName: string;
               baseUrl: string;
               modelId: string;
+              modelId2: string;
               modelName: string;
               apiKey: string;
               contextWindow: number;
@@ -440,6 +448,7 @@ export const apiToolPlugin: ToolPlugin = {
               providerName: params.providerName || currentConfig?.providerName || DEFAULT_MODEL_CONFIG.providerName,
               baseUrl: params.baseUrl || currentConfig?.baseUrl || DEFAULT_MODEL_CONFIG.baseUrl,
               modelId: params.modelId || currentConfig?.modelId || DEFAULT_MODEL_CONFIG.modelId,
+              modelId2: params.modelId2 !== undefined ? params.modelId2 : currentConfig?.modelId2,
               modelName: params.modelName || currentConfig?.modelName || DEFAULT_MODEL_CONFIG.modelName,
               apiKey: params.apiKey || currentConfig?.apiKey || DEFAULT_MODEL_CONFIG.apiKey,
               contextWindow: params.contextWindow || currentConfig?.contextWindow,
@@ -459,7 +468,10 @@ export const apiToolPlugin: ToolPlugin = {
               resultMessage += `  • 提供商: ${params.providerName}\n`;
             }
             if (params.modelName) {
-              resultMessage += `  • 模型: ${params.modelName}\n`;
+              resultMessage += `  • 主模型: ${params.modelName}\n`;
+            }
+            if (params.modelId2 !== undefined) {
+              resultMessage += `  • 快速模型: ${params.modelId2 || '未设置'}\n`;
             }
             if (params.baseUrl) {
               resultMessage += `  • API 地址: ${params.baseUrl}\n`;

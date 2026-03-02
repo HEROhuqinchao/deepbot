@@ -324,7 +324,7 @@ export class AgentRuntime {
     const textToAnalyze = agentTextOnly || response;
     
     // 提取最后 400 字符作为判断依据（增加上下文）
-    const lastPart = textToAnalyze.slice(-400).trim();
+    const lastPart = textToAnalyze.slice(-200).trim();
     
     // 1. 检测重复响应
     console.log('🔍 [detectUnfinishedIntent] 检查重复响应...');
@@ -369,7 +369,7 @@ ${lastPart}
 
 只回答 YES 或 NO，不要解释。`;
 
-      // 使用公共 AI 客户端
+      // 使用公共 AI 客户端（🔥 使用快速模型）
       const response = await callAI([
         {
           role: 'system',
@@ -382,6 +382,7 @@ ${lastPart}
       ], {
         temperature: 0.1,
         maxTokens: 10,
+        useFastModel: true, // 🔥 使用快速模型（modelId2）
       });
       
       // 🔥 AI 调用返回后，再次检查是否已被用户停止

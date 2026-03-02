@@ -24,7 +24,7 @@ import { createEnvironmentCheckTool } from '../environment-check-tool';
 import { createImageGenerationTool } from '../image-generation-tool';
 import { createWebSearchTool } from '../web-search-tool';
 import { createWebFetchTool } from '../web-fetch-tool';
-import { createMemoryTool } from '../memory-tool';
+import { memoryToolPlugin } from '../memory-tool';
 import { createChatTool } from '../chat-tool';
 import { emailToolPlugin } from '../email-tool';
 import { apiToolPlugin } from '../api-tool';
@@ -166,8 +166,22 @@ export class ToolLoader {
       tools.push(webFetchTool);
       
       // 记忆工具
-      const memoryTool = createMemoryTool();
-      tools.push(memoryTool);
+      const memoryToolsResult = memoryToolPlugin.create({
+        workspaceDir: this.workspaceDir,
+        sessionId: this.sessionId,
+        configStore,
+      });
+      
+      // 处理可能的 Promise 返回值
+      const memoryTools = memoryToolsResult instanceof Promise 
+        ? await memoryToolsResult 
+        : memoryToolsResult;
+      
+      if (Array.isArray(memoryTools)) {
+        tools.push(...memoryTools);
+      } else {
+        tools.push(memoryTools);
+      }
       
       // Chat 工具（AI 对话）
       if (configStore) {

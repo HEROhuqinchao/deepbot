@@ -205,8 +205,9 @@ export interface ModelConfig {
   providerId: string;
   providerName: string;
   baseUrl: string;
-  modelId: string;
+  modelId: string;         // 模型 ID（主模型）
   modelName: string;
+  modelId2?: string;       // 模型 ID 2（快速模型，选填，用于轻量级任务）
   apiKey: string;
   contextWindow?: number;  // 上下文窗口大小（tokens）
   lastFetched?: number;    // 最后获取时间（时间戳）

@@ -11,7 +11,7 @@ export interface DeepBotConfig {
   // Base URL（OpenAI 兼容端点）
   baseUrl: string;
   
-  // 模型 ID
+  // 模型 ID（主模型）
   modelId: string;
   
   // 模型名称（用于显示）
@@ -19,6 +19,9 @@ export interface DeepBotConfig {
   
   // 提供商名称（用于 pi-agent-core）
   providerName: string;
+  
+  // 模型 ID 2（快速模型，选填）
+  modelId2?: string;
 }
 
 /**
@@ -42,6 +45,7 @@ export function getConfig(): DeepBotConfig {
         modelId: modelConfig.modelId,
         modelName: modelConfig.modelName,
         providerName: modelConfig.providerId,
+        modelId2: modelConfig.modelId2, // 快速模型（选填）
       };
     }
   } catch (error) {
@@ -54,6 +58,7 @@ export function getConfig(): DeepBotConfig {
   const modelId = process.env.AI_MODEL_ID || '';
   const modelName = process.env.AI_MODEL_NAME || '';
   const providerName = process.env.AI_PROVIDER_NAME || '';
+  const modelId2 = process.env.AI_MODEL_ID_2 || ''; // 快速模型（选填）
   
   // 如果没有配置，抛出错误
   if (!apiKey || !baseUrl || !modelId) {
@@ -67,6 +72,7 @@ export function getConfig(): DeepBotConfig {
     modelId,
     modelName,
     providerName,
+    modelId2: modelId2 || undefined,
   };
 }
 

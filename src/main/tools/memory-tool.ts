@@ -1,73 +1,39 @@
 /**
- * Memory Tool - 记忆管理工具
+ * 记忆管理工具（插件）
  * 
  * 功能：
  * 1. 读取核心记忆文件（memory.md）
  * 2. 更新核心记忆（通过大模型提炼）
  * 3. 自动分类管理记忆
- * 4. 管理智能体名字和用户称呼（同步到数据库和 memory.md）
  * 
  * 记忆文件结构：
- * - 姓名和性格
- * - 用户习惯
- * - 错误总结
- * - 其他重要信息
+ * - 角色：智能体的特定专业角色
+ * - 用户习惯：用户的偏好、使用习惯、工作流程
+ * - 错误总结：之前遇到的错误和解决方案
+ * - 备忘事项：其他重要信息
+ * 
+ * 配置文件位置：
+ * - 记忆文件：从数据库配置读取（默认 ~/.deepbot/memory/memory.md）
  * 
  * 最大长度：5000 字符
  */
 
-import type { AgentTool } from '@mariozechner/pi-agent-core';
+import { Type } from '@sinclair/typebox';
+import type { ToolPlugin, ToolCreateOptions } from './registry/tool-interface';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { TOOL_NAMES } from './tool-names';
 import { getErrorMessage } from '../../shared/utils/error-handler';
 import { callAI } from '../utils/ai-client';
-import { MemoryToolSchema, type MemoryToolParams } from './memory-tool.schema';
 import { SystemConfigStore } from '../database/system-config-store';
 import type { Gateway } from '../gateway';
 
-/**
- * 记忆文件路径（已废弃，改为动态获取）
- */
-const MAX_MEMORY_LENGTH = 5000; // 最大 5000 字符
+// ==================== 常量定义 ====================
 
-/**
- * 获取记忆文件路径（从数据库读取配置）
- */
-function getMemoryFilePath(): { memoryDir: string; memoryFile: string } {
-  const configStore = SystemConfigStore.getInstance();
-  const settings = configStore.getWorkspaceSettings();
-  const memoryDir = settings.memoryDir;
-  const memoryFile = path.join(memoryDir, 'memory.md');
-  return { memoryDir, memoryFile };
-}
+/** 记忆文件最大长度 */
+const MAX_MEMORY_LENGTH = 5000;
 
-// ==================== Gateway 实例管理 ====================
-
-let gatewayInstance: Gateway | null = null;
-
-/**
- * 设置 Gateway 实例
- * 
- * @param gateway - Gateway 实例
- */
-export function setGatewayForMemoryTool(gateway: Gateway): void {
-  gatewayInstance = gateway;
-  console.info('[Memory Tool] Gateway 实例已设置');
-}
-
-/**
- * 获取 Gateway 实例
- * 
- * @returns Gateway 实例，如果未设置则返回 null
- */
-function getGatewayInstance(): Gateway | null {
-  return gatewayInstance;
-}
-
-/**
- * 记忆文件模板
- */
+/** 记忆文件模板 */
 const MEMORY_TEMPLATE = `# DeepBot 核心记忆
 
 ## 角色
@@ -90,6 +56,58 @@ const MEMORY_TEMPLATE = `# DeepBot 核心记忆
 
 **说明**：用户希望记住的其他任何事物（不属于上述分类）。
 `;
+
+// ==================== 参数 Schema ====================
+
+/**
+ * 记忆工具参数 Schema
+ */
+const MemoryToolSchema = Type.Object({
+  action: Type.Union([
+    Type.Literal('read', { description: '读取记忆内容' }),
+    Type.Literal('update', { description: '更新记忆内容（需要 userMessage 参数）' }),
+  ]),
+  
+  userMessage: Type.Optional(Type.String({
+    description: '用户消息（用于 update 操作）',
+  })),
+  
+  context: Type.Optional(Type.String({
+    description: '执行上下文（用于 update 操作，可选）',
+  })),
+});
+
+// ==================== Gateway 实例管理 ====================
+
+let gatewayInstance: Gateway | null = null;
+
+/**
+ * 设置 Gateway 实例
+ */
+export function setGatewayForMemoryTool(gateway: Gateway): void {
+  gatewayInstance = gateway;
+  console.info('[Memory Tool] Gateway 实例已设置');
+}
+
+/**
+ * 获取 Gateway 实例
+ */
+function getGatewayInstance(): Gateway | null {
+  return gatewayInstance;
+}
+
+// ==================== 辅助函数 ====================
+
+/**
+ * 获取记忆文件路径（从数据库读取配置）
+ */
+function getMemoryFilePath(): { memoryDir: string; memoryFile: string } {
+  const configStore = SystemConfigStore.getInstance();
+  const settings = configStore.getWorkspaceSettings();
+  const memoryDir = settings.memoryDir;
+  const memoryFile = path.join(memoryDir, 'memory.md');
+  return { memoryDir, memoryFile };
+}
 
 /**
  * 确保记忆目录和文件存在
@@ -153,11 +171,6 @@ async function writeMemory(content: string): Promise<void> {
 
 /**
  * 使用大模型提炼记忆
- * 
- * @param userMessage - 用户消息
- * @param context - 执行上下文（可选）
- * @param currentMemory - 当前记忆内容
- * @returns 提炼后的记忆更新
  */
 async function refineMemory(
   userMessage: string,
@@ -250,14 +263,29 @@ ${context ? `执行结果：\n"""\n${context}\n"""\n` : ''}
   }
 }
 
+// ==================== 工具插件 ====================
+
 /**
- * 创建 Memory Tool
+ * 记忆工具插件
  */
-export function createMemoryTool(): AgentTool {
-  return {
+export const memoryToolPlugin: ToolPlugin = {
+  metadata: {
+    id: 'memory-tool',
     name: TOOL_NAMES.MEMORY,
-    label: '记忆管理',
-    description: `管理智能体的核心记忆。
+    version: '1.0.0',
+    description: '管理智能体的核心记忆。支持读取和更新记忆，自动提炼和分类信息',
+    author: 'DeepBot',
+    category: 'system',
+    tags: ['memory', 'context', 'learning'],
+    requiresConfig: false,
+  },
+  
+  create: (_options: ToolCreateOptions) => {
+    return [
+      {
+        name: TOOL_NAMES.MEMORY,
+        label: '记忆管理',
+        description: `管理智能体的核心记忆。
 
 功能：
 - read: 读取当前记忆内容
@@ -280,125 +308,134 @@ export function createMemoryTool(): AgentTool {
 - 更新时会自动提炼和分类
 - 避免重复记录相似信息
 - ⚠️ 严格禁止记录任何名字相关信息（名字由 api_set_name 工具管理）`,
-    
-    parameters: MemoryToolSchema,
-    
-    execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
-      const params = args as MemoryToolParams;
-      try {
-        // 检查是否已被取消（执行前）
-        if (signal?.aborted) {
-          const err = new Error('记忆操作被取消');
-          err.name = 'AbortError';
-          throw err;
-        }
+        
+        parameters: MemoryToolSchema,
+        
+        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
+          const params = args as {
+            action: 'read' | 'update';
+            userMessage?: string;
+            context?: string;
+          };
+          
+          try {
+            // 检查是否已被取消（执行前）
+            if (signal?.aborted) {
+              const err = new Error('记忆操作被取消');
+              err.name = 'AbortError';
+              throw err;
+            }
 
-        const { action, userMessage, context } = params as MemoryToolParams;
-        
-        console.log(`[Memory Tool] 执行操作: ${action}`);
-        
-        if (action === 'read') {
-          // 读取记忆
-          const memory = await readMemory();
-          
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `记忆内容：\n\n${memory}`,
+            const { action, userMessage, context } = params;
+            
+            console.log(`[Memory Tool] 执行操作: ${action}`);
+            
+            if (action === 'read') {
+              // 读取记忆
+              const memory = await readMemory();
+              
+              return {
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: `记忆内容：\n\n${memory}`,
+                  },
+                ],
+                details: {
+                  memory,
+                  length: memory.length,
+                },
+              };
+            }
+            
+            if (action === 'update') {
+              // 更新记忆
+              if (!userMessage) {
+                throw new Error('update 操作需要提供 userMessage 参数');
+              }
+              
+              // 检查是否已被取消（更新前）
+              if (signal?.aborted) {
+                const err = new Error('记忆操作被取消');
+                err.name = 'AbortError';
+                throw err;
+              }
+              
+              const currentMemory = await readMemory();
+              
+              console.log('\n' + '='.repeat(80));
+              console.log('[Memory Tool] 📝 开始更新记忆');
+              console.log('='.repeat(80));
+              console.log('[Memory Tool] 📥 当前记忆内容:');
+              console.log(currentMemory);
+              console.log('='.repeat(80));
+              
+              console.log('[Memory Tool] 🤖 使用大模型提炼记忆...');
+              const updatedMemory = await refineMemory(userMessage, context, currentMemory, signal);
+              
+              console.log('\n' + '='.repeat(80));
+              console.log('[Memory Tool] 📤 更新后的记忆内容:');
+              console.log(updatedMemory);
+              console.log('='.repeat(80) + '\n');
+              
+              await writeMemory(updatedMemory);
+              const { memoryFile } = getMemoryFilePath();
+              console.log('[Memory Tool] ✅ 记忆文件已写入:', memoryFile);
+              
+              // 🔥 重新加载系统提示词（确保下一次对话使用新记忆）
+              const gateway = getGatewayInstance();
+              if (gateway) {
+                console.log('\n' + '='.repeat(80));
+                console.log('[Memory Tool] 🔄 触发系统提示词重新加载...');
+                console.log('='.repeat(80));
+                await gateway.reloadSystemPrompts();
+                console.log('='.repeat(80));
+                console.log('[Memory Tool] ✅ 系统提示词已重新加载');
+                console.log('='.repeat(80) + '\n');
+              } else {
+                console.warn('[Memory Tool] ⚠️ Gateway 实例未设置，无法重新加载系统提示词');
+              }
+              
+              return {
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: '记忆已更新。',
+                  },
+                ],
+                details: {
+                  success: true,
+                  oldLength: currentMemory.length,
+                  newLength: updatedMemory.length,
+                },
+              };
+            }
+            
+            throw new Error(`未知操作: ${action}`);
+          } catch (error) {
+            const errorMessage = getErrorMessage(error);
+            console.error('[Memory Tool] 执行失败:', errorMessage);
+            
+            return {
+              isError: true,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `记忆操作失败: ${errorMessage}`,
+                },
+              ],
+              details: {
+                error: errorMessage,
               },
-            ],
-            details: {
-              memory,
-              length: memory.length,
-            },
-          };
-        }
-        
-        if (action === 'update') {
-          // 更新记忆
-          if (!userMessage) {
-            throw new Error('update 操作需要提供 userMessage 参数');
+            };
           }
-          
-          // 检查是否已被取消（更新前）
-          if (signal?.aborted) {
-            const err = new Error('记忆操作被取消');
-            err.name = 'AbortError';
-            throw err;
-          }
-          
-          const currentMemory = await readMemory();
-          
-          console.log('\n' + '='.repeat(80));
-          console.log('[Memory Tool] 📝 开始更新记忆');
-          console.log('='.repeat(80));
-          console.log('[Memory Tool] 📥 当前记忆内容:');
-          console.log(currentMemory);
-          console.log('='.repeat(80));
-          
-          console.log('[Memory Tool] 🤖 使用大模型提炼记忆...');
-          const updatedMemory = await refineMemory(userMessage, context, currentMemory, signal);
-          
-          console.log('\n' + '='.repeat(80));
-          console.log('[Memory Tool] 📤 更新后的记忆内容:');
-          console.log(updatedMemory);
-          console.log('='.repeat(80) + '\n');
-          
-          await writeMemory(updatedMemory);
-          const { memoryFile } = getMemoryFilePath();
-          console.log('[Memory Tool] ✅ 记忆文件已写入:', memoryFile);
-          
-          // 🔥 重新加载系统提示词（确保下一次对话使用新记忆）
-          const gateway = getGatewayInstance();
-          if (gateway) {
-            console.log('\n' + '='.repeat(80));
-            console.log('[Memory Tool] 🔄 触发系统提示词重新加载...');
-            console.log('='.repeat(80));
-            await gateway.reloadSystemPrompts();
-            console.log('='.repeat(80));
-            console.log('[Memory Tool] ✅ 系统提示词已重新加载');
-            console.log('='.repeat(80) + '\n');
-          } else {
-            console.warn('[Memory Tool] ⚠️ Gateway 实例未设置，无法重新加载系统提示词');
-          }
-          
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: '记忆已更新。',
-              },
-            ],
-            details: {
-              success: true,
-              oldLength: currentMemory.length,
-              newLength: updatedMemory.length,
-            },
-          };
-        }
-        
-        throw new Error(`未知操作: ${action}`);
-      } catch (error) {
-        const errorMessage = getErrorMessage(error);
-        console.error('[Memory Tool] 执行失败:', errorMessage);
-        
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text: `记忆操作失败: ${errorMessage}`,
-            },
-          ],
-          details: {
-            error: errorMessage,
-          },
-        };
-      }
-    },
-  };
-}
+        },
+      },
+    ];
+  },
+};
+
+// ==================== 导出辅助函数 ====================
 
 /**
  * 导出读取记忆的辅助函数（用于系统提示词）

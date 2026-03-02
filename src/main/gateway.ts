@@ -72,6 +72,28 @@ export class Gateway {
     this.autoStartConnectors().catch(error => {
       console.error('[Gateway] ❌ 自动启动连接器失败:', error);
     });
+    
+    // 🔥 异步预热 AI 连接（不阻塞初始化）
+    this.warmupAIConnection().catch(error => {
+      console.error('[Gateway] ❌ AI 连接预热失败:', error);
+    });
+  }
+  
+  /**
+   * 预热 AI 连接
+   * 
+   * 在 Gateway 初始化时调用，提前建立 AI 连接
+   */
+  private async warmupAIConnection(): Promise<void> {
+    try {
+      // 延迟 1 秒后预热（避免阻塞启动）
+      await sleep(1000);
+      
+      const { warmupAIConnection } = await import('./utils/ai-client');
+      await warmupAIConnection();
+    } catch (error) {
+      console.warn('[Gateway] ⚠️ AI 连接预热失败（不影响使用）:', error);
+    }
   }
   
   /**
@@ -116,6 +138,10 @@ export class Gateway {
   async reloadModelConfig(): Promise<void> {
     console.log('[Gateway] 🔄 重新加载模型配置...');
     
+    // 🔥 清除 AI 连接缓存
+    const { clearAICache } = await import('./utils/ai-client');
+    clearAICache();
+    
     // 销毁所有现有的 AgentRuntime
     for (const [sessionId, runtime] of this.agentRuntimes.entries()) {
       console.log(`[Gateway] 销毁会话: ${sessionId}`);
@@ -158,6 +184,11 @@ export class Gateway {
     // 异步发送，不阻塞
     this.handleSendMessage(welcomeMessage, 'default').catch(error => {
       console.error('[Gateway] 发送欢迎消息失败:', error);
+    });
+    
+    // 🔥 重新预热 AI 连接
+    this.warmupAIConnection().catch(error => {
+      console.error('[Gateway] ❌ AI 连接预热失败:', error);
     });
   }
 

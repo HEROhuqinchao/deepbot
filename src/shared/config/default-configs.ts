@@ -13,16 +13,19 @@ export const PROVIDER_PRESETS = {
     name: '通义千问',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     defaultModelId: 'qwen3.5-plus',
+    defaultModelId2: 'qwen-plus',  // 快速模型
   },
   deepseek: {
     name: 'DeepSeek',
     baseUrl: 'https://api.deepseek.com/v1',
     defaultModelId: 'deepseek-chat',
+    defaultModelId2: 'deepseek-chat',  // 快速模型（与主模型相同）
   },
   custom: {
     name: '自定义',
     baseUrl: '',
     defaultModelId: '',
+    defaultModelId2: '',  // 快速模型
   },
 } as const;
 
@@ -58,6 +61,7 @@ export const DEFAULT_MODEL_CONFIG = {
   providerName: PROVIDER_PRESETS.qwen.name,
   baseUrl: PROVIDER_PRESETS.qwen.baseUrl,
   modelId: PROVIDER_PRESETS.qwen.defaultModelId,
+  modelId2: PROVIDER_PRESETS.qwen.defaultModelId2,  // 快速模型默认值
   modelName: PROVIDER_PRESETS.qwen.defaultModelId,
   apiKey: '',
 };

@@ -13,6 +13,7 @@ interface ModelConfig {
   providerName: string;
   baseUrl: string;
   modelId: string;
+  modelId2?: string;       // 快速模型 ID（可选）
   modelName: string;
   apiKey: string;
   contextWindow?: number;  // 上下文窗口大小
@@ -30,6 +31,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
     providerName: '通义千问',
     baseUrl: PROVIDER_PRESETS.qwen.baseUrl,
     modelId: PROVIDER_PRESETS.qwen.defaultModelId,
+    modelId2: PROVIDER_PRESETS.qwen.defaultModelId2,  // 设置快速模型默认值
     modelName: PROVIDER_PRESETS.qwen.defaultModelId,
     apiKey: '',
   });
@@ -75,6 +77,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
       providerName: preset.name,
       baseUrl: preset.baseUrl,
       modelId: preset.defaultModelId,
+      modelId2: preset.defaultModelId2 || undefined,  // 设置快速模型默认值
       modelName: preset.defaultModelId,
     });
   };
@@ -200,7 +203,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
       {/* 模型 ID */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          模型 ID
+          模型 ID（主模型）
         </label>
         <input
           type="text"
@@ -208,7 +211,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
           onChange={(e) => setConfig({ ...config, modelId: e.target.value, modelName: e.target.value })}
           placeholder={
             config.providerType === 'qwen' 
-              ? 'qwen-plus3.5' 
+              ? 'qwen-max' 
               : config.providerType === 'deepseek' 
                 ? 'deepseek-chat' 
                 : 'model-id'
@@ -216,9 +219,34 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="mt-1 text-xs text-gray-500">
-          {config.providerType === 'qwen' && '默认: qwen-plus3.5（可选: qwen-plus, qwen-turbo, qwen-max 等）'}
-          {config.providerType === 'deepseek' && '默认: deepseek-chat（可选: deepseek-coder 等）'}
-          {config.providerType === 'custom' && '输入模型 ID'}
+          {config.providerType === 'qwen' && '推荐: qwen-max（高质量）或 qwen-plus（平衡）'}
+          {config.providerType === 'deepseek' && '推荐: deepseek-chat'}
+          {config.providerType === 'custom' && '输入主模型 ID'}
+        </p>
+      </div>
+
+      {/* 模型 ID 2（快速模型） */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          模型 ID 2（快速模型，可选）
+        </label>
+        <input
+          type="text"
+          value={config.modelId2 || ''}
+          onChange={(e) => setConfig({ ...config, modelId2: e.target.value || undefined })}
+          placeholder={
+            config.providerType === 'qwen' 
+              ? 'qwen-plus' 
+              : config.providerType === 'deepseek' 
+                ? 'deepseek-chat' 
+                : 'fast-model-id'
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          {config.providerType === 'qwen' && '推荐: qwen-plus（用于轻量级任务，如语义判断）'}
+          {config.providerType === 'deepseek' && '推荐: deepseek-chat（与主模型相同）'}
+          {config.providerType === 'custom' && '输入快速模型 ID（用于轻量级任务）'}
         </p>
       </div>
 
