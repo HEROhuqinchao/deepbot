@@ -172,10 +172,47 @@ const arePropsEqual = (
 export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message, agentName = 'matrix', userName = 'user' }) => {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [isAllExpanded, setIsAllExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
   const isSubAgentResult = message.isSubAgentResult === true;
+
+  // 格式化时间戳
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      // 今天：只显示时间
+      return date.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    } else {
+      // 其他日期：显示日期和时间
+      return date.toLocaleString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  };
+
+  // 复制消息内容（不包含执行步骤）
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('复制失败:', err);
+    }
+  };
 
   // 确定提示符
   let prompt = '';
@@ -218,7 +255,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
   };
 
   return (
-    <div className="terminal-line">
+    <div 
+      className={`terminal-line ${isHovered ? 'hovered' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* 提示符和消息内容在同一行 */}
       <div>
         <span className={`terminal-prompt ${promptClass}`}>{prompt}</span>
@@ -386,6 +427,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
               </div>
             );
           })}
+        </div>
+      )}
+      
+      {/* 时间戳和复制按钮 - 悬停时显示在底部 */}
+      {isHovered && (
+        <div className="terminal-message-footer">
+          <span className="terminal-message-timestamp">
+            {formatTimestamp(message.timestamp)}
+          </span>
+          <button
+            className="terminal-message-copy"
+            onClick={handleCopy}
+            title="复制消息内容"
+          >
+            {copySuccess ? '[✓]' : '[copy]'}
+          </button>
         </div>
       )}
     </div>
