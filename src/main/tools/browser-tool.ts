@@ -5,12 +5,12 @@
  * 
  * 特点：
  * - 使用 @ref 系统进行元素定位（如 @e1, @e2）
- * - 运行时安装 Chromium（首次使用自动下载）
+ * - 连接到系统已安装的 Chrome 浏览器
  * - 无需配置文件，开箱即用
  * 
- * 依赖安装：
+ * 依赖要求：
  * - agent-browser 已在 package.json 中声明
- * - Chromium 首次使用时自动下载（~100MB）
+ * - 系统需要安装 Chrome 浏览器
  */
 
 import { Type } from '@sinclair/typebox';

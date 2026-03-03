@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react';
+import { QuickStart } from './settings/QuickStart';
 import { ModelConfig } from './settings/ModelConfig';
 import { EnvironmentConfig } from './settings/EnvironmentConfig';
 import { WorkspaceConfig } from './settings/WorkspaceConfig';
@@ -14,7 +15,7 @@ import { ToolConfig } from './settings/ToolConfig';
 import { ConnectorConfig } from './settings/ConnectorConfig';
 import '../styles/settings.css';
 
-type SettingsTab = 'model' | 'environment' | 'workspace' | 'tools' | 'connectors';
+type SettingsTab = 'quickstart' | 'model' | 'environment' | 'workspace' | 'tools' | 'connectors';
 
 interface SystemSettingsProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ interface SystemSettingsProps {
 }
 
 export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('model');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('quickstart');
 
   if (!isOpen) return null;
 
@@ -45,6 +46,12 @@ export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsP
           {/* 左侧菜单 */}
           <div className="settings-sidebar">
             <nav className="settings-nav">
+              <button
+                onClick={() => setActiveTab('quickstart')}
+                className={`settings-nav-item ${activeTab === 'quickstart' ? 'active' : ''}`}
+              >
+                快速入门
+              </button>
               <button
                 onClick={() => setActiveTab('model')}
                 className={`settings-nav-item ${activeTab === 'model' ? 'active' : ''}`}
@@ -80,6 +87,7 @@ export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsP
 
           {/* 右侧内容 */}
           <div className="settings-panel">
+            {activeTab === 'quickstart' && <QuickStart onClose={onClose} />}
             {activeTab === 'model' && <ModelConfig onClose={onClose} />}
             {activeTab === 'environment' && <EnvironmentConfig onClose={onClose} activeTabId={activeTabId} />}
             {activeTab === 'workspace' && <WorkspaceConfig onClose={onClose} />}
