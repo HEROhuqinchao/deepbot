@@ -17,7 +17,7 @@
 
 ## 📖 Introduction
 
-DeepBot Terminal is a system AI assistant. Compared to OpenClaw's Geek-oriented approach, DeepBot provides more convenient installation and usage, focusing on enterprise productivity enhancement. It can deeply integrate with existing enterprise systems, allowing AI to participate deeply in daily office efficiency across departments through multi-Agent collaboration to achieve automated complex business processes. Whether it's document processing, data analysis, system monitoring, or cross-departmental collaboration tasks, DeepBot handles it all effortlessly through AI Agent technology. It supports multi-task parallel processing, scheduled tasks, skill extensions, while protecting enterprise system security through strict safety mechanisms.
+DeepBot Terminal is a system AI assistant. Compared to OpenClaw's Geek-oriented approach, DeepBot provides more convenient installation and usage, with DeepBot exploring more in the direction of enterprise productivity enhancement. It can deeply integrate with existing enterprise systems, allowing AI to participate deeply in daily office efficiency across departments through multi-Agent collaboration to achieve automated complex business processes. Whether it's document processing, data analysis, system monitoring, or cross-departmental collaboration tasks, DeepBot handles it all effortlessly through AI Agent technology. It supports multi-task parallel processing, scheduled tasks, skill extensions, while protecting enterprise system security through strict safety mechanisms.
 
 ### ✨ Core Features
 
