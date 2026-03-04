@@ -45,6 +45,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [agentName, setAgentName] = useState('matrix');
   const [userName, setUserName] = useState('user');
   const [isInitializing, setIsInitializing] = useState(true);
+  
+  // 🔥 获取当前 Tab 类型
+  const currentTab = tabs?.find(t => t.id === activeTabId);
+  const isConnectorTab = currentTab?.type === 'connector';
 
   // 🔥 加载 Tab 的 Agent 名字（考虑继承）
   useEffect(() => {
@@ -224,7 +228,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
           // 消息列表
           <>
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} agentName={agentName} userName={userName} />
+              <MessageBubble 
+                key={message.id} 
+                message={message} 
+                agentName={agentName} 
+                userName={userName}
+                isConnectorTab={isConnectorTab}
+              />
             ))}
 
             {/* 加载指示器 - 只在加载时显示，不显示提示符 */}

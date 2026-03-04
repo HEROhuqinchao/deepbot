@@ -38,10 +38,6 @@ const CrossTabCallSchema = Type.Object({
   message: Type.String({
     description: '要发送的消息内容',
   }),
-  requireReply: Type.Optional(Type.Boolean({
-    description: '是否要求目标 Tab 回复。true=要求回复，false=不要求回复（默认 false）',
-    default: false,
-  })),
   senderTabName: Type.Optional(Type.String({
     description: '发送者 Tab 的名称（由系统自动填充，Agent 无需提供）',
   })),
@@ -79,14 +75,12 @@ export const crossTabCallToolPlugin: ToolPlugin = {
             const params = args as {
               targetTabName: string;
               message: string;
-              requireReply?: boolean;
               senderTabName?: string; // 由 AgentRuntime 注入
             };
             
             console.log('[Cross Tab Call] 🔄 跨 Tab 消息');
             console.log('  目标 Tab:', params.targetTabName);
             console.log('  消息:', params.message);
-            console.log('  要求回复:', params.requireReply ?? false);
             console.log('  发送者 Tab:', params.senderTabName || '未知');
             
             // 检查是否被取消
@@ -114,22 +108,11 @@ export const crossTabCallToolPlugin: ToolPlugin = {
             // 构建消息（标记来源）
             const messageWithSource = `[来自 ${senderName}]\n${params.message}`;
             
-            // 🔥 根据 requireReply 参数决定是否添加系统指令
-            let fullMessage = messageWithSource;
-            const systemPrompt = `\n\n[系统提示: 收到来自其他 Tab 的消息，请先在响应开头显示"📨 收到来自 ${senderName} 的消息：${params.message.substring(0, 50)}${params.message.length > 50 ? '...' : ''}"，然后再处理消息内容`;
-            
-            if (params.requireReply) {
-              // 添加系统指令，强制要求回复
-              const replyInstruction = `。处理完成后必须使用 cross_tab_call 工具将结果发送回 "${senderName}"。参数：targetTabName="${senderName}", message="你的回复内容", requireReply=false（重要：回复时必须设置 requireReply=false 避免无限循环）]`;
-              fullMessage = messageWithSource + systemPrompt + replyInstruction;
-              console.log('[Cross Tab Call] 📝 已添加回复指令');
-            } else {
-              fullMessage = messageWithSource + systemPrompt + `]`;
-              console.log('[Cross Tab Call] 📝 不要求回复');
-            }
+            // 添加系统提示，明确说明除非明确要求回复，否则不回复
+            const systemPrompt = `\n\n[系统提示: 这是来自其他 Tab 的消息。除非消息中明确要求你回复，否则不需要回复]`;
+            const fullMessage = messageWithSource + systemPrompt;
             
             // 发送消息到目标 Tab（异步，不等待结果）
-            // displayContent 用于前端显示（包含来源标记，但不包含系统指令）
             console.log('[Cross Tab Call] 📤 发送消息到目标 Tab...');
             gatewayInstance.handleSendMessage(
               fullMessage,        // 完整消息（包含来源标记和系统提示）
@@ -140,12 +123,7 @@ export const crossTabCallToolPlugin: ToolPlugin = {
             });
             
             // 立即返回成功
-            let resultMessage = `✅ 消息已发送到 ${params.targetTabName}\n\n消息内容：\n${params.message}`;
-            if (params.requireReply) {
-              resultMessage += `\n\n💡 已要求目标 Tab 回复结果`;
-            } else {
-              resultMessage += `\n\n💡 不要求目标 Tab 回复`;
-            }
+            const resultMessage = `✅ 消息已发送到 ${params.targetTabName}\n\n消息内容：\n${params.message}`;
             
             return {
               content: [

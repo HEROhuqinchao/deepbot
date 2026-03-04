@@ -538,24 +538,16 @@ export class Gateway {
     // 🔥 如果提供了 displayContent，发送用户消息到前端显示
     // 这样前端会显示原始任务内容，而不是带系统前缀的完整命令
     // 注意：只在直接处理消息时发送，队列消息由 processMessageQueue 发送
-    // 跨 Tab 消息不显示在用户消息区（通过系统提示让 Agent 在响应中显示）
     if (displayContent && this.mainWindow) {
-      // 检查是否为跨 Tab 消息
-      const isCrossTabMessage = content.startsWith('[来自 ');
-      
-      if (!isCrossTabMessage) {
-        const userMessageId = generateUserMessageId();
-        sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
-          messageId: userMessageId,
-          content: displayContent,
-          done: true,
-          role: 'user', // 标记为用户消息
-          sessionId: currentSessionId,
-        });
-        console.log('[Gateway] 📤 已发送用户消息到前端:', displayContent);
-      } else {
-        console.log('[Gateway] 🔄 跳过显示跨 Tab 消息（将通过 Agent 响应显示）');
-      }
+      const userMessageId = generateUserMessageId();
+      sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
+        messageId: userMessageId,
+        content: displayContent,
+        done: true,
+        role: 'user', // 标记为用户消息
+        sessionId: currentSessionId,
+      });
+      console.log('[Gateway] 📤 已发送用户消息到前端:', displayContent);
     }
 
     try {
@@ -1359,13 +1351,20 @@ export class Gateway {
       const content = message.content.text || '';
       const senderName = message.source.senderName || '用户';
       
-      // displayContent: 前端显示的内容（带发送者信息）
-      const displayContent = `[来自: ${senderName}]\n${content}`;
+      // displayContent: 前端显示的内容（不显示来源信息，直接显示命令）
+      const displayContent = content;
       
-      // 为连接器会话添加提示词，让 Agent 知道这是外部通讯会话
-      const contentWithHint = `${content}\n\n[系统提示: 这是外部通讯会话，你可以使用 connector_send_image 和 connector_send_file 工具发送图片和文件]`;
+      // contentWithSource: Agent 接收的内容（包含来源信息）
+      const contentWithSource = `[来自: ${senderName}]\n${content}`;
       
-      await this.handleSendMessage(contentWithHint, tab.id, displayContent);
+      // 为连接器会话添加系统提示，要求显示接收到的消息并真实调用工具
+      const systemHint = `\n\n[系统提示: 这是外部通讯会话。
+1. 禁止假装调用工具，说了调用工具必须执行。
+2. 你可以使用 connector_send_image 和 connector_send_file 工具发送图片和文件]`;
+      
+      const contentForAgent = contentWithSource + systemHint;
+      
+      await this.handleSendMessage(contentForAgent, tab.id, displayContent);
       
       console.log('[Gateway] ✅ 连接器消息已处理');
     } catch (error) {

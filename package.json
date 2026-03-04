@@ -29,9 +29,9 @@
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@larksuiteoapi/node-sdk": "^1.59.0",
-    "@mariozechner/pi-agent-core": "^0.54.2",
-    "@mariozechner/pi-ai": "^0.54.2",
-    "@mariozechner/pi-coding-agent": "0.54.2",
+    "@mariozechner/pi-agent-core": "^0.55.4",
+    "@mariozechner/pi-ai": "^0.55.4",
+    "@mariozechner/pi-coding-agent": "0.55.4",
     "@mozilla/readability": "^0.6.0",
     "@sinclair/typebox": "^0.34.48",
     "agent-browser": "^0.15.1",

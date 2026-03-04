@@ -11,6 +11,7 @@ interface MessageBubbleProps {
   message: Message;
   agentName?: string; // 智能体名字
   userName?: string; // 用户称呼
+  isConnectorTab?: boolean; // 是否为外部连接器 Tab
 }
 
 // 图片缓存（避免重复加载）
@@ -169,7 +170,7 @@ const arePropsEqual = (
   return true;
 };
 
-export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message, agentName = 'matrix', userName = 'user' }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message, agentName = 'matrix', userName = 'user', isConnectorTab = false }) => {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
