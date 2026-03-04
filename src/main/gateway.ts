@@ -73,6 +73,11 @@ export class Gateway {
     setGatewayForConnectorTool(this);
     console.info('[Gateway] Gateway 实例已传递给 Connector Tool');
     
+    // 🔥 设置 Gateway 实例供 cross-tab-call-tool 使用
+    const { setGatewayForCrossTabCallTool } = require('./tools/cross-tab-call-tool');
+    setGatewayForCrossTabCallTool(this);
+    console.info('[Gateway] Gateway 实例已传递给 Cross Tab Call Tool');
+    
     // 创建默认 Tab
     this.createDefaultTab();
     
@@ -453,20 +458,6 @@ export class Gateway {
     // 如果没有 sessionId，使用默认会话
     const currentSessionId = sessionId || this.defaultSessionId;
     
-    // 🔥 如果提供了 displayContent，先发送用户消息到前端显示
-    // 这样前端会显示原始任务内容，而不是带系统前缀的完整命令
-    if (displayContent && this.mainWindow) {
-      const userMessageId = generateUserMessageId();
-      sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
-        messageId: userMessageId,
-        content: displayContent,
-        done: true,
-        role: 'user', // 标记为用户消息
-        sessionId: currentSessionId,
-      });
-      console.log('[Gateway] 📤 已发送用户消息到前端:', displayContent);
-    }
-    
     // 获取或创建 AgentRuntime（同步）
     const runtime = this.getOrCreateRuntime(currentSessionId);
     
@@ -539,27 +530,31 @@ export class Gateway {
         queue.push({ content, displayContent });
         console.log(`[Gateway] 📊 队列长度: ${queue.length}`);
         
-        // 如果队列正在处理中，直接返回（避免重复处理）
-        if (this.processingQueues.has(currentSessionId)) {
-          console.log('[Gateway] ⏳ 队列正在处理中，等待...');
-          return;
-        }
-        
-        // 标记队列正在处理
-        this.processingQueues.add(currentSessionId);
-        
-        // 等待当前消息完成
-        console.log('[Gateway] ⏳ 等待当前消息完成...');
-        const { TIMEOUTS } = await import('./config/timeouts');
-        await waitUntil(
-          () => !runtime.isCurrentlyGenerating(),
-          { timeout: TIMEOUTS.AGENT_MESSAGE_TIMEOUT, interval: 100 }
-        );
-        
-        // 处理队列中的消息
-        await this.processMessageQueue(currentSessionId);
-        
+        // 🔥 不在这里处理队列，而是在 sendAIResponse 完成后处理
         return;
+      }
+    }
+
+    // 🔥 如果提供了 displayContent，发送用户消息到前端显示
+    // 这样前端会显示原始任务内容，而不是带系统前缀的完整命令
+    // 注意：只在直接处理消息时发送，队列消息由 processMessageQueue 发送
+    // 跨 Tab 消息不显示在用户消息区（通过系统提示让 Agent 在响应中显示）
+    if (displayContent && this.mainWindow) {
+      // 检查是否为跨 Tab 消息
+      const isCrossTabMessage = content.startsWith('[来自 ');
+      
+      if (!isCrossTabMessage) {
+        const userMessageId = generateUserMessageId();
+        sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
+          messageId: userMessageId,
+          content: displayContent,
+          done: true,
+          role: 'user', // 标记为用户消息
+          sessionId: currentSessionId,
+        });
+        console.log('[Gateway] 📤 已发送用户消息到前端:', displayContent);
+      } else {
+        console.log('[Gateway] 🔄 跳过显示跨 Tab 消息（将通过 Agent 响应显示）');
       }
     }
 
@@ -567,10 +562,37 @@ export class Gateway {
       // 使用 Agent Runtime 处理消息
       await this.sendAIResponse(runtime, content, currentSessionId);
       
-      // 处理完成后，检查队列
-      await this.processMessageQueue(currentSessionId);
+      // 🔥 sendAIResponse 内部会调用 processMessageQueue，这里不需要再调用
     } catch (error) {
       console.error('处理消息失败:', error);
+      
+      // 🔥 如果是 "AI 返回空响应" 错误，尝试重置模型连接并重试一次
+      const errorMessage = getErrorMessage(error);
+      if (errorMessage.includes('AI 返回空响应')) {
+        console.log('[Gateway] 🔄 检测到空响应错误，尝试重置模型连接...');
+        
+        try {
+          // 重置模型连接
+          await this.reloadModelConfig();
+          console.log('[Gateway] ✅ 模型连接已重置，重试发送消息...');
+          
+          // 重新获取 Runtime（可能已被销毁）
+          const retryRuntime = this.getOrCreateRuntime(currentSessionId);
+          
+          // 重试一次
+          await this.sendAIResponse(retryRuntime, content, currentSessionId);
+          console.log('[Gateway] ✅ 重试成功');
+          
+          // sendAIResponse 内部会处理队列，这里不需要再调用
+          
+          // 重试成功，直接返回
+          return;
+        } catch (retryError) {
+          console.error('[Gateway] ❌ 重试失败:', retryError);
+          // 继续抛出原始错误
+        }
+      }
+      
       this.sendError(getErrorMessage(error), currentSessionId);
       
       // 即使出错，也要处理队列
@@ -611,21 +633,31 @@ export class Gateway {
       return;
     }
     
-    // 如果提供了 displayContent，发送用户消息到前端
+    // 🔥 如果提供了 displayContent，发送消息到前端
+    // 跨 Tab 消息不显示在用户消息区（通过系统提示让 Agent 在响应中显示）
     if (message.displayContent && this.mainWindow) {
-      const userMessageId = generateUserMessageId();
-      sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
-        messageId: userMessageId,
-        content: message.displayContent,
-        done: true,
-        role: 'user',
-        sessionId: sessionId,
-      });
-      console.log('[Gateway] 📤 已发送队列消息到前端:', message.displayContent);
+      // 检查是否为跨 Tab 消息
+      const isCrossTabMessage = message.content.startsWith('[来自 ');
+      
+      if (!isCrossTabMessage) {
+        // 普通消息：显示在用户消息区
+        const userMessageId = generateUserMessageId();
+        sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
+          messageId: userMessageId,
+          content: message.displayContent,
+          done: true,
+          role: 'user',
+          sessionId: sessionId,
+        });
+        console.log('[Gateway] 📤 已发送队列消息到前端:', message.displayContent);
+      } else {
+        // 跨 Tab 消息：不显示（通过 Agent 响应显示）
+        console.log('[Gateway] 🔄 跳过显示跨 Tab 队列消息（将通过 Agent 响应显示）');
+      }
     }
     
     try {
-      // 处理消息
+      // 处理消息（sendAIResponse 会等待整个 Agent 执行完成，包括 autoContinue）
       await this.sendAIResponse(runtime, message.content, sessionId);
     } catch (error) {
       console.error('[Gateway] ❌ 处理队列消息失败:', error);
@@ -669,12 +701,17 @@ export class Gateway {
     let fullResponse = ''; // 收集完整响应
 
     try {
+      // 🔥 过滤掉系统指令和系统提示（用于保存到历史记录）
+      // 过滤 [系统指令] 和 [系统提示: ...]
+      let messageForHistory = userMessage.replace(/\n\n\[系统指令\].*$/s, '');
+      messageForHistory = messageForHistory.replace(/\n\n\[系统提示:.*?\]$/s, '');
+      
       // 🔥 保存用户消息到 session（除非跳过历史记录或定时任务 Tab）
       const skipHistory = runtime.getSkipHistory();
       const isTaskTab = sessionId.startsWith('task-tab-');
       
       if (this.sessionManager && !skipHistory && !isTaskTab) {
-        await this.sessionManager.saveUserMessage(sessionId, userMessage);
+        await this.sessionManager.saveUserMessage(sessionId, messageForHistory);
       } else if (skipHistory) {
         console.log('[Gateway] 🚫 跳过保存用户消息到历史记录（欢迎消息模式）');
       } else if (isTaskTab) {
@@ -700,6 +737,20 @@ export class Gateway {
         this.sendStreamChunk(messageId, chunk, false, false, undefined, undefined, sessionId);
       }
 
+      // 🔥 generator 完成后，确保 Agent 已完全空闲
+      console.log('[Gateway] ✅ Generator 完成，等待 Agent 完全空闲...');
+      const { TIMEOUTS } = await import('./config/timeouts');
+      const success = await waitUntil(
+        () => !runtime.isCurrentlyGenerating(),
+        { timeout: TIMEOUTS.AGENT_MESSAGE_TIMEOUT, interval: 50 }
+      );
+      
+      if (!success) {
+        console.error('[Gateway] ❌ 等待 Agent 空闲超时');
+      } else {
+        console.log('[Gateway] ✅ Agent 已完全空闲');
+      }
+
       // 发送完成信号（包含最终的执行步骤）
       const finalSteps = runtime.getExecutionSteps();
       this.sendStreamChunk(messageId, '', true, false, undefined, finalSteps, sessionId);
@@ -721,6 +772,10 @@ export class Gateway {
         console.log('[Gateway] 🔄 检测到连接器 Tab，发送响应到连接器');
         await this.sendResponseToConnector(sessionId, fullResponse);
       }
+      
+      // 🔥 Agent 执行完成后，处理队列中的下一条消息
+      console.log('[Gateway] ✅ Agent 执行完成，检查队列...');
+      await this.processMessageQueue(sessionId);
     } catch (error) {
       console.error('AI 响应失败:', error);
       throw error;

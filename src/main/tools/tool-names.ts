@@ -58,6 +58,9 @@ export const TOOL_NAMES = {
   // AI 对话工具
   CHAT: 'chat',
   
+  // 跨 Tab 调用工具
+  CROSS_TAB_CALL: 'cross_tab_call',
+  
   // 系统指令工具
   SYSTEM_COMMAND: 'system_command',
   

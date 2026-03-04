@@ -121,10 +121,18 @@ export class AgentRuntime {
       // 保存原始工具列表（用于 Skill Manager 等不需要重复检测的场景）
       this.originalTools = tools;
       
-      // 包装工具添加重复检测
-      this.tools = tools.map(tool => 
-        wrapToolWithDuplicateDetection(tool, this.operationTracker)
-      );
+      // 包装工具添加重复检测和 Tab 名称注入
+      this.tools = tools.map(tool => {
+        // 先添加重复检测
+        const toolWithDuplicateDetection = wrapToolWithDuplicateDetection(tool, this.operationTracker);
+        
+        // 如果是 cross_tab_call 工具，再包装一层注入 senderTabName
+        if (tool.name === 'cross_tab_call') {
+          return this.wrapToolWithTabNameInjection(toolWithDuplicateDetection);
+        }
+        
+        return toolWithDuplicateDetection;
+      });
       
       // 更新 MessageHandler 的 Agent 引用
       this.messageHandler.setAgent(agent);
@@ -577,6 +585,10 @@ ${lastPart}
     const { setConnectorToolSessionId } = await import('../tools/connector-tool');
     setConnectorToolSessionId(this.runtimeConfig.sessionId);
     
+    // 🔥 设置当前 sessionId 供 cross-tab-call-tool 使用
+    const { setCrossTabCallSessionId } = await import('../tools/cross-tab-call-tool');
+    setCrossTabCallSessionId(this.runtimeConfig.sessionId);
+    
     // 🔥 只在非自动继续时清空操作追踪器
     // 自动继续时保留 tracker，以便检测重复操作
     if (!isAutoContinue) {
@@ -894,6 +906,38 @@ ${lastPart}
       this.instanceManager.agent.state.messages = this.instanceManager.agent.state.messages.slice(-maxMessages);
       console.log(`[AgentRuntime] 🗑️ 响应完成后清理：保留最近 10 轮对话，丢弃 ${droppedCount} 条旧消息`);
     }
+  }
+
+  /**
+   * 包装工具以注入 Tab 名称（用于 cross_tab_call）
+   */
+  private wrapToolWithTabNameInjection(tool: any): any {
+    const originalExecute = tool.execute;
+    
+    return {
+      ...tool,
+      execute: async (toolCallId: string, args: any, signal?: AbortSignal, extensionContext?: any) => {
+        // 注入 senderTabName
+        const { getGatewayInstance } = await import('../gateway');
+        const gateway = getGatewayInstance();
+        
+        if (gateway) {
+          const tabs = gateway.getAllTabs();
+          const currentTab = tabs.find(t => t.id === this.runtimeConfig.sessionId);
+          
+          if (currentTab) {
+            args = {
+              ...args,
+              senderTabName: currentTab.title,
+            };
+            console.log('[AgentRuntime] 🏷️ 注入 senderTabName:', currentTab.title);
+          }
+        }
+        
+        // 调用原始 execute
+        return originalExecute(toolCallId, args, signal, extensionContext);
+      },
+    };
   }
 
   /**

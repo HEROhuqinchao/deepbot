@@ -29,6 +29,7 @@ import { createChatTool } from '../chat-tool';
 import { emailToolPlugin } from '../email-tool';
 import { apiToolPlugin } from '../api-tool';
 import { connectorToolPlugin } from '../connector-tool';
+import { crossTabCallToolPlugin } from '../cross-tab-call-tool';
 import { commandToolPlugin } from '../command-tool';
 
 /**
@@ -244,6 +245,25 @@ export class ToolLoader {
         tools.push(...connectorTools);
       } else {
         tools.push(connectorTools);
+      }
+      
+      // 跨 Tab 调用工具
+      // 用于多 Agent 协作，调用其他 Tab 执行任务并获取结果
+      const crossTabCallToolsResult = crossTabCallToolPlugin.create({
+        workspaceDir: this.workspaceDir,
+        sessionId: this.sessionId,
+        configStore,
+      });
+      
+      // 处理可能的 Promise 返回值
+      const crossTabCallTools = crossTabCallToolsResult instanceof Promise 
+        ? await crossTabCallToolsResult 
+        : crossTabCallToolsResult;
+      
+      if (Array.isArray(crossTabCallTools)) {
+        tools.push(...crossTabCallTools);
+      } else {
+        tools.push(crossTabCallTools);
       }
       
       // 系统指令工具

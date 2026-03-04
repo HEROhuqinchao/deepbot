@@ -147,13 +147,20 @@ export class SessionManager {
    * 将 SessionMessage 转换为 UI Message
    */
   private convertToUIMessages(sessionMessages: SessionMessage[]): Message[] {
-    return sessionMessages.map((msg, index) => ({
-      id: `${msg.timestamp}-${index}`,
-      role: msg.role,
-      content: msg.content,
-      timestamp: msg.timestamp,
-      executionSteps: msg.executionSteps, // 恢复执行步骤
-    }));
+    return sessionMessages.map((msg, index) => {
+      // 🔥 过滤掉系统指令和系统提示（作为保险，防止旧数据中有这些内容）
+      let content = msg.content;
+      content = content.replace(/\n\n\[系统指令\].*$/s, '');
+      content = content.replace(/\n\n\[系统提示:.*?\]$/s, '');
+      
+      return {
+        id: `${msg.timestamp}-${index}`,
+        role: msg.role,
+        content,
+        timestamp: msg.timestamp,
+        executionSteps: msg.executionSteps, // 恢复执行步骤
+      };
+    });
   }
   
   /**
