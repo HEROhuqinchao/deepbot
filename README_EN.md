@@ -122,16 +122,23 @@ DeepBot adopts a modular architecture with the following layers:
                   │ IPC / WebSocket
 ┌─────────────────▼───────────────────────┐
 │      Gateway (Session Management)       │
-│    • Tab Management (Max 10)            │
-│    • Message Queue                      │
+│    • Session Management (One per Tab)   │
+│    • Message Queue & Routing            │
 │    • Connector Management               │
 └─────────────────┬───────────────────────┘
                   │
-┌─────────────────▼───────────────────────┐
-│   Agent Runtime (One per Tab)           │
+        ┌─────────┼─────────┐
+        ▼         ▼         ▼
+   Session 1  Session 2  Session N
+   (Tab 1)    (Tab 2)    (Tab N)
+        │         │         │
+        ▼         ▼         ▼
+┌─────────────────────────────────────────┐
+│   Agent Runtime (One per Session)       │
 │    • Intelligent Decision & Orchestration│
 │    • Auto-Continue (Max 100 times)      │
 │    • Operation Tracking (Max 3 times)   │
+│    • Independent Memory & Context       │
 └─────────────────┬───────────────────────┘
                   │
 ┌─────────────────▼───────────────────────┐
@@ -147,7 +154,8 @@ DeepBot adopts a modular architecture with the following layers:
 
 ### Architecture Overview
 
-- **Gateway**: Manages all sessions, each Tab corresponds to an independent session
+- **Gateway**: Manages all Sessions, each Tab corresponds to an independent Session
+- **Session**: Independent conversation unit with its own Agent Runtime, memory, and context
 - **Agent Runtime**: Based on `@mariozechner/pi-agent-core`, responsible for intelligent decision-making and tool orchestration
 - **Tools**: 13 built-in tools providing core capabilities like file, command, browser operations, AI chat, cross-session communication, web content fetching
 - **Security Check**: All file and command operations are validated through path whitelist

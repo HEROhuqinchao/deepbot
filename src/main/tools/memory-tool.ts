@@ -31,7 +31,7 @@ import type { Gateway } from '../gateway';
 // ==================== 常量定义 ====================
 
 /** 记忆文件最大长度 */
-const MAX_MEMORY_LENGTH = 5000;
+const MAX_MEMORY_LENGTH = 20000;
 
 /** 记忆文件模板 */
 const MEMORY_TEMPLATE = `# DeepBot 核心记忆
