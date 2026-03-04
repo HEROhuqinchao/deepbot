@@ -34,6 +34,7 @@ DeepBot Terminal is a system-level AI assistant that acts like an intelligent br
 
 ## 📝 Changelog
 
+**2026-03-04**: ✨ Multi-Agent Communication & Orchestration: Support for inter-Tab Agent messaging and collaboration to complete complex tasks, implementing a true multi-Agent system; Optimized cross-Tab calling tools with asynchronous message passing  
 **2026-03-03**: ✨ Long-term Memory: Support up to 100 conversation rounds with automatic session compression; Each Tab (Agent) can have independent memory files, role settings, and work preferences for true multi-role collaboration  
 **2026-03-01**: 🔧 Browser Tool Optimization: More robust browser automation with improved success rate | 🔧 Build Optimization: Reduced package size  
 **2026-02-28**: ✨ Feishu Integration: Private & group chat support with independent session management | ✨ Web Fetch Tool: Web content fetching | ✨ Chat Tool: Background AI conversation processing | 🔧 Streaming output optimization, AutoContinue improvements, frontend experience enhancements
@@ -112,7 +113,7 @@ Right-click the app icon, select "Open", then click "Open" again in the dialog.
 
 ## 🏗️ Architecture Design
 
-DeepBot adopts a modular architecture with the following layers:
+DeepBot adopts a modular architecture that supports multi-Agent communication and collaboration:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -125,6 +126,7 @@ DeepBot adopts a modular architecture with the following layers:
 │    • Session Management (One per Tab)   │
 │    • Message Queue & Routing            │
 │    • Connector Management               │
+│    • Cross-Tab Message Routing 🆕       │
 └─────────────────┬───────────────────────┘
                   │
         ┌─────────┼─────────┐
@@ -139,11 +141,13 @@ DeepBot adopts a modular architecture with the following layers:
 │    • Auto-Continue (Max 100 times)      │
 │    • Operation Tracking (Max 3 times)   │
 │    • Independent Memory & Context       │
+│    • Cross-Tab Calling Tool 🆕          │
 └─────────────────┬───────────────────────┘
                   │
 ┌─────────────────▼───────────────────────┐
 │      13 Tools + Security Check          │
 │    🔒 Path Whitelist • Workspace Isolation│
+│    🔄 Cross-Tab Message Tool 🆕          │
 └─────────────────┬───────────────────────┘
                   │
         ┌─────────┼─────────┐
@@ -152,13 +156,36 @@ DeepBot adopts a modular architecture with the following layers:
                 Tasks
 ```
 
+### Multi-Agent Collaboration Architecture 🆕
+
+```
+┌─────────────────────────────────────────┐
+│           Multi-Agent Collaboration      │
+└─────────────────┬───────────────────────┘
+                  │
+    ┌─────────────┼─────────────┐
+    ▼             ▼             ▼
+┌─────────┐  ┌─────────┐  ┌─────────┐
+│ Agent A │◄─┤ Gateway ├─►│ Agent B │
+│Product  │  │Message  │  │Developer│
+│Manager  │  │Router   │  │Engineer │
+└─────────┘  └─────────┘  └─────────┘
+     ▲             │             ▲
+     │             ▼             │
+     │        ┌─────────┐        │
+     └────────┤ Agent C ├────────┘
+              │QA Eng.  │
+              └─────────┘
+```
+
 ### Architecture Overview
 
-- **Gateway**: Manages all Sessions, each Tab corresponds to an independent Session
+- **Gateway**: Manages all Sessions, each Tab corresponds to an independent Session, supports cross-Tab message routing
 - **Session**: Independent conversation unit with its own Agent Runtime, memory, and context
 - **Agent Runtime**: Based on `@mariozechner/pi-agent-core`, responsible for intelligent decision-making and tool orchestration
-- **Tools**: 13 built-in tools providing core capabilities like file, command, browser operations, AI chat, cross-session communication, web content fetching
+- **Tools**: 13 built-in tools including cross-Tab calling tool for inter-Agent communication
 - **Security Check**: All file and command operations are validated through path whitelist
+- **Multi-Agent Collaboration**: Agents in different Tabs can send messages to each other for collaborative complex task completion
 
 ---
 
@@ -216,7 +243,7 @@ Includes complete Feishu Open Platform configuration steps, permission settings,
 | **Skill Manager** | Skill management | Install/uninstall/list skill packages |
 | **Scheduled Task** | Scheduled tasks | Create/manage/execute scheduled tasks |
 | **Chat Tool** | AI conversation processing | Internal tool AI calls, backend AI processing, independent from main Agent context |
-| **Connector Tool** | Cross-session communication | Send messages to other Tabs, multi-task collaboration |
+| **Cross Tab Call** 🆕 | Cross-Tab communication | Inter-Agent messaging and multi-Agent collaboration for complex tasks |
 
 ### Creating Custom Tools
 
