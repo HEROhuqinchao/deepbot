@@ -80,11 +80,6 @@ export class AgentBrowserWrapper {
    * 获取 agent-browser 可执行文件路径
    */
   private getAgentBrowserPath(): string {
-    // 记录环境信息
-    logger.info(`环境检测 - NODE_ENV: ${process.env.NODE_ENV}, VITE_DEV_SERVER_URL: ${process.env.VITE_DEV_SERVER_URL}`);
-    logger.info(`进程信息 - PID: ${process.pid}, CWD: ${process.cwd()}`);
-    logger.info(`资源路径 - resourcesPath: ${process.resourcesPath}`);
-    
     // 开发环境：使用 npx
     if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL) {
       logger.info('开发环境，使用 npx agent-browser');
@@ -94,8 +89,6 @@ export class AgentBrowserWrapper {
     // 生产环境：直接调用可执行文件
     const platform = process.platform;
     const arch = process.arch;
-    
-    logger.info(`生产环境检测 - Platform: ${platform}, Arch: ${arch}`);
     
     // 确定可执行文件名
     let executableName: string;
@@ -110,7 +103,6 @@ export class AgentBrowserWrapper {
     
     // 在 asar: false 的情况下，文件直接在 app 目录中
     const resourcesPath = process.resourcesPath || process.cwd();
-    logger.info(`Resources path: ${resourcesPath}`);
     
     // 尝试多个可能的路径
     const possiblePaths = [
@@ -122,23 +114,9 @@ export class AgentBrowserWrapper {
       join(process.cwd(), 'node_modules', 'agent-browser', 'bin', executableName),
     ];
     
-    logger.info(`尝试查找可执行文件: ${executableName}`);
-    
     for (const executablePath of possiblePaths) {
-      logger.info(`检查路径: ${executablePath}`);
-      const exists = existsSync(executablePath);
-      logger.info(`路径存在: ${exists}`);
-      
-      if (exists) {
-        // 检查文件权限
-        try {
-          const stats = require('fs').statSync(executablePath);
-          logger.info(`文件权限: ${stats.mode.toString(8)}, 大小: ${stats.size} bytes`);
-        } catch (error) {
-          logger.warn(`无法获取文件信息: ${getErrorMessage(error)}`);
-        }
-        
-        logger.info(`✅ 找到可执行文件: ${executablePath}`);
+      if (existsSync(executablePath)) {
+        logger.info(`✅ 找到可执行文件: ${executableName}`);
         return `"${executablePath}"`;
       }
     }
@@ -176,9 +154,6 @@ export class AgentBrowserWrapper {
     // 构建完整命令
     const fullCommand = `${agentBrowserCmd} ${sessionFlag} ${cdpFlag} ${command} ${jsonFlag}`.trim().replace(/\s+/g, ' ');
     
-    logger.info(`准备执行命令: ${fullCommand}`);
-    logger.info(`当前工作目录: ${process.cwd()}`);
-    
     try {
       const { stdout, stderr } = await execAsync(fullCommand, {
         timeout: options.timeout || TIMEOUTS.BROWSER_NAVIGATION_TIMEOUT,
@@ -190,12 +165,9 @@ export class AgentBrowserWrapper {
         logger.warn(`stderr: ${stderr}`);
       }
       
-      logger.info(`命令执行成功，输出长度: ${stdout.length}`);
       return stdout.trim();
     } catch (error: any) {
-      logger.error(`命令执行失败:`, error);
-      logger.error(`失败的命令: ${fullCommand}`);
-      logger.error(`错误代码: ${error.code}, 信号: ${error.signal}`);
+      logger.error(`命令执行失败: ${getErrorMessage(error)}`);
       
       // 处理超时错误
       if (error.killed && error.signal === 'SIGTERM') {

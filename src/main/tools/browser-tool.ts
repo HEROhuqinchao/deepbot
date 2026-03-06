@@ -234,8 +234,6 @@ export const browserToolPlugin: ToolPlugin = {
               tabIndex?: number;
             };
             
-            console.log(`[Browser Tool] 🌐 执行操作: ${params.action}`);
-            
             // 检查是否被取消
             if (signal?.aborted) {
               const err = new Error('浏览器操作被取消');
@@ -250,10 +248,7 @@ export const browserToolPlugin: ToolPlugin = {
             try {
               // 先尝试获取当前 URL 来测试连接
               await wrapper.getUrl();
-              console.log('[Browser Tool] ✅ Chrome 已连接，无需启动');
             } catch (connectError) {
-              console.log('[Browser Tool] ⚠️ 无法连接到 Chrome，尝试自动启动...');
-              
               // 尝试启动 Chrome
               try {
                 const { spawn } = await import('child_process');
@@ -288,8 +283,6 @@ export const browserToolPlugin: ToolPlugin = {
                   }).unref();
                 }
                 
-                console.log('[Browser Tool] ✅ Chrome 已自动启动');
-                
                 // 等待 Chrome 启动（最多 10 秒）
                 let connected = false;
                 for (let i = 0; i < 10; i++) {
@@ -297,10 +290,9 @@ export const browserToolPlugin: ToolPlugin = {
                   try {
                     await wrapper.getUrl();
                     connected = true;
-                    console.log(`[Browser Tool] ✅ Chrome 已就绪（耗时 ${i + 1} 秒）`);
                     break;
                   } catch {
-                    console.log(`[Browser Tool] ⏳ 等待 Chrome 启动... (${i + 1}/10)`);
+                    // 继续等待
                   }
                 }
                 

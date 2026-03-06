@@ -45,8 +45,6 @@ export class Gateway {
   private sessionManager: SessionManager | null = null;
 
   constructor() {
-    console.log('Gateway 初始化');
-    
     // 🔥 初始化 SessionManager（异步）
     this.initializeSessionManager().catch(error => {
       console.error('[Gateway] ❌ 初始化 SessionManager 失败:', error);
