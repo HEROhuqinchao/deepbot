@@ -31,6 +31,11 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   const [content, setContent] = useState('');
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // 🔥 历史记录功能
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [tempContent, setTempContent] = useState(''); // 临时保存当前输入
 
   // 🔥 暴露 focus 方法给父组件
   useImperativeHandle(ref, () => ({
@@ -70,6 +75,14 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   const handleSend = () => {
     const trimmedContent = content.trim();
     if (trimmedContent && !disabled) {
+      // 🔥 保存到历史记录（避免重复）
+      setHistory(prev => {
+        const newHistory = prev.filter(item => item !== trimmedContent);
+        return [...newHistory, trimmedContent];
+      });
+      setHistoryIndex(-1); // 重置历史索引
+      setTempContent(''); // 清空临时内容
+      
       onSend(trimmedContent, uploadedImages.length > 0 ? uploadedImages : undefined);
       setContent('');
       setUploadedImages([]); // 清空已上传的图片
@@ -89,6 +102,65 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+      return;
+    }
+
+    // 🔥 上下键浏览历史记录
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      const textarea = textareaRef.current;
+      if (!textarea || history.length === 0) return;
+
+      const { selectionStart, selectionEnd, value } = textarea;
+      const lines = value.split('\n');
+      const currentLineIndex = value.substring(0, selectionStart).split('\n').length - 1;
+
+      // 向上键：只有在第一行且光标在开头时才触发历史记录
+      if (e.key === 'ArrowUp' && currentLineIndex === 0 && selectionStart === 0) {
+        e.preventDefault();
+        
+        // 第一次按上键，保存当前内容
+        if (historyIndex === -1 && content) {
+          setTempContent(content);
+        }
+
+        const newIndex = historyIndex === -1 ? history.length - 1 : Math.max(0, historyIndex - 1);
+        setHistoryIndex(newIndex);
+        setContent(history[newIndex]);
+        
+        // 将光标移到开头
+        setTimeout(() => {
+          if (textarea) {
+            textarea.selectionStart = 0;
+            textarea.selectionEnd = 0;
+          }
+        }, 0);
+      }
+
+      // 向下键：只有在最后一行且光标在末尾时才触发历史记录
+      if (e.key === 'ArrowDown' && currentLineIndex === lines.length - 1 && selectionStart === value.length) {
+        e.preventDefault();
+
+        if (historyIndex !== -1) {
+          if (historyIndex < history.length - 1) {
+            const newIndex = historyIndex + 1;
+            setHistoryIndex(newIndex);
+            setContent(history[newIndex]);
+          } else {
+            // 回到最新状态，恢复临时内容
+            setHistoryIndex(-1);
+            setContent(tempContent);
+            setTempContent('');
+          }
+          
+          // 将光标移到末尾
+          setTimeout(() => {
+            if (textarea) {
+              textarea.selectionStart = textarea.value.length;
+              textarea.selectionEnd = textarea.value.length;
+            }
+          }, 0);
+        }
+      }
     }
   };
 
