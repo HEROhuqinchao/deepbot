@@ -23,7 +23,7 @@ export const GITHUB_API_BASE = 'https://api.github.com';
 /**
  * GitHub 搜索 topic
  */
-export const SKILL_TOPIC = 'deepbot-skill';
+export const SKILL_TOPIC = 'openclaw-skill';
 
 /**
  * Awesome OpenClaw Skills README URL

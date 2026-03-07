@@ -46,6 +46,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
   const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<SkillInfo | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
   
   // 安装进度状态
   const [installingSkill, setInstallingSkill] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
     
     setIsLoading(true);
     setActiveTab('available');
+    setSearchError(null); // 清除之前的错误
     
     try {
       const result = await (window.deepbot as any).skillManager({
@@ -104,9 +106,16 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
           (skill: Skill) => !installedNames.has(skill.name)
         );
         setAvailableSkills(filteredSkills);
+      } else {
+        // 显示错误信息
+        setSearchError(result.error || '搜索失败');
+        setAvailableSkills([]);
       }
     } catch (error) {
       console.error('搜索 Skill 失败:', error);
+      const errorMessage = error instanceof Error ? error.message : '搜索失败';
+      setSearchError(errorMessage);
+      setAvailableSkills([]);
     } finally {
       setIsLoading(false);
     }
@@ -277,8 +286,13 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
               搜索
             </button>
           </div>
-          <p style={{ fontSize: '12px', color: 'var(--settings-text-dim)', marginTop: '8px' }}>
-            💡 提示：搜索功能需要能正常访问 GitHub
+          <p style={{ 
+            fontSize: '12px', 
+            color: 'var(--settings-text-dim)', 
+            marginTop: '8px',
+            lineHeight: '1.5'
+          }}>
+            💡 Skill 是可扩展的功能模块，可以帮助 DeepBot 完成 PDF 处理、视频下载、图片编辑等专业任务。输入关键词搜索，选择合适的 Skill 点击"安装"即可使用。⚠️ 需要能正常访问 GitHub。
           </p>
         </div>
 
@@ -338,7 +352,35 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
               </div>
             )
           ) : (
-            availableSkills.length === 0 ? (
+            searchError ? (
+              <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                <div className="text-red-500 mb-4">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                </div>
+                <p className="text-text-primary font-semibold mb-2">搜索失败</p>
+                <p className="text-sm text-text-secondary mb-4 max-w-md whitespace-pre-wrap">{searchError}</p>
+                {searchError.includes('GitHub') && (
+                  <div className="text-xs text-text-tertiary bg-bg-secondary p-3 rounded-lg max-w-md">
+                    <p className="font-semibold mb-2">💡 可能的原因：</p>
+                    <ul className="text-left space-y-1">
+                      <li>• 网络连接问题</li>
+                      <li>• 无法访问 GitHub（可能需要代理）</li>
+                      <li>• 防火墙阻止了连接</li>
+                    </ul>
+                  </div>
+                )}
+                <button
+                  onClick={handleSearch}
+                  className="mt-4 px-4 py-2 bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
+                >
+                  重试
+                </button>
+              </div>
+            ) : availableSkills.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Search size={48} className="text-text-tertiary mb-4" />
                 <p className="text-text-secondary">搜索 Skill</p>
@@ -409,7 +451,7 @@ const SkillCard: React.FC<SkillCardProps> = ({
           <div className="flex items-center gap-3 text-xs text-text-tertiary">
             <span>v{skill.version}</span>
             {skill.author && <span>• {skill.author}</span>}
-            {skill.stars !== undefined && <span>• ⭐ {skill.stars}</span>}
+            {skill.stars !== undefined && skill.stars > 0 && <span>• ⭐ {skill.stars}</span>}
             {skill.usageCount !== undefined && <span>• 使用 {skill.usageCount} 次</span>}
           </div>
           {skill.tags && skill.tags.length > 0 && (

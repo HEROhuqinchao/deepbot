@@ -10,72 +10,32 @@ import { callAI } from '../../utils/ai-client';
 
 /**
  * 搜索 GitHub 上的 Skill 仓库
+ * 
+ * 注意：所有 Skills 都在 awesome-openclaw-skills 仓库中，不是独立仓库
+ * 因此只需要从 Awesome Skills README 搜索即可
  */
 export async function searchSkillsOnGitHub(query: string): Promise<SkillSearchResult[]> {
+  console.info(`[Skill Manager] 从 Awesome Skills 搜索: ${query}`);
+  
   try {
-    const results: SkillSearchResult[] = [];
-    
-    // 1. 从 Awesome OpenClaw Skills README 搜索
-    console.info(`[Skill Manager] 从 Awesome Skills 搜索: ${query}`);
-    
-    try {
-      const awesomeResults = await searchInAwesomeSkills(query);
-      results.push(...awesomeResults);
-      console.info(`[Skill Manager] Awesome Skills 找到 ${awesomeResults.length} 个结果`);
-    } catch (error) {
-      console.warn('[Skill Manager] Awesome Skills 搜索失败:', error);
-    }
-    
-    // 2. 搜索 GitHub（带 deepbot-skill topic）
-    try {
-      const searchQuery = `${query} topic:${SKILL_TOPIC}`;
-      const url = `${GITHUB_API_BASE}/search/repositories?q=${encodeURIComponent(searchQuery)}&sort=stars&order=desc`;
-      
-      console.info(`[Skill Manager] 搜索 GitHub: ${searchQuery}`);
-      
-      const { httpGet } = await import('../../../shared/utils/http-utils');
-      const response = await httpGet(url, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'DeepBot-Skill-Manager',
-        },
-      });
-      
-      if (!response.ok) {
-        console.warn(`[Skill Manager] GitHub 搜索失败: ${response.status}`);
-      } else {
-        const data = response.data as any;
-      
-        const githubResults: SkillSearchResult[] = data.items.map((repo: any) => ({
-          name: extractSkillName(repo.name),
-          description: repo.description || '无描述',
-          version: 'latest',
-          author: repo.owner.login,
-          repository: repo.html_url,
-          stars: repo.stargazers_count,
-          downloads: 0,
-          tags: repo.topics || [],
-          lastUpdated: new Date(repo.updated_at),
-        }));
-        
-        results.push(...githubResults);
-        console.info(`[Skill Manager] GitHub 找到 ${githubResults.length} 个结果`);
-      }
-    } catch (error) {
-      console.warn('[Skill Manager] GitHub 搜索失败:', error);
-    }
-    
-    // 3. 去重（按 name）
-    const uniqueResults = Array.from(
-      new Map(results.map(r => [r.name, r])).values()
-    );
-    
-    console.info(`[Skill Manager] 总共找到 ${uniqueResults.length} 个 Skill`);
-    
-    return uniqueResults;
+    const results = await searchInAwesomeSkills(query);
+    console.info(`[Skill Manager] ✅ 找到 ${results.length} 个 Skill`);
+    return results;
   } catch (error) {
-    console.error('[Skill Manager] 搜索失败:', error);
-    throw new Error(`搜索失败: ${getErrorMessage(error)}`);
+    const errorMessage = getErrorMessage(error);
+    console.error(`[Skill Manager] ❌ 搜索失败: ${errorMessage}`);
+    
+    // 检查是否为网络错误
+    if (errorMessage.includes('Network Error') || 
+        errorMessage.includes('ENOTFOUND') || 
+        errorMessage.includes('ETIMEDOUT') || 
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('fetch failed')) {
+      throw new Error('⚠️ 无法连接到 GitHub\n\n可能的原因：\n• 网络连接问题\n• 无法访问 GitHub（可能需要代理）\n• 防火墙阻止了连接\n\n请检查网络连接后重试。');
+    }
+    
+    // 其他错误直接抛出
+    throw error;
   }
 }
 
@@ -96,16 +56,18 @@ async function searchInAwesomeSkills(query: string): Promise<SkillSearchResult[]
     });
     
     if (!response.ok) {
-      console.warn(`[Skill Manager] 获取 README 失败: ${response.status} ${response.statusText}`);
-      return [];
+      const errorMsg = `获取 README 失败: ${response.status} ${response.statusText}`;
+      console.warn(`[Skill Manager] ${errorMsg}`);
+      throw new Error(errorMsg);
     }
     
     // 🔥 httpGet 现在会自动根据 Content-Type 解析文本或 JSON
     const readme = response.data;
     
     if (!readme || typeof readme !== 'string' || readme.length === 0) {
-      console.warn('[Skill Manager] README 内容为空');
-      return [];
+      const errorMsg = 'README 内容为空';
+      console.warn(`[Skill Manager] ${errorMsg}`);
+      throw new Error(errorMsg);
     }
     
     console.info(`[Skill Manager] README 大小: ${readme.length} 字符`);
@@ -136,8 +98,9 @@ async function searchInAwesomeSkills(query: string): Promise<SkillSearchResult[]
     console.info(`[Skill Manager] 解析到 ${allSkills.length} 个 Skills`);
     
     if (allSkills.length === 0) {
-      console.warn('[Skill Manager] 未找到任何 Skills，可能 README 格式已变化');
-      return [];
+      const errorMsg = '未找到任何 Skills，可能 README 格式已变化';
+      console.warn(`[Skill Manager] ${errorMsg}`);
+      throw new Error(errorMsg);
     }
     
     // 3. 使用 AI 进行语义搜索
@@ -154,7 +117,10 @@ async function searchInAwesomeSkills(query: string): Promise<SkillSearchResult[]
       console.error(`[Skill Manager] 错误详情: ${error.message}`);
       console.error(`[Skill Manager] 错误堆栈:`, error.stack);
     }
-    return [];
+    // 🔥 添加日志确认抛出错误
+    console.error('[Skill Manager] ⚠️ 抛出错误到上层函数');
+    // 抛出错误而不是返回空数组，让上层函数处理
+    throw error;
   }
 }
 
