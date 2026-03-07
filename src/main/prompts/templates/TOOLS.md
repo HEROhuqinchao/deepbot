@@ -52,11 +52,9 @@ conda --version
 ```bash
 # 创建新环境并安装 Python 3.12
 conda create -n deepbot python=3.12
-conda create -n other python=3.12
 
 # 激活环境
 conda activate deepbot
-conda activate other
 
 # 验证
 python --version
@@ -134,24 +132,7 @@ export NVM_DIR="$HOME/.nvm"
 - 查看当前使用的 Node.js：`which node`（macOS/Linux）或 `where node`（Windows）
 - 切换版本：`nvm use <version>`
 
-#### 3. 快速安装（不使用版本管理器）
 
-如果不需要版本管理，可以直接安装：
-
-**Python**:
-```bash
-# macOS
-brew install python3
-
-# Ubuntu/Debian
-sudo apt-get install python3
-
-# Windows
-# 下载安装程序：https://www.python.org/downloads/
-```
-
-**Node.js**:
-```bash
 # macOS
 brew install node
 
@@ -163,14 +144,13 @@ sudo apt-get install -y nodejs
 # 使用 Chocolatey: choco install nodejs
 # 或使用 Winget: winget install OpenJS.NodeJS
 # 或下载安装程序：https://nodejs.org/
-```
-
-#### 4. 环境检查
+``
+#### 3. 环境检查
 
 安装完成后，在 DeepBot 中执行环境检查：
 1. 打开「系统配置」→「环境配置」
 2. 点击「检查环境」按钮
-3. 确认 Python、Conda、Node.js 都已正确安装
+3. 确认 Python、Conda 都已正确安装
 
 ---
 
@@ -946,10 +926,44 @@ google-chrome --remote-debugging-port=9222
 1. 禁止执行危险命令
 2. 使用工作区配置的目录
 3. 常规命令优先
+4. **Python 执行优先级**：Conda 环境 > 系统 Python
+
+### Python 执行规则（重要）
+
+**执行优先级**：
+1. **优先使用 Conda 环境**：如果检测到 conda 已安装，优先在 `deepbot` 环境中执行
+2. **降级到系统 Python**：如果 conda 未安装或 `deepbot` 环境不存在，使用系统 Python
+
+**检测 Conda 环境**：
+```bash
+# 检查 conda 是否安装
+conda --version
+
+# 检查 deepbot 环境是否存在
+conda env list | grep deepbot
+```
+
+**执行 Python 脚本的标准流程**：
+```bash
+# 1. 优先：在 Conda deepbot 环境中执行（推荐）
+conda run -n deepbot python script.py
+
+# 2. 降级：使用系统 Python（仅当 conda 不可用时）
+python3 script.py
+```
+
+**安装 Python 包的标准流程**：
+```bash
+# 1. 优先：在 Conda deepbot 环境中安装（推荐）
+conda run -n deepbot pip install package-name
+
+# 2. 降级：使用系统 pip（仅当 conda 不可用时）
+pip3 install package-name
+```
 
 ### 使用场景
 - ✅ 执行系统命令（ls, cat, mkdir, cp, mv）
-- ✅ 运行 Python/Node.js 脚本
+- ✅ 运行 Python/Node.js 脚本（优先使用 Conda 环境）
 - ✅ 文件操作（复制、移动、删除）
 - ✅ 查看系统信息（df, ps, top）
 - ❌ 不要执行危险命令（rm -rf /, mkfs, shutdown）
@@ -957,14 +971,38 @@ google-chrome --remote-debugging-port=9222
 
 ### 示例
 
-**在 Conda 环境中执行 Python 脚本**：
+**执行 Python 脚本（推荐方式）**：
 ```bash
+# 优先：在 Conda deepbot 环境中执行
 conda run -n deepbot python script.py
+
+# 降级：使用系统 Python（仅当 conda 不可用时）
+python3 script.py
+```
+
+**安装 Python 包（推荐方式）**：
+```bash
+# 优先：在 Conda deepbot 环境中安装
+conda run -n deepbot pip install requests
+
+# 降级：使用系统 pip（仅当 conda 不可用时）
+pip3 install requests
+```
+
+**执行 Node.js 脚本**：
+```bash
+node script.js
 ```
 
 ### 安全规则
 - ❌ 禁止：`rm -rf /`、`mkfs`、`shutdown`
 - ✅ 允许：`ls`、`cat`、`python3`、`cp`、`mkdir`
+
+
+**如果用户未安装 Conda**：
+- 引导用户查看「环境配置建议」章节
+- 提供 Miniconda 安装命令
+- 说明如何创建 `deepbot` 环境
 
 ---
 
