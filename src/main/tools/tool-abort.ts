@@ -212,6 +212,15 @@ export class OperationTracker {
    * 生成操作的唯一键
    */
   private generateKey(tool: string, params: any): string {
+    // 🔥 浏览器工具特殊处理：允许重复执行
+    // 浏览器操作（snapshot、click、scroll 等）通常需要多次执行
+    if (tool === 'browser') {
+      // 对于浏览器工具，使用 action + 时间戳，确保每次都是唯一的
+      // 这样就不会被认为是重复操作
+      const action = params?.action || 'unknown';
+      return `browser:${action}:${Date.now()}`;
+    }
+    
     // 对于 read 工具，只关心路径
     if (tool === 'read' && params?.path) {
       return `read:${params.path}`;

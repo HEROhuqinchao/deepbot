@@ -205,8 +205,8 @@ export const browserToolPlugin: ToolPlugin = {
 2. { action: "open", url: "..." } - 在新标签页中打开网址
 
 📋 Snapshot 模式：
-• interactive: false - 获取页面完整文本内容（阅读模式）
-• interactive: true - 获取可交互元素列表（操作模式，默认）
+• 强制使用 interactive: false - 获取页面完整文本内容和可交互元素
+• 原因：很多可交互元素在 interactive: true 模式下不显示
 
 详细使用说明请参考 TOOLS.md`,
         parameters: BrowserToolSchema,
@@ -320,7 +320,7 @@ export const browserToolPlugin: ToolPlugin = {
                 
                 await wrapper.open(params.url);
                 
-                const text = `✅ 已打开网页: ${params.url}\n\n⚠️ 重要：页面已打开但内容尚未获取。\n\n💡 推荐下一步：\n1. 先用 { action: "snapshot", interactive: false } 查看页面完整文本内容\n2. 如需操作页面，再用 { action: "snapshot", interactive: true } 获取可交互元素`;
+                const text = `✅ 已打开网页: ${params.url}\n\n⚠️ 重要：页面已打开但内容尚未获取。\n\n💡 推荐下一步：使用 { action: "snapshot" } 查看页面内容`;
                 
                 return {
                   content: [{
@@ -336,11 +336,12 @@ export const browserToolPlugin: ToolPlugin = {
               }
               
               case 'snapshot': {
-                const interactive = params.interactive !== false; // 默认 true
+                // 🔥 强制使用 interactive: false，因为很多可交互元素在 true 模式不显示
+                const interactive = false;
                 const result = await wrapper.snapshot(interactive);
                 
                 // 格式化输出
-                let text = `📸 页面快照${interactive ? '（操作模式）' : '（阅读模式）'}\n\n`;
+                let text = `📸 页面快照（阅读模式）\n\n`;
                 
                 if (result.title) {
                   text += `📄 标题: ${result.title}\n`;
@@ -350,67 +351,60 @@ export const browserToolPlugin: ToolPlugin = {
                   text += `🔗 URL: ${result.url}\n`;
                 }
                 
-                if (interactive) {
-                  // 显示可交互元素
-                  if (result.elements && result.elements.length > 0) {
-                    text += `\n🎯 可交互元素 (共 ${result.elements.length} 个):\n\n`;
+                // 显示完整文本内容
+                if (result.raw) {
+                  // 移除标题和 URL 行，只保留内容
+                  const lines = result.raw.split('\n');
+                  const contentLines: string[] = [];
+                  let skipNext = false;
+                  
+                  for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
                     
-                    result.elements.forEach((el) => {
-                      text += `  ${el.ref} - ${el.role}`;
-                      if (el.name) {
-                        text += ` "${el.name}"`;
-                      }
-                      if (el.value) {
-                        text += ` [值: ${el.value}]`;
-                      }
-                      text += '\n';
-                    });
+                    // 跳过标题行（✓ 开头）
+                    if (line.match(/^✓\s+/)) {
+                      skipNext = true;
+                      continue;
+                    }
                     
-                    text += `\n💡 操作提示：使用 @ref 进行操作，例如：\n   { action: "click", ref: "${result.elements[0].ref}" }`;
-                    text += `\n\n💡 如需查看页面文字内容（价格、描述等），使用：\n   { action: "snapshot", interactive: false }`;
-                  } else {
-                    text += `\n⚠️ 未找到可交互元素\n\n💡 可能原因：\n   • 页面仍在加载中（尝试 wait 操作等待）\n   • 页面内容为纯静态展示\n   • 需要滚动才能看到更多元素\n\n💡 建议：使用 { action: "snapshot", interactive: false } 查看页面完整文本内容`;
-                  }
-                } else {
-                  // 显示完整文本内容
-                  if (result.raw) {
-                    // 移除标题和 URL 行，只保留内容
-                    const lines = result.raw.split('\n');
-                    const contentLines: string[] = [];
-                    let skipNext = false;
-                    
-                    for (let i = 0; i < lines.length; i++) {
-                      const line = lines[i];
-                      
-                      // 跳过标题行（✓ 开头）
-                      if (line.match(/^✓\s+/)) {
-                        skipNext = true;
-                        continue;
-                      }
-                      
-                      // 跳过 URL 行（紧跟标题的缩进行）
-                      if (skipNext && line.match(/^\s+https?:\/\//)) {
-                        skipNext = false;
-                        continue;
-                      }
-                      
+                    // 跳过 URL 行（紧跟标题的缩进行）
+                    if (skipNext && line.match(/^\s+https?:\/\//)) {
                       skipNext = false;
-                      
-                      // 跳过空行（开头的）
-                      if (contentLines.length === 0 && line.trim() === '') {
-                        continue;
-                      }
-                      
-                      contentLines.push(line);
+                      continue;
                     }
                     
-                    const content = contentLines.join('\n').trim();
+                    skipNext = false;
                     
-                    if (content) {
-                      text += `\n📝 页面文本内容:\n\n${content}\n\n💡 如需与页面交互（点击按钮等），使用：\n   { action: "snapshot", interactive: true }`;
-                    } else {
-                      text += `\n⚠️ 页面内容为空或仍在加载中\n💡 建议：等待几秒后重试，或使用 wait 操作`;
+                    // 跳过空行（开头的）
+                    if (contentLines.length === 0 && line.trim() === '') {
+                      continue;
                     }
+                    
+                    contentLines.push(line);
+                  }
+                    
+                  const content = contentLines.join('\n').trim();
+                  
+                  if (content) {
+                    text += `\n📝 页面文本内容:\n\n${content}`;
+                    
+                    // 如果有可交互元素，也显示出来
+                    if (result.elements && result.elements.length > 0) {
+                      text += `\n\n🎯 可交互元素 (共 ${result.elements.length} 个):\n\n`;
+                      result.elements.forEach((el) => {
+                        text += `  ${el.ref} - ${el.role}`;
+                        if (el.name) {
+                          text += ` "${el.name}"`;
+                        }
+                        if (el.value) {
+                          text += ` [值: ${el.value}]`;
+                        }
+                        text += '\n';
+                      });
+                      text += `\n💡 操作提示：使用 @ref 进行操作，例如：\n   { action: "click", ref: "${result.elements[0].ref}" }`;
+                    }
+                  } else {
+                    text += `\n⚠️ 页面内容为空或仍在加载中\n💡 建议：等待几秒后重试，或使用 wait 操作`;
                   }
                 }
                 
