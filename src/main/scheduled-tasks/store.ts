@@ -32,6 +32,33 @@ export class TaskStore {
     const dir = join(homedir(), '.deepbot');
     ensureDirectoryExists(dir);
 
+    // 🔥 检查并清理孤立的 WAL 锁文件
+    // 如果主数据库文件不存在，但 WAL 锁文件存在，则删除锁文件
+    if (!existsSync(path)) {
+      const shmPath = `${path}-shm`;
+      const walPath = `${path}-wal`;
+      
+      if (existsSync(shmPath)) {
+        console.warn('[TaskStore] 检测到孤立的 -shm 文件，正在清理...');
+        try {
+          require('node:fs').unlinkSync(shmPath);
+          console.info('[TaskStore] ✅ 已清理 -shm 文件');
+        } catch (error) {
+          console.error('[TaskStore] ❌ 清理 -shm 文件失败:', error);
+        }
+      }
+      
+      if (existsSync(walPath)) {
+        console.warn('[TaskStore] 检测到孤立的 -wal 文件，正在清理...');
+        try {
+          require('node:fs').unlinkSync(walPath);
+          console.info('[TaskStore] ✅ 已清理 -wal 文件');
+        } catch (error) {
+          console.error('[TaskStore] ❌ 清理 -wal 文件失败:', error);
+        }
+      }
+    }
+
     // 打开数据库
     this.db = new Database(path);
     this.db.pragma('journal_mode = WAL');

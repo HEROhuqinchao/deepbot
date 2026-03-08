@@ -69,6 +69,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     
     loadTabAgentName();
     
+    // 🔥 切换 Tab 时，根据 Tab 类型重置初始化状态
+    const currentTabId = activeTabId || 'default';
+    if (currentTabId === 'default') {
+      // default Tab：如果没有消息，显示初始化状态
+      setIsInitializing(messages.length === 0);
+    } else {
+      // 其他 Tab：不显示初始化状态
+      setIsInitializing(false);
+    }
+    
     // 🔥 切换 Tab 后聚焦到输入框
     if (messageInputRef.current) {
       messageInputRef.current.focus();
@@ -117,12 +127,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     return cleanup;
   }, [activeTabId]);
 
-  // 监听消息变化，收到第一条消息时关闭初始化状态
+  // 🔥 监听消息变化，动态控制初始化状态
   useEffect(() => {
-    if (messages.length > 0 && isInitializing) {
-      setIsInitializing(false);
+    if (messages.length > 0) {
+      // 收到消息时，关闭初始化状态
+      if (isInitializing) {
+        setIsInitializing(false);
+      }
     }
   }, [messages.length, isInitializing]);
+  
+  // 🔥 监听 Tab 消息清除事件，重新显示初始化状态（仅 default Tab）
+  useEffect(() => {
+    const handleMessagesCleared = (data: { tabId: string }) => {
+      const currentTabId = activeTabId || 'default';
+      // 只在 default Tab 被清除时，重新显示初始化状态
+      if (data.tabId === currentTabId && currentTabId === 'default') {
+        console.log('[ChatWindow] 消息已清除，重新显示初始化状态');
+        setIsInitializing(true);
+      }
+    };
+    
+    const cleanup = window.deepbot.onTabMessagesCleared(handleMessagesCleared);
+    return cleanup;
+  }, [activeTabId]);
 
   // 🔥 检测用户手动滚动
   useEffect(() => {

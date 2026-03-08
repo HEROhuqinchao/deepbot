@@ -195,7 +195,9 @@ export async function callAI(
   try {
     config = getConfig();
   } catch (error) {
-    throw new Error('模型未配置，请在系统设置中配置 AI 模型后再使用');
+    const errorMsg = '模型未配置，请在系统设置中配置 AI 模型后再使用';
+    console.error('[AI Client] ❌', errorMsg);
+    throw new Error(errorMsg);
   }
   
   const {
@@ -371,8 +373,9 @@ export async function warmupAIConnection(): Promise<boolean> {
     
     return true;
   } catch (error) {
-    console.warn('[AI Client] ⚠️ AI 连接预热失败:', error);
-    // 预热失败不影响后续使用
+    // 预热失败不影响后续使用，只记录警告
+    const errorMsg = error instanceof Error ? error.message : '未知错误';
+    console.warn('[AI Client] ⚠️ AI 连接预热失败:', errorMsg);
     return false;
   }
 }

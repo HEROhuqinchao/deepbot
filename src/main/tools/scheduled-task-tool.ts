@@ -66,14 +66,29 @@ export function setGatewayInstance(gateway: Gateway): void {
   console.info('[Scheduled Task] Gateway 实例已传递给 TaskExecutor');
   
   // 🔥 异步启动调度器（避免阻塞 Gateway 初始化）
-  setTimeout(() => {
+  // 延迟 2 秒，确保其他数据库初始化完成
+  setTimeout(async () => {
     try {
-      const taskScheduler = getScheduler();
-      console.info('[Scheduled Task] 调度器已自动启动');
+      // 🔥 使用 retry 工具重试启动（最多 3 次）
+      const { retry } = await import('../../shared/utils/async-utils');
+      await retry(
+        async () => {
+          const taskScheduler = getScheduler();
+          console.info('[Scheduled Task] ✅ 调度器已自动启动');
+        },
+        {
+          maxRetries: 3,
+          delay: 1000,
+          onRetry: (attempt, error) => {
+            console.warn(`[Scheduled Task] ⚠️ 启动调度器失败 (尝试 ${attempt}/3):`, error instanceof Error ? error.message : error);
+          }
+        }
+      );
     } catch (error) {
-      console.error('[Scheduled Task] ❌ 启动调度器失败:', error);
+      // 🔥 最终失败后静默处理，不影响用户使用
+      console.error('[Scheduled Task] ❌ 调度器启动失败（已达最大重试次数），定时任务功能将不可用');
     }
-  }, 1000);
+  }, 2000);
 }
 
 /**
