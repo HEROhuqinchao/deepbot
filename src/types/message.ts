@@ -48,6 +48,8 @@ export interface Message {
   executionSteps?: ExecutionStep[];
   // 上传的图片（用户消息）
   uploadedImages?: UploadedImage[];
+  // 总执行时间（毫秒）- Agent 消息专用
+  totalDuration?: number;
 }
 
 export interface ChatSession {

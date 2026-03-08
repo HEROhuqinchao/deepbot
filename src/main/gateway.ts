@@ -776,6 +776,7 @@ export class Gateway {
   private async sendAIResponse(runtime: AgentRuntime, userMessage: string, sessionId: string): Promise<void> {
     const messageId = generateMessageId();
     let fullResponse = ''; // 收集完整响应
+    const startTime = Date.now(); // 🔥 记录开始时间
 
     try {
       // 🔥 过滤掉系统指令和系统提示（用于保存到历史记录）
@@ -828,9 +829,11 @@ export class Gateway {
         console.log('[Gateway] ✅ Agent 已完全空闲');
       }
 
-      // 发送完成信号（包含最终的执行步骤）
+      // 发送完成信号（包含最终的执行步骤和总执行时间）
       const finalSteps = runtime.getExecutionSteps();
-      this.sendStreamChunk(messageId, '', true, false, undefined, finalSteps, sessionId);
+      const totalDuration = Date.now() - startTime; // 🔥 计算总执行时间
+      console.log(`[Gateway] ⏱️ Agent 总执行时间: ${(totalDuration / 1000).toFixed(2)} 秒`);
+      this.sendStreamChunk(messageId, '', true, false, undefined, finalSteps, sessionId, totalDuration);
       
       // 🔥 保存 AI 响应到 session
       // 注意：即使是欢迎消息模式（skipHistory=true），AI 的响应也要保存
@@ -869,6 +872,7 @@ export class Gateway {
    * @param subAgentTask - Sub Agent 任务描述（可选）
    * @param executionSteps - 执行步骤（可选）
    * @param sessionId - 会话 ID（可选）
+   * @param totalDuration - 总执行时间（毫秒，可选）
    */
   private sendStreamChunk(
     messageId: string,
@@ -877,7 +881,8 @@ export class Gateway {
     isSubAgentResult?: boolean,
     subAgentTask?: string,
     executionSteps?: any[],
-    sessionId?: string
+    sessionId?: string,
+    totalDuration?: number
   ) {
     sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
       messageId,
@@ -887,6 +892,7 @@ export class Gateway {
       subAgentTask,
       executionSteps,
       sessionId, // 添加 sessionId
+      totalDuration, // 🔥 添加总执行时间
     });
   }
 

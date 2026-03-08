@@ -355,6 +355,7 @@ function App() {
                 ? { 
                     ...msg, 
                     executionSteps: chunk.executionSteps || msg.executionSteps,
+                    totalDuration: chunk.totalDuration, // 🔥 添加总执行时间
                     isStreaming: false 
                   }
                 : msg
@@ -370,6 +371,7 @@ function App() {
                 ? { 
                     ...msg, 
                     executionSteps: chunk.executionSteps || msg.executionSteps,
+                    totalDuration: chunk.totalDuration, // 🔥 添加总执行时间
                     isStreaming: false 
                   }
                 : msg

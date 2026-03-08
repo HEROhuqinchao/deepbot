@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { Message } from '../../types/message';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { formatDuration } from '../../shared/utils/time-format';
 
 interface MessageBubbleProps {
   message: Message;
@@ -450,6 +451,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
               </div>
             );
           })}
+        </div>
+      )}
+      
+      {/* 🔥 总执行时间 - 只在 Agent 消息且有执行时间时显示 */}
+      {!isUser && !isSystem && message.totalDuration !== undefined && (
+        <div className="terminal-execution-time">
+          <span className="terminal-execution-time-label">执行时间:</span>
+          <span className="terminal-execution-time-value">
+            {formatDuration(message.totalDuration)}
+          </span>
         </div>
       )}
     </div>

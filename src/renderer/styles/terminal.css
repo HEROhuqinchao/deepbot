@@ -648,6 +648,25 @@
   overflow-y: auto;
 }
 
+/* 🔥 总执行时间显示 */
+.terminal-execution-time {
+  margin-top: 8px;
+  padding-left: 20px;
+  font-size: 12px;
+  color: var(--terminal-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.terminal-execution-time-label {
+  opacity: 0.7;
+}
+
+.terminal-execution-time-value {
+  color: var(--terminal-success);
+  font-weight: bold;
+}
 /* 空状态 */
 .terminal-empty {
   display: flex;
