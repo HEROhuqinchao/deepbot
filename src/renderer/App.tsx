@@ -585,6 +585,11 @@ function App() {
 
   // 发送消息
   const handleSendMessage = async (content: string, images?: import('../types/message').UploadedImage[]) => {
+    // 🔥 调试日志：检查图片参数
+    console.log('[App] handleSendMessage 调用');
+    console.log('[App] content:', content);
+    console.log('[App] images:', images);
+    
     // 检查是否已配置模型
     if (!hasModelConfig) {
       const errorMessage: Message = {
@@ -598,11 +603,15 @@ function App() {
       return;
     }
 
-    // 如果有上传的图片，将图片路径添加到消息内容中
+    // 🔥 如果有上传的图片，将图片路径按上传顺序插入到消息开头
     let messageContent = content;
     if (images && images.length > 0) {
-      const imagePaths = images.map(img => img.path).join('\n');
-      messageContent = `${content}\n\n[参考图片路径]:\n${imagePaths}`;
+      console.log('[App] 🖼️ 检测到上传的图片:', images.length, '张');
+      const imagePaths = images.map((img, index) => `[参考图${index + 1}]: ${img.path}`).join('\n');
+      messageContent = `${imagePaths}\n\n${content}`;
+      console.log('[App] 📝 完整消息内容:\n', messageContent);
+    } else {
+      console.log('[App] ⚠️ 没有检测到上传的图片');
     }
 
     // 添加用户消息（显示原始内容和图片）

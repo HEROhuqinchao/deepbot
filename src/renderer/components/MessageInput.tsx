@@ -75,6 +75,12 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   const handleSend = () => {
     const trimmedContent = content.trim();
     if (trimmedContent && !disabled) {
+      // 🔥 调试日志
+      console.log('[MessageInput] handleSend 调用');
+      console.log('[MessageInput] content:', trimmedContent);
+      console.log('[MessageInput] uploadedImages:', uploadedImages);
+      console.log('[MessageInput] uploadedImages.length:', uploadedImages.length);
+      
       // 🔥 保存到历史记录（避免重复）
       setHistory(prev => {
         const newHistory = prev.filter(item => item !== trimmedContent);

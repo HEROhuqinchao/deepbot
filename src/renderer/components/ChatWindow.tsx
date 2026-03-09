@@ -10,7 +10,7 @@ import type { AgentTab } from '../../types/agent-tab';
 
 interface ChatWindowProps {
   messages: Message[];
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, images?: import('../../types/message').UploadedImage[]) => void;
   onStopGeneration: () => void;
   isLoading?: boolean;
   onOpenSkillManager?: () => void;
@@ -199,9 +199,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   }, [messages, autoScroll]);
 
   // 🔥 发送消息时恢复自动滚动
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = (content: string, images?: import('../../types/message').UploadedImage[]) => {
     setAutoScroll(true);
-    onSendMessage(content);
+    onSendMessage(content, images);
   };
 
   return (
