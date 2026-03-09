@@ -158,30 +158,43 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     const container = messagesContainerRef.current;
     if (!container) return;
 
+    let scrollEndTimer: NodeJS.Timeout | null = null;
+
     const handleScroll = () => {
-      // 如果是程序滚动，忽略此事件
-      if (programScrollingRef.current) {
-        return;
+      // 🔥 清除之前的定时器
+      if (scrollEndTimer) {
+        clearTimeout(scrollEndTimer);
       }
 
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10; // 10px 容差
+      // 🔥 延迟检测，等待滚动完全停止后再判断
+      scrollEndTimer = setTimeout(() => {
+        // 如果是程序滚动，忽略此事件
+        if (programScrollingRef.current) {
+          return;
+        }
 
-      // 用户滚动到底部，恢复自动滚动
-      if (isAtBottom && !autoScroll) {
-        console.log('[ChatWindow] 用户滚动到底部，恢复自动滚动');
-        setAutoScroll(true);
-      }
-      // 用户向上滚动（离开底部），暂停自动滚动
-      else if (!isAtBottom && autoScroll) {
-        console.log('[ChatWindow] 用户向上滚动，暂停自动滚动');
-        setAutoScroll(false);
-      }
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10; // 10px 容差
+
+        // 用户滚动到底部，恢复自动滚动
+        if (isAtBottom && !autoScroll) {
+          console.log('[ChatWindow] 用户滚动到底部，恢复自动滚动');
+          setAutoScroll(true);
+        }
+        // 用户向上滚动（离开底部），暂停自动滚动
+        else if (!isAtBottom && autoScroll) {
+          console.log('[ChatWindow] 用户向上滚动，暂停自动滚动');
+          setAutoScroll(false);
+        }
+      }, 150); // 延迟 150ms，等待滚动完全停止
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       container.removeEventListener('scroll', handleScroll);
+      if (scrollEndTimer) {
+        clearTimeout(scrollEndTimer);
+      }
     };
   }, [autoScroll]);
 
@@ -196,10 +209,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         programScrollingRef.current = true; // 标记为程序滚动
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         
-        // 滚动完成后重置标记
+        // 🔥 滚动完成后重置标记（增加延迟确保所有 scroll 事件都被忽略）
         setTimeout(() => {
           programScrollingRef.current = false;
-        }, 500); // smooth 滚动大约需要 300-500ms
+        }, 800); // 增加到 800ms，确保 smooth 滚动完全完成
       }
     };
 

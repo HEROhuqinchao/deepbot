@@ -5,6 +5,7 @@
  * - 创建 Electron 窗口
  * - 初始化 Gateway
  * - 管理应用生命周期
+ * - 系统托盘管理
  */
 
 // Polyfill for undici in Electron main process
@@ -19,7 +20,7 @@ if (typeof globalThis.File === 'undefined') {
   };
 }
 
-import { app, BrowserWindow, ipcMain, Menu, MenuItem, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, MenuItem, dialog, Tray, nativeImage } from 'electron';
 import path from 'path';
 import { Gateway } from './gateway';
 import { IPC_CHANNELS } from '../types/ipc';
@@ -34,6 +35,75 @@ import { SystemConfigStore } from './database/system-config-store';
 
 let mainWindow: BrowserWindow | null = null;
 let gateway: Gateway | null = null;
+let tray: Tray | null = null; // 🔥 系统托盘
+let isQuitting = false; // 🔥 是否正在退出（用于区分关闭窗口和退出应用）
+
+/**
+ * 创建系统托盘
+ */
+function createTray() {
+  // 🔥 加载托盘图标
+  const iconPath = process.env.VITE_DEV_SERVER_URL
+    ? path.join(__dirname, '../../src/renderer/assets/s-logo.png')
+    : path.join(process.resourcesPath, 'app.asar/dist-electron/../src/renderer/assets/s-logo.png');
+  
+  console.log('[Tray] 托盘图标路径:', iconPath);
+  
+  // 🔥 创建托盘图标（macOS 需要调整大小）
+  const icon = nativeImage.createFromPath(iconPath);
+  if (process.platform === 'darwin') {
+    // macOS 托盘图标建议 16x16 或 32x32
+    icon.setTemplateImage(true); // 使用模板图像（自动适配深色/浅色模式）
+  }
+  
+  tray = new Tray(icon);
+  
+  // 🔥 设置托盘提示文字
+  tray.setToolTip('DeepBot Terminal');
+  
+  // 🔥 创建托盘菜单
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '显示窗口',
+      click: () => {
+        if (mainWindow) {
+          if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+          }
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    {
+      type: 'separator',
+    },
+    {
+      label: '退出',
+      click: () => {
+        // 🔥 设置标志，允许真正退出
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+  
+  tray.setContextMenu(contextMenu);
+  
+  // 🔥 点击托盘图标显示窗口（Windows 和 Linux）
+  tray.on('click', () => {
+    if (mainWindow) {
+      if (mainWindow.isVisible()) {
+        mainWindow.hide();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }
+  });
+  
+  console.log('[Tray] ✅ 系统托盘已创建');
+}
 
 /**
  * 创建主窗口
@@ -85,6 +155,23 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+  
+  // 🔥 拦截窗口关闭事件，最小化到托盘而不是退出
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow?.hide();
+      
+      // 🔥 macOS 和 Windows 显示不同的提示
+      if (process.platform === 'darwin') {
+        console.log('[Main] 窗口已隐藏到 Dock');
+      } else {
+        console.log('[Main] 窗口已最小化到系统托盘');
+      }
+      
+      return false;
+    }
   });
 
   // 添加右键菜单支持
@@ -953,12 +1040,18 @@ app.whenReady().then(() => {
   const { registerConnectorHandlers, setGatewayForConnectorHandler } = require('./ipc/connector-handler');
   registerConnectorHandlers();
   
+  // 🔥 创建系统托盘
+  createTray();
+  
   // 创建窗口
   createWindow();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
+    } else if (mainWindow) {
+      // 🔥 macOS 点击 Dock 图标时显示窗口
+      mainWindow.show();
     }
   });
 });
@@ -967,8 +1060,13 @@ app.whenReady().then(() => {
  * 所有窗口关闭
  */
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  // 🔥 macOS 和 Windows/Linux 不同的行为
+  if (process.platform === 'darwin') {
+    // macOS: 窗口关闭后不退出应用，保持在 Dock
+    console.log('[Main] 所有窗口已关闭，应用继续运行（macOS）');
+  } else {
+    // Windows/Linux: 窗口关闭后继续在托盘运行
+    console.log('[Main] 所有窗口已关闭，应用继续在托盘运行');
   }
 });
 
@@ -978,6 +1076,9 @@ app.on('window-all-closed', () => {
 app.on('before-quit', async () => {
   console.log('DeepBot 正在退出...');
   
+  // 🔥 设置退出标志
+  isQuitting = true;
+  
   // 清理非持久化的 Tab 配置
   try {
     const { SystemConfigStore } = await import('./database/system-config-store');
@@ -986,6 +1087,13 @@ app.on('before-quit', async () => {
     console.log('[Main] ✅ 已清理非持久化 Tab 配置');
   } catch (error) {
     console.error('[Main] ❌ 清理非持久化 Tab 配置失败:', error);
+  }
+  
+  // 🔥 销毁托盘
+  if (tray) {
+    tray.destroy();
+    tray = null;
+    console.log('[Main] ✅ 系统托盘已销毁');
   }
   
   gateway = null;
