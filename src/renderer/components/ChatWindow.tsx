@@ -47,7 +47,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [userName, setUserName] = useState('user');
   const [isInitializing, setIsInitializing] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true); // 🔥 是否自动滚动
-  const isUserScrollingRef = useRef(false); // 🔥 用户是否正在手动滚动
+  const programScrollingRef = useRef(false); // 🔥 程序是否正在滚动（避免误判）
+  const lastScrollHeightRef = useRef(0); // 🔥 记录上次滚动高度
   
   // 🔥 获取当前 Tab 类型
   const currentTab = tabs?.find(t => t.id === activeTabId);
@@ -152,51 +153,80 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     return cleanup;
   }, [activeTabId]);
 
-  // 🔥 检测用户手动滚动
+  // 🔥 检测用户手动滚动 - 重新设计的逻辑
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    let lastScrollTop = container.scrollTop;
-
     const handleScroll = () => {
-      const currentScrollTop = container.scrollTop;
-      
-      // 🔥 只有当 scrollTop 发生变化，且不是程序滚动时，才认为是用户手动滚动
-      if (currentScrollTop !== lastScrollTop && !isUserScrollingRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10; // 10px 容差
-
-        // 如果用户滚动到底部，恢复自动滚动
-        if (isAtBottom && !autoScroll) {
-          console.log('[ChatWindow] 用户滚动到底部，恢复自动滚动');
-          setAutoScroll(true);
-        }
-        // 如果用户向上滚动（离开底部），暂停自动滚动
-        else if (!isAtBottom && autoScroll) {
-          console.log('[ChatWindow] 用户向上滚动，暂停自动滚动');
-          setAutoScroll(false);
-        }
+      // 如果是程序滚动，忽略此事件
+      if (programScrollingRef.current) {
+        return;
       }
-      
-      lastScrollTop = currentScrollTop;
+
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10; // 10px 容差
+
+      // 用户滚动到底部，恢复自动滚动
+      if (isAtBottom && !autoScroll) {
+        console.log('[ChatWindow] 用户滚动到底部，恢复自动滚动');
+        setAutoScroll(true);
+      }
+      // 用户向上滚动（离开底部），暂停自动滚动
+      else if (!isAtBottom && autoScroll) {
+        console.log('[ChatWindow] 用户向上滚动，暂停自动滚动');
+        setAutoScroll(false);
+      }
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
   }, [autoScroll]);
 
-  // 🔥 自动滚动到底部 - 只在 autoScroll 为 true 时执行
+  // 🔥 自动滚动到底部 - 使用 MutationObserver 监听 DOM 变化
   useEffect(() => {
-    if (autoScroll && messagesEndRef.current) {
-      isUserScrollingRef.current = true; // 标记为程序滚动
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-      // 滚动完成后重置标记
-      setTimeout(() => {
-        isUserScrollingRef.current = false;
-      }, 500); // smooth 滚动大约需要 500ms
-    }
-  }, [messages, autoScroll]);
+    const container = messagesContainerRef.current;
+    if (!container || !autoScroll) return;
+
+    // 滚动到底部的函数
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        programScrollingRef.current = true; // 标记为程序滚动
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        
+        // 滚动完成后重置标记
+        setTimeout(() => {
+          programScrollingRef.current = false;
+        }, 500); // smooth 滚动大约需要 300-500ms
+      }
+    };
+
+    // 立即滚动一次
+    scrollToBottom();
+
+    // 监听 DOM 变化（消息添加、内容更新）
+    const observer = new MutationObserver(() => {
+      const { scrollHeight } = container;
+      
+      // 只有当内容高度真正变化时才滚动（避免重复滚动）
+      if (scrollHeight !== lastScrollHeightRef.current) {
+        lastScrollHeightRef.current = scrollHeight;
+        scrollToBottom();
+      }
+    });
+
+    observer.observe(container, {
+      childList: true, // 监听子节点变化
+      subtree: true, // 监听所有后代节点
+      characterData: true, // 监听文本内容变化
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [autoScroll]); // 只依赖 autoScroll，不依赖 messages
 
   // 🔥 发送消息时恢复自动滚动
   const handleSendMessage = (content: string, images?: import('../../types/message').UploadedImage[]) => {
