@@ -564,11 +564,6 @@ function App() {
 
   // 发送消息
   const handleSendMessage = async (content: string, images?: import('../types/message').UploadedImage[]) => {
-    // 🔥 调试日志：检查图片参数
-    console.log('[App] handleSendMessage 调用');
-    console.log('[App] content:', content);
-    console.log('[App] images:', images);
-    
     // 检查是否已配置模型
     if (!hasModelConfig) {
       const errorMessage: Message = {

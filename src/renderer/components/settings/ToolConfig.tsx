@@ -5,6 +5,10 @@
  */
 
 import React, { useState } from 'react';
+import { 
+  DEFAULT_IMAGE_GENERATION_CONFIG,
+  IMAGE_GENERATION_PROVIDER_PRESETS 
+} from '../../../shared/config/default-configs';
 import { WebSearchToolConfig } from './WebSearchToolConfig';
 import { BrowserToolConfig } from './BrowserToolConfig';
 
@@ -13,6 +17,7 @@ interface ToolConfigProps {
 }
 
 interface ImageGenerationConfig {
+  provider: 'gemini' | 'custom';
   model: string;
   apiUrl: string;
   apiKey: string;
@@ -21,9 +26,10 @@ interface ImageGenerationConfig {
 export function ToolConfig({ onClose }: ToolConfigProps) {
   const [activeTab, setActiveTab] = useState<'image' | 'websearch' | 'email' | 'browser'>('image');
   const [imageGenConfig, setImageGenConfig] = useState<ImageGenerationConfig>({
-    model: 'gemini-3-pro-image-preview',
-    apiUrl: 'https://www.im-director.com/api/gemini-proxy',
-    apiKey: '',
+    provider: DEFAULT_IMAGE_GENERATION_CONFIG.provider,
+    model: DEFAULT_IMAGE_GENERATION_CONFIG.model,
+    apiUrl: DEFAULT_IMAGE_GENERATION_CONFIG.apiUrl,
+    apiKey: DEFAULT_IMAGE_GENERATION_CONFIG.apiKey,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,7 +49,14 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
       setLoading(true);
       const config = await window.deepbot.getImageGenerationToolConfig();
       if (config) {
-        setImageGenConfig(config);
+        // 兼容旧配置格式，添加默认 provider 字段
+        const configWithProvider = {
+          provider: (config as any).provider || 'gemini' as const,
+          model: config.model,
+          apiUrl: config.apiUrl,
+          apiKey: config.apiKey,
+        };
+        setImageGenConfig(configWithProvider);
       }
     } catch (error) {
       console.error('加载工具配置失败:', error);
@@ -55,6 +68,18 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
+  };
+
+  // 当提供商改变时，更新默认 API 地址和模型
+  const handleImageProviderChange = (newProvider: 'gemini' | 'custom') => {
+    const preset = IMAGE_GENERATION_PROVIDER_PRESETS[newProvider];
+
+    setImageGenConfig({
+      ...imageGenConfig,
+      provider: newProvider,
+      apiUrl: preset.baseUrl,
+      model: preset.defaultModelId,
+    });
   };
 
   const handleSave = async () => {
@@ -148,51 +173,77 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
 
       {/* 图片生成工具配置 */}
       {activeTab === 'image' && (
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            图片生成工具
-          </label>
-          <p className="text-xs text-gray-500 mb-2">
-            配置图片生成工具使用的模型和 API 连接
-          </p>
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-base font-medium text-gray-900 mb-2">图片生成工具配置</h4>
+            <p className="text-sm text-gray-600 mb-4">
+              配置图片生成工具使用的模型和 API 连接
+            </p>
+          </div>
 
-          {/* 模型选择 */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              模型 <span className="text-red-500">*</span>
+          {/* 提供商选择 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              提供商
             </label>
             <select
-              value={imageGenConfig.model}
-              onChange={(e) => setImageGenConfig({ ...imageGenConfig, model: e.target.value })}
+              value={imageGenConfig.provider}
+              onChange={(e) => handleImageProviderChange(e.target.value as 'gemini' | 'custom')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="gemini-3-pro-image-preview">Gemini 3 Pro Image Preview</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="custom">自定义</option>
             </select>
-            <p className="text-xs text-gray-500">
-              选择用于图片生成的模型
+            <p className="mt-1 text-xs text-gray-500">
+              选择预设提供商或自定义配置
             </p>
           </div>
 
           {/* API 地址 */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               API 地址 <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={imageGenConfig.apiUrl}
               onChange={(e) => setImageGenConfig({ ...imageGenConfig, apiUrl: e.target.value })}
-              placeholder="https://www.im-director.com/api/gemini-proxy"
+              placeholder="https://api.example.com/v1"
+              disabled={imageGenConfig.provider !== 'custom'}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              {imageGenConfig.provider === 'custom' 
+                ? '输入兼容 Gemini API 格式的地址' 
+                : '预设提供商的 API 地址（不可修改）'}
+            </p>
+          </div>
+
+          {/* 模型 ID */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              模型 ID <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={imageGenConfig.model}
+              onChange={(e) => setImageGenConfig({ ...imageGenConfig, model: e.target.value })}
+              placeholder={
+                imageGenConfig.provider === 'gemini' 
+                  ? 'gemini-3-pro-image-preview' 
+                  : 'model-id'
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <p className="text-xs text-gray-500">
-              Gemini API 代理地址
+            <p className="mt-1 text-xs text-gray-500">
+              {imageGenConfig.provider === 'gemini' && '默认: gemini-3-pro-image-preview（可选: gemini-2.5-flash 等）'}
+              {imageGenConfig.provider === 'custom' && '输入模型 ID'}
             </p>
           </div>
 
           {/* API Key */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               API Key <span className="text-red-500">*</span>
             </label>
             <input
@@ -202,7 +253,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
               placeholder="输入 API Key"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <p className="text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500">
               用于访问 Gemini API 的密钥
             </p>
           </div>

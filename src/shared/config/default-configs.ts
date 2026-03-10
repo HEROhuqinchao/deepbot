@@ -32,6 +32,22 @@ export const PROVIDER_PRESETS = {
 
 
 /**
+ * 图片生成提供商预设配置
+ */
+export const IMAGE_GENERATION_PROVIDER_PRESETS = {
+  gemini: {
+    name: 'Google Gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    defaultModelId: 'gemini-3-pro-image-preview',
+  },
+  custom: {
+    name: '自定义',
+    baseUrl: '',
+    defaultModelId: '',
+  },
+} as const;
+
+/**
  * Web 搜索提供商预设配置
  */
 export const WEB_SEARCH_PROVIDER_PRESETS = {
@@ -42,7 +58,7 @@ export const WEB_SEARCH_PROVIDER_PRESETS = {
   },
   gemini: {
     name: 'Google Gemini',
-    baseUrl: 'https://www.im-director.com/api/gemini-proxy',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     defaultModelId: 'gemini-3-flash-preview',
   },
   custom: {
@@ -70,8 +86,9 @@ export const DEFAULT_MODEL_CONFIG = {
  * 默认图片生成工具配置
  */
 export const DEFAULT_IMAGE_GENERATION_CONFIG = {
-  model: 'gemini-3-pro-image-preview',
-  apiUrl: 'https://www.im-director.com/api/gemini-proxy',
+  provider: 'gemini' as const,
+  model: IMAGE_GENERATION_PROVIDER_PRESETS.gemini.defaultModelId,
+  apiUrl: IMAGE_GENERATION_PROVIDER_PRESETS.gemini.baseUrl,
   apiKey: '',
 };
 

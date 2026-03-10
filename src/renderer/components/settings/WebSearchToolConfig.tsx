@@ -90,14 +90,6 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           type: 'success', 
           text: '✅ 保存成功！' 
         });
-        
-        // 等待 500ms 让用户看到成功消息
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 关闭设置窗口
-        if (onClose) {
-          onClose();
-        }
       } else {
         setSaveMessage({ type: 'error', text: result.error || '保存失败' });
       }
@@ -237,20 +229,12 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
         </div>
       )}
 
-      {/* 操作按钮 */}
-      <div className="flex justify-end gap-3 pt-4 border-t">
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            取消
-          </button>
-        )}
+      {/* 保存按钮 */}
+      <div className="flex gap-2 pt-4 border-t">
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
         >
           {isSaving ? '保存中...' : '保存配置'}
         </button>

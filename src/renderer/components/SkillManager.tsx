@@ -60,20 +60,15 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
   }, [isOpen, activeTab]);
 
   const loadInstalledSkills = async () => {
-    console.log('[SkillManager] 开始加载已安装 Skill...');
     setIsLoading(true);
     try {
       const result = await (window.deepbot as any).skillManager({
         action: 'list',
       });
       
-      console.log('[SkillManager] 收到结果:', result);
-      
       if (result.success) {
         // 新格式：{ success: true, skills: [...], count: 0, message: "..." }
         const skills = result.skills || [];
-        console.log('[SkillManager] 加载成功，Skill 数量:', skills.length);
-        console.log('[SkillManager] 消息:', result.message);
         setInstalledSkills(skills);
       } else {
         console.error('[SkillManager] 加载失败:', result.error);
@@ -189,13 +184,11 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
 
   // 查看详情
   const handleViewDetails = async (skillName: string, isInstalled: boolean) => {
-    console.log('[SkillManager] 查看详情:', skillName, '已安装:', isInstalled);
     
     // 如果是未安装的 Skill，直接从搜索结果中获取信息
     if (!isInstalled) {
       const skill = availableSkills.find(s => s.name === skillName);
       if (skill) {
-        console.log('[SkillManager] 使用搜索结果:', skill);
         setSelectedSkill(skill);
       } else {
         console.error('[SkillManager] 未找到 Skill:', skillName);
@@ -211,18 +204,14 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
         name: skillName,
       });
       
-      console.log('[SkillManager] 详情结果:', result);
-      
       // info action 返回格式: { success: true, skill: {...} }
       if (result.success && result.skill) {
-        console.log('[SkillManager] 设置 selectedSkill:', result.skill);
         setSelectedSkill(result.skill);
       } else {
         console.error('[SkillManager] 获取详情失败，返回数据格式不正确:', result);
         // 如果获取失败，尝试从已安装列表中获取基本信息
         const skill = installedSkills.find(s => s.name === skillName);
         if (skill) {
-          console.log('[SkillManager] 使用已安装列表中的基本信息');
           setSelectedSkill(skill);
         }
       }

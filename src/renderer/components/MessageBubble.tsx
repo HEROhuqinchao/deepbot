@@ -55,20 +55,17 @@ const ImageLoader: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
   useEffect(() => {
     // 如果已有缓存，直接返回
     if (cachedData) {
-      console.log('[ImageLoader] 📦 从缓存加载:', filePath);
       return;
     }
 
     const loadImage = async () => {
       try {
-        console.log('[ImageLoader] 🔄 首次加载:', filePath);
         
         // 通过 IPC 读取图片
         const result = await window.deepbot.readImage(filePath);
         
         if (result.success && result.data) {
           imageCache.set(filePath, result.data);
-          console.log('[ImageLoader] ✅ 已缓存:', filePath, `(缓存大小: ${imageCache.size})`);
           setImageData(result.data);
         } else {
           setError(result.error || '图片加载失败');

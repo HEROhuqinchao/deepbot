@@ -110,16 +110,8 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
       if (actualResult.success) {
         setSaveMessage({ 
           type: 'success', 
-          text: '✅ 保存成功！正在测试配置...' 
+          text: '✅ 保存成功！配置已生效' 
         });
-        
-        // 等待 500ms 让用户看到成功消息
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 关闭设置窗口
-        if (onClose) {
-          onClose();
-        }
       } else {
         setSaveMessage({ type: 'error', text: actualResult.error || '保存失败' });
       }
