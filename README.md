@@ -2,7 +2,9 @@
 
 <img src="banner.jpg" alt="DeepBot Terminal" width="500"/>
 
-**🤖 通用桌面 AI 助手 | 智能、安全、可扩展**
+<p>
+
+## **智能 | 安全 | 可扩展**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
