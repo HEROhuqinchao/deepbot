@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="banner.png" alt="DeepBot Terminal" width="800"/>
+<img src="banner.jpg" alt="DeepBot Terminal" width="800"/>
 
 **🤖 通用桌面 AI 助手 | 智能、安全、可扩展**
 
