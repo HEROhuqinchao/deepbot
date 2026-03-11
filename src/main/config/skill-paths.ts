@@ -21,7 +21,7 @@ export function getDefaultSkillPath(): string {
     return expandUserPath(settings.defaultSkillDir);
   } catch (error) {
     console.error('[Skill Paths] 读取配置失败，使用默认路径:', error);
-    return expandUserPath('~/.deepbot/skills');
+    return expandUserPath('~/.agents/skills');
   }
 }
 
@@ -36,7 +36,7 @@ export function getAllSkillPaths(): string[] {
     return settings.skillDirs.map(expandUserPath);
   } catch (error) {
     console.error('[Skill Paths] 读取配置失败，使用默认路径:', error);
-    return [expandUserPath('~/.deepbot/skills')];
+    return [expandUserPath('~/.agents/skills')];
   }
 }
 

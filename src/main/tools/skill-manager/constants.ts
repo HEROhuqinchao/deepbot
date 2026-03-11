@@ -13,7 +13,7 @@ export const getSkillsDir = () => getDefaultSkillPath();
 /**
  * Skill 数据库路径
  */
-export const SKILLS_DB_PATH = expandUserPath('~/.deepbot/skills.db');
+export const SKILLS_DB_PATH = expandUserPath('~/.agents/skills.db');
 
 /**
  * GitHub API 基础 URL

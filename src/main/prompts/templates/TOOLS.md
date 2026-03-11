@@ -163,9 +163,9 @@ sudo apt-get install -y nodejs
 ```
 
 **支持的路径格式**：
-- 绝对路径：`![截图](/Users/username/Desktop/screenshot.png)`
+- 绝对路径：`![截图](/path/to/Desktop/screenshot.png)`
 - 用户目录：`![截图](~/Desktop/screenshot.png)`
-- file:// 协议：`![截图](file:///Users/username/Desktop/screenshot.png)`
+- file:// 协议：`![截图](file:///path/to/Desktop/screenshot.png)`
 
 **响应示例**：
 ```
@@ -484,21 +484,21 @@ google-chrome --remote-debugging-port=9222
 {
   "action": "install",
   "name": "split_4_image",
-  "repository": "file:///Users/jinyu/.deepbot/skills/split_4_image"
+  "repository": "file://~/.agents/skills/split_4_image"
 }
 
 // 绝对路径
 {
   "action": "install",
   "name": "split_4_image",
-  "repository": "/Users/jinyu/.deepbot/skills/split_4_image"
+  "repository": "~/.agents/skills/split_4_image"
 }
 
 // 用户目录
 {
   "action": "install",
   "name": "split_4_image",
-  "repository": "~/.deepbot/skills/split_4_image"
+  "repository": "~/.agents/skills/split_4_image"
 }
 ```
 
@@ -1053,7 +1053,7 @@ node script.js
 // 3. 更新脚本目录
 {
   "tool": "api_set_workspace_config",
-  "scriptDir": "/Users/username/my-scripts"
+  "scriptDir": "~/my-scripts"
 }
 
 // 4. 更新模型配置

@@ -469,7 +469,7 @@ Only allows access to the following configured directories and their subdirector
 |---------------|--------------|---------|--------------|
 | **Workspace** | `~` (User home) | File read/write, command execution | ✅ |
 | **Scripts** | `~/.deepbot/scripts` | Python script storage | ✅ |
-| **Skills** | `~/.deepbot/skills` | Skill package installation | ✅ |
+| **Skills** | `~/.agents/skills` | Skill package installation | ✅ |
 | **Images** | `~/.deepbot/generated-images` | AI-generated image storage | ✅ |
 
 ### Security Check Flow
@@ -571,8 +571,8 @@ Users can create their own Skills to implement specific functionality. A Skill i
 #### 1. Create Skill Directory
 
 ```bash
-mkdir -p ~/.deepbot/skills/my-skill
-cd ~/.deepbot/skills/my-skill
+mkdir -p ~/.agents/skills/my-skill
+cd ~/.agents/skills/my-skill
 ```
 
 #### 2. Create SKILL.md File
@@ -627,18 +627,18 @@ Two installation methods:
 
 **Method 1: Direct Placement** (Recommended)
 
-Place the Skill directory under `~/.deepbot/skills/`, restart DeepBot to auto-load.
+Place the Skill directory under `~/.agents/skills/`, restart DeepBot to auto-load.
 
 **Method 2: Use Skill Manager**
 
 ```bash
 # Use command in DeepBot
-"Install local skill at path ~/.deepbot/skills/my-skill"
+"Install local skill at path ~/.agents/skills/my-skill"
 ```
 
 ### Skill Directory
 
-- **Default Path**: `~/.deepbot/skills/`
+- **Default Path**: `~/.agents/skills/`
 - **Auto-Discovery**: Automatically loads all installed Skills at startup
 - **Dynamic Management**: Supports runtime install/uninstall
 

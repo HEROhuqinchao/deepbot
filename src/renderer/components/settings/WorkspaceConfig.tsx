@@ -621,7 +621,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
         </div>
 
         <p className="text-xs text-gray-400">
-          默认：{defaultSettings.defaultSkillDir || '~/.deepbot/skills'}
+          默认：{defaultSettings.defaultSkillDir || '~/.agents/skills'}
         </p>
       </div>
 
