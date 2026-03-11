@@ -201,7 +201,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="gemini">Google Gemini</option>
-              <option value="qwen">通义千问 Qwen-Image</option>
+              <option value="qwen">Qwen Image</option>
             </select>
             <p className="mt-1 text-xs text-gray-500">
               选择预设提供商
@@ -222,7 +222,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
             />
             <p className="mt-1 text-xs text-gray-500">
               {imageGenConfig.provider === 'qwen'
-                ? '通义千问 Qwen-Image 图片生成 API 地址'
+                ? 'Qwen Image 图片生成 API 地址'
                 : '预设提供商的 API 地址（可修改）'}
             </p>
           </div>
@@ -263,7 +263,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
             />
             <p className="mt-1 text-xs text-gray-500">
               {imageGenConfig.provider === 'gemini' && '用于访问 Gemini API 的密钥'}
-              {imageGenConfig.provider === 'qwen' && '用于访问通义千问 API 的密钥（DashScope API Key）'}
+              {imageGenConfig.provider === 'qwen' && '用于访问 Qwen API 的密钥（DashScope API Key）'}
             </p>
           </div>
 

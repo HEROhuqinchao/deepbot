@@ -167,7 +167,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
           onChange={(e) => handleProviderTypeChange(e.target.value as 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="qwen">通义千问 (Qwen)</option>
+          <option value="qwen">Qwen</option>
           <option value="deepseek">DeepSeek</option>
           <option value="gemini">Google Gemini</option>
           <option value="minimax">MiniMax</option>

@@ -10,7 +10,7 @@
  */
 export const PROVIDER_PRESETS = {
   qwen: {
-    name: '通义千问',
+    name: 'Qwen',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     defaultModelId: 'qwen3.5-plus',
     defaultModelId2: 'qwen-plus',  // 快速模型
@@ -58,7 +58,7 @@ export const IMAGE_GENERATION_PROVIDER_PRESETS = {
     defaultModelId: 'gemini-3-pro-image-preview',
   },
   qwen: {
-    name: '通义千问 Qwen-Image',
+    name: 'Qwen Image',
     baseUrl: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
     defaultModelId: 'qwen-image-2.0-pro',
   },
@@ -69,7 +69,7 @@ export const IMAGE_GENERATION_PROVIDER_PRESETS = {
  */
 export const WEB_SEARCH_PROVIDER_PRESETS = {
   qwen: {
-    name: '通义千问 (Qwen)',
+    name: 'Qwen',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     defaultModelId: 'qwen3.5-plus',
   },

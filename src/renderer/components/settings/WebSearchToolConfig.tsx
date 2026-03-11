@@ -106,7 +106,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
       <div>
         <h3 className="text-base font-semibold text-gray-900 mb-4">Web Search 工具配置</h3>
         <p className="text-sm text-gray-600 mb-6">
-          配置 Web Search 工具，支持通义千问 (Qwen) 和 Google Gemini 的网络搜索能力
+          配置 Web Search 工具，支持 Qwen 和 Google Gemini 的网络搜索能力
         </p>
       </div>
 
@@ -125,7 +125,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
               </h3>
               <div className="mt-2 text-sm text-blue-700">
                 <p>Web Search 工具可以获取最新的网络信息、新闻、天气等实时数据。</p>
-                <p className="mt-1">• Qwen: 使用通义千问的网络搜索能力 (enable_search)</p>
+                <p className="mt-1">• Qwen: 使用 Qwen 的网络搜索能力 (enable_search)</p>
                 <p className="mt-1">• Gemini: 使用 Google Search Grounding (google_search_retrieval)</p>
               </div>
             </div>
@@ -143,7 +143,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           onChange={(e) => handleProviderChange(e.target.value as 'qwen' | 'gemini' | 'custom')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="qwen">通义千问 (Qwen)</option>
+          <option value="qwen">Qwen</option>
           <option value="gemini">Google Gemini</option>
           <option value="custom">自定义</option>
         </select>
@@ -210,7 +210,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
         />
         <p className="mt-1 text-xs text-gray-500">
           {config.provider === 'qwen' 
-            ? '通义千问 API Key（可以与主模型使用相同的 Key）'
+            ? 'Qwen API Key（可以与主模型使用相同的 Key）'
             : 'Google Gemini API Key'}
         </p>
       </div>

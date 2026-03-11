@@ -48,7 +48,7 @@ export function QuickStart(_props: QuickStartProps) {
           <div style={{ marginBottom: '10px' }}>
             <span style={{ fontWeight: '600', color: 'var(--settings-text)' }}>1. 配置主大模型（必需）</span>
             <div style={{ marginLeft: '16px', marginTop: '4px' }}>
-              前往「模型配置」→「主大模型」，配置通义千问、OpenAI 或 Claude 的 API 密钥
+              前往「模型配置」→「主大模型」，配置 Qwen、OpenAI 或 Claude 的 API 密钥
             </div>
           </div>
           <div style={{ marginBottom: '10px' }}>
@@ -60,13 +60,13 @@ export function QuickStart(_props: QuickStartProps) {
           <div style={{ marginBottom: '10px' }}>
             <span style={{ fontWeight: '600', color: 'var(--settings-text)' }}>3. 配置图片生成（可选）</span>
             <div style={{ marginLeft: '16px', marginTop: '4px' }}>
-              前往「工具配置」→「图片生成工具」，配置通义千问 Qwen-Image 或 Gemini API 密钥，启用 AI 绘图功能
+              前往「工具配置」→「图片生成工具」，配置 Qwen Image 或 Gemini API 密钥，启用 AI 绘图功能
             </div>
           </div>
           <div>
             <span style={{ fontWeight: '600', color: 'var(--settings-text)' }}>4. 配置网络搜索（可选）</span>
             <div style={{ marginLeft: '16px', marginTop: '4px' }}>
-              前往「工具配置」→「网络搜索工具」，配置通义千问或 Gemini 的 API 密钥，启用实时信息查询
+              前往「工具配置」→「网络搜索工具」，配置 Qwen 或 Gemini 的 API 密钥，启用实时信息查询
             </div>
           </div>
         </div>
