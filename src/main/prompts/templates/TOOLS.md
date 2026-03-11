@@ -419,51 +419,85 @@ google-chrome --remote-debugging-port=9222
 3. **从 `readme` 中提取正确的执行命令**：完整路径、脚本名、参数格式，不要猜测
 4. **适用于所有安装位置**：无论 Skill 安装在配置目录还是其他目录，都遵循相同流程
 
-### 🔍 Skill 查找流程（当不知道用哪个 Skill 时）
+### 🔍 Skill 查找和安装流程
 
-**场景**：用户提出需求，但你不确定使用哪个 Skill（memory 中没有相关记忆）
-
-**查找规则**（简单明确）：
+**场景 1：用户提出需求，但不确定使用哪个 Skill**
 
 1. **先查找本地已安装的 Skill**
    ```json
    { "action": "list" }
    ```
 
-2. **如果用户指定了 Skill 来源地址**
-   
-   直接使用 `web_fetch` 获取该地址的内容：
-   ```json
-   { "tool": "web_fetch", "url": "用户指定的地址", "mode": "full" }
-   ```
-   然后分析内容，找到 Skill 并安装。
-
-3. **如果用户没有指定地址**
-   
-   使用 `skill_manager` 搜索官方仓库：
+2. **如果本地没有，搜索官方仓库**
    ```json
    { "action": "search", "query": "关键词" }
    ```
 
-**示例 1**（用户指定地址）：
-```
-用户："从 <某个 GitHub 仓库> 安装 XXX Skill"
+**场景 2：用户指定了 GitHub 仓库地址**
 
-→ 使用 web_fetch 获取仓库信息
-→ 分析后安装
-→ 查看使用说明
-→ 执行
+⚠️ **重要**：`skill_manager` 的 `install` 要求完整的 Skill 路径，格式必须是：
+```
+https://github.com/{owner}/{repo}/tree/{branch}/{skillPath}
 ```
 
-**示例 2**（用户没有指定地址）：
-```
-用户："帮我下载 YouTube 视频的字幕"
+**正确流程**：
 
-→ 先查本地 (list)
-→ 搜索官方仓库 (search)
-→ 安装
-→ 查看使用说明
-→ 执行
+1. **使用 `web_fetch` 获取仓库内容**
+   ```json
+   { "tool": "web_fetch", "url": "用户提供的仓库地址", "mode": "full" }
+   ```
+
+2. **分析内容，找到 Skill 信息**
+   - 查找 README 或目录结构，确定 Skill 列表和路径
+   - 确定分支名称（通常是 `main` 或 `master`）
+   - **如果找不到完整的 Skill URL**：查看 README 中的安装说明，可能提供了其他安装方式（如 `npx`、`git clone`、本地路径等）
+
+3. **根据情况选择安装方式**
+
+   **方式 A：找到了完整的 Skill 路径**
+   ```json
+   {
+     "action": "install",
+     "name": "skill-name",
+     "repository": "https://github.com/{owner}/{repo}/tree/{branch}/{skillPath}"
+   }
+   ```
+
+   **方式 B：README 提供了其他安装方式**
+   - 如果说明使用 `git clone` 或本地路径：先克隆到本地，再使用本地路径安装
+   - 如果说明使用 `npx` 或其他命令：使用 `exec` 工具执行安装命令
+   - 如果说明需要手动下载：使用 `file_write` 下载文件到本地，再安装
+
+**示例 1**（找到完整路径）：
+
+用户说："从某个 GitHub 仓库安装 XXX Skill"
+
+```
+步骤 1: web_fetch("用户提供的仓库地址")
+步骤 2: 分析内容，发现 XXX Skill 在 skills/xxx/ 目录
+步骤 3: 安装
+{
+  "action": "install",
+  "name": "xxx",
+  "repository": "https://github.com/{owner}/{repo}/tree/main/skills/xxx"
+}
+```
+
+**示例 2**（使用 README 中的安装说明）：
+
+```
+步骤 1: web_fetch("用户提供的仓库地址")
+步骤 2: README 说明："使用 git clone 安装"
+步骤 3: 执行克隆命令
+{
+  "command": "cd ~/.agents/skills && git clone <仓库地址>"
+}
+步骤 4: 使用本地路径安装
+{
+  "action": "install",
+  "name": "skill-name",
+  "repository": "~/.agents/skills/skill-name"
+}
 ```
 
 ### 使用时机
