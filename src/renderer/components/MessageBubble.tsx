@@ -60,7 +60,6 @@ const ImageLoader: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
 
     const loadImage = async () => {
       try {
-        
         // 通过 IPC 读取图片
         const result = await window.deepbot.readImage(filePath);
         
@@ -288,6 +287,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
           
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
+            urlTransform={(url) => {
+              // 允许所有 URL，包括 file:// 协议
+              return url;
+            }}
             components={{
               // 自定义渲染规则 - 保持简洁紧凑的终端风格
               p: ({ children }) => <div className="terminal-paragraph">{children}</div>,
@@ -322,7 +325,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
                 
                 // 如果是本地文件，通过 IPC 读取图片
                 if (isLocalFile) {
-                  return <ImageLoader src={src} alt={alt || '图片'} />;
+                  return <ImageLoader src={src!} alt={alt || '图片'} />;
                 }
                 
                 // 其他协议（http, https, data）直接显示

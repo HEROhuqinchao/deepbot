@@ -214,24 +214,116 @@ export function QuickStart(_props: QuickStartProps) {
         <h4 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--settings-text)', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
           <span style={{ marginRight: '8px' }}>⌨️</span>
           指令系统
+          <span style={{ 
+            marginLeft: '8px', 
+            padding: '1px 6px', 
+            background: 'var(--settings-accent)', 
+            color: '#fff', 
+            borderRadius: '10px', 
+            fontSize: '11px',
+            fontWeight: '600'
+          }}>
+            3
+          </span>
         </h4>
-        <div style={{ fontSize: '13px', color: 'var(--settings-text-dim)' }}>
-          <div style={{ marginBottom: '6px' }}>
-            输入 
-            <code style={{ 
-              margin: '0 4px',
-              padding: '2px 8px', 
-              background: 'var(--settings-input-bg)', 
-              borderRadius: '4px',
-              fontFamily: 'monospace',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: 'var(--settings-accent)'
-            }}>
-              /new
-            </code>
-            清空当前会话历史，开始新对话
+        <div style={{ 
+          display: 'grid', 
+          gap: '8px',
+          fontSize: '13px', 
+          color: 'var(--settings-text-dim)' 
+        }}>
+          <div style={{ 
+            padding: '10px 12px',
+            background: 'var(--settings-input-bg)',
+            borderRadius: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              <code style={{ 
+                padding: '2px 8px', 
+                background: 'rgba(0,0,0,0.2)', 
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--settings-accent)',
+                marginRight: '8px'
+              }}>
+                /new
+              </code>
+              <span style={{ color: 'var(--settings-text)', fontWeight: '600' }}>新建会话</span>
+            </div>
+            <div style={{ marginLeft: '12px', fontSize: '12px' }}>
+              清空当前会话历史，开始全新对话
+            </div>
           </div>
+          
+          <div style={{ 
+            padding: '10px 12px',
+            background: 'var(--settings-input-bg)',
+            borderRadius: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              <code style={{ 
+                padding: '2px 8px', 
+                background: 'rgba(0,0,0,0.2)', 
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--settings-accent)',
+                marginRight: '8px'
+              }}>
+                /memory
+              </code>
+              <span style={{ color: 'var(--settings-text)', fontWeight: '600' }}>查看记忆</span>
+            </div>
+            <div style={{ marginLeft: '12px', fontSize: '12px' }}>
+              查看 AI 记住的所有信息（用户偏好、习惯等）
+            </div>
+          </div>
+          
+          <div style={{ 
+            padding: '10px 12px',
+            background: 'var(--settings-input-bg)',
+            borderRadius: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              <code style={{ 
+                padding: '2px 8px', 
+                background: 'rgba(0,0,0,0.2)', 
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--settings-accent)',
+                marginRight: '8px'
+              }}>
+                /history
+              </code>
+              <span style={{ color: 'var(--settings-text)', fontWeight: '600' }}>分析历史</span>
+            </div>
+            <div style={{ marginLeft: '12px', fontSize: '12px' }}>
+              让 AI 分析当前会话的历史记录文件
+            </div>
+          </div>
+        </div>
+        
+        <div style={{ 
+          marginTop: '10px',
+          padding: '8px 12px',
+          background: 'rgba(var(--settings-accent-rgb), 0.1)',
+          borderLeft: '3px solid var(--settings-accent)',
+          borderRadius: '4px',
+          fontSize: '12px',
+          color: 'var(--settings-text-dim)'
+        }}>
+          💡 提示：输入框中输入 <code style={{ 
+            padding: '1px 4px',
+            background: 'rgba(0,0,0,0.2)',
+            borderRadius: '3px',
+            fontFamily: 'monospace',
+            color: 'var(--settings-accent)'
+          }}>/</code> 会自动显示可用指令列表
         </div>
       </div>
 

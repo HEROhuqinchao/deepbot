@@ -53,16 +53,23 @@ export function isPathAllowed(filePath: string): boolean {
   // 展开 ~ 为用户主目录
   const expandedPath = expandHomePath(filePath);
   
-  // 解析为绝对路径
+  // 解析为绝对路径并规范化
   const resolvedPath = path.resolve(expandedPath);
+  const normalizedPath = path.normalize(resolvedPath);
   
   // 获取所有允许的目录
   const allowedDirs = getAllowedDirectories();
   
   // 检查是否在任一允许的目录内
-  return allowedDirs.some(allowedDir => 
-    resolvedPath.startsWith(allowedDir)
-  );
+  return allowedDirs.some(allowedDir => {
+    const normalizedAllowedDir = path.normalize(allowedDir);
+    // 确保目录路径以分隔符结尾，避免部分匹配
+    const dirWithSep = normalizedAllowedDir.endsWith(path.sep) 
+      ? normalizedAllowedDir 
+      : normalizedAllowedDir + path.sep;
+    
+    return normalizedPath.startsWith(dirWithSep) || normalizedPath === normalizedAllowedDir;
+  });
 }
 
 /**
