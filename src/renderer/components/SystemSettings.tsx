@@ -67,16 +67,16 @@ export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsP
                 环境配置
               </button>
               <button
-                onClick={() => setActiveTab('workspace')}
-                className={`settings-nav-item ${activeTab === 'workspace' ? 'active' : ''}`}
-              >
-                工作目录
-              </button>
-              <button
                 onClick={() => setActiveTab('tools')}
                 className={`settings-nav-item ${activeTab === 'tools' ? 'active' : ''}`}
               >
                 工具配置
+              </button>
+              <button
+                onClick={() => setActiveTab('workspace')}
+                className={`settings-nav-item ${activeTab === 'workspace' ? 'active' : ''}`}
+              >
+                工作目录
               </button>
               <button
                 onClick={() => setActiveTab('connectors')}
@@ -101,8 +101,8 @@ export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsP
             {activeTab === 'quickstart' && <QuickStart onClose={onClose} />}
             {activeTab === 'model' && <ModelConfig onClose={onClose} />}
             {activeTab === 'environment' && <EnvironmentConfig onClose={onClose} activeTabId={activeTabId} />}
-            {activeTab === 'workspace' && <WorkspaceConfig onClose={onClose} />}
             {activeTab === 'tools' && <ToolConfig onClose={onClose} />}
+            {activeTab === 'workspace' && <WorkspaceConfig onClose={onClose} />}
             {activeTab === 'connectors' && <ConnectorConfig onClose={onClose} />}
           </div>
         </div>
