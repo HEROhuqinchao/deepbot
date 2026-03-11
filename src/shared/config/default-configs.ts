@@ -30,6 +30,13 @@ export const PROVIDER_PRESETS = {
     defaultModelId2: 'gemini-3-flash-preview',  // 快速模型
     apiType: 'google-generative-ai',
   },
+  minimax: {
+    name: 'MiniMax',
+    baseUrl: 'https://api.minimaxi.com/v1',
+    defaultModelId: 'MiniMax-M2.5',
+    defaultModelId2: 'MiniMax-M2.5-highspeed',  // 快速模型
+    apiType: 'openai-completions',
+  },
   custom: {
     name: '自定义',
     baseUrl: '',

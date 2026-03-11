@@ -1,14 +1,14 @@
 /**
  * 模型配置页面
  * 
- * 支持选择 Qwen、DeepSeek 或自定义提供商
+ * 支持选择 Qwen、DeepSeek、Gemini、MiniMax 或自定义提供商
  */
 
 import React, { useState, useEffect } from 'react';
 import { PROVIDER_PRESETS } from '../../../shared/config/default-configs';
 
 interface ModelConfig {
-  providerType: 'qwen' | 'deepseek' | 'gemini' | 'custom';
+  providerType: 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom';
   providerId: string;
   providerName: string;
   baseUrl: string;
@@ -70,7 +70,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
   };
 
   // 处理提供商类型变化
-  const handleProviderTypeChange = (providerType: 'qwen' | 'deepseek' | 'gemini' | 'custom') => {
+  const handleProviderTypeChange = (providerType: 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom') => {
     const preset = PROVIDER_PRESETS[providerType];
     
     setConfig({
@@ -164,12 +164,13 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
         </label>
         <select
           value={config.providerType}
-          onChange={(e) => handleProviderTypeChange(e.target.value as 'qwen' | 'deepseek' | 'gemini' | 'custom')}
+          onChange={(e) => handleProviderTypeChange(e.target.value as 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="qwen">通义千问 (Qwen)</option>
           <option value="deepseek">DeepSeek</option>
           <option value="gemini">Google Gemini</option>
+          <option value="minimax">MiniMax</option>
           <option value="custom">自定义</option>
         </select>
         <p className="mt-1 text-xs text-gray-500">
@@ -212,7 +213,9 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
                 ? 'deepseek-chat' 
                 : config.providerType === 'gemini'
                   ? 'gemini-3-pro-preview'
-                  : 'model-id'
+                  : config.providerType === 'minimax'
+                    ? 'MiniMax-M2.5'
+                    : 'model-id'
           }
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
@@ -220,6 +223,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
           {config.providerType === 'qwen' && '推荐: qwen-max（高质量）或 qwen-plus（平衡）'}
           {config.providerType === 'deepseek' && '推荐: deepseek-chat'}
           {config.providerType === 'gemini' && '推荐: gemini-3-pro-preview（高质量）或 gemini-3-flash-preview（快速）'}
+          {config.providerType === 'minimax' && '推荐: MiniMax-M2.5（高质量）或 MiniMax-M2.5-highspeed（快速）'}
           {config.providerType === 'custom' && '输入主模型 ID'}
         </p>
       </div>
@@ -240,7 +244,9 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
                 ? 'deepseek-chat' 
                 : config.providerType === 'gemini'
                   ? 'gemini-3-flash-preview'
-                  : 'fast-model-id'
+                  : config.providerType === 'minimax'
+                    ? 'MiniMax-M2.5-highspeed'
+                    : 'fast-model-id'
           }
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
@@ -248,6 +254,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
           {config.providerType === 'qwen' && '推荐: qwen-plus（用于轻量级任务，如语义判断）'}
           {config.providerType === 'deepseek' && '推荐: deepseek-chat（与主模型相同）'}
           {config.providerType === 'gemini' && '推荐: gemini-3-flash-preview（用于轻量级任务）'}
+          {config.providerType === 'minimax' && '推荐: MiniMax-M2.5-highspeed（用于轻量级任务）'}
           {config.providerType === 'custom' && '输入快速模型 ID（用于轻量级任务）'}
         </p>
       </div>
