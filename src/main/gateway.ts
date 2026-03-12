@@ -434,9 +434,13 @@ export class Gateway {
    * @param sessionId - 会话 ID（可选）
    * @param displayContent - 显示内容（可选，用于前端显示）
    * @param clearHistory - 是否清空历史消息（可选，用于定时任务）
+   * @param skipHistory - 是否跳过历史记录（可选，用于欢迎消息）
    */
   async handleSendMessage(content: string, sessionId?: string, displayContent?: string, clearHistory?: boolean, skipHistory?: boolean): Promise<void> {
     console.log('收到消息:', content);
+    
+    // 🔥 记录发送时间
+    const sentAt = Date.now();
 
     // 如果没有 sessionId，使用默认会话
     const currentSessionId = sessionId || this.defaultSessionId;
@@ -550,7 +554,7 @@ export class Gateway {
 
     try {
       // 使用 Agent Runtime 处理消息
-      await this.sendAIResponse(runtime, content, currentSessionId);
+      await this.sendAIResponse(runtime, content, currentSessionId, sentAt);
       
       // 🔥 sendAIResponse 内部会调用 processMessageQueue，这里不需要再调用
     } catch (error) {
@@ -772,8 +776,9 @@ export class Gateway {
    * @param runtime - AgentRuntime 实例
    * @param userMessage - 用户消息
    * @param sessionId - 会话 ID
+   * @param sentAt - 用户消息发送时间（可选）
    */
-  private async sendAIResponse(runtime: AgentRuntime, userMessage: string, sessionId: string): Promise<void> {
+  private async sendAIResponse(runtime: AgentRuntime, userMessage: string, sessionId: string, sentAt?: number): Promise<void> {
     const messageId = generateMessageId();
     let fullResponse = ''; // 收集完整响应
     const startTime = Date.now(); // 🔥 记录开始时间
@@ -789,7 +794,7 @@ export class Gateway {
       const isTaskTab = sessionId.startsWith('task-tab-');
       
       if (this.sessionManager && !skipHistory && !isTaskTab) {
-        await this.sessionManager.saveUserMessage(sessionId, messageForHistory);
+        await this.sessionManager.saveUserMessage(sessionId, messageForHistory, sentAt);
       } else if (skipHistory) {
         console.log('[Gateway] 🚫 跳过保存用户消息到历史记录（欢迎消息模式）');
       } else if (isTaskTab) {
@@ -833,14 +838,14 @@ export class Gateway {
       const finalSteps = runtime.getExecutionSteps();
       const totalDuration = Date.now() - startTime; // 🔥 计算总执行时间
       console.log(`[Gateway] ⏱️ Agent 总执行时间: ${(totalDuration / 1000).toFixed(2)} 秒`);
-      this.sendStreamChunk(messageId, '', true, false, undefined, finalSteps, sessionId, totalDuration);
+      this.sendStreamChunk(messageId, '', true, false, undefined, finalSteps, sessionId, totalDuration, sentAt);
       
       // 🔥 保存 AI 响应到 session
       // 注意：即使是欢迎消息模式（skipHistory=true），AI 的响应也要保存
       // 只有用户的欢迎消息不保存，AI 的欢迎回复要保存
       if (this.sessionManager && fullResponse.trim() && !isTaskTab) {
-        // 保存响应内容和执行步骤
-        await this.sessionManager.saveAssistantMessage(sessionId, fullResponse, finalSteps);
+        // 保存响应内容、执行步骤、总执行时间和对应的用户消息发送时间
+        await this.sessionManager.saveAssistantMessage(sessionId, fullResponse, finalSteps, totalDuration, sentAt);
         console.log(`[Gateway] 💾 已保存 AI 响应和 ${finalSteps.length} 个执行步骤`);
       } else if (isTaskTab && fullResponse.trim()) {
         console.log('[Gateway] 🚫 跳过保存 AI 响应到历史记录（定时任务 Tab）');
@@ -873,6 +878,7 @@ export class Gateway {
    * @param executionSteps - 执行步骤（可选）
    * @param sessionId - 会话 ID（可选）
    * @param totalDuration - 总执行时间（毫秒，可选）
+   * @param sentAt - 发送时间（毫秒时间戳，可选）
    */
   private sendStreamChunk(
     messageId: string,
@@ -882,7 +888,8 @@ export class Gateway {
     subAgentTask?: string,
     executionSteps?: any[],
     sessionId?: string,
-    totalDuration?: number
+    totalDuration?: number,
+    sentAt?: number
   ) {
     sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
       messageId,
@@ -893,6 +900,7 @@ export class Gateway {
       executionSteps,
       sessionId, // 添加 sessionId
       totalDuration, // 🔥 添加总执行时间
+      sentAt, // 🔥 添加发送时间
     });
   }
 

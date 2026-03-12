@@ -50,6 +50,10 @@ export interface Message {
   uploadedImages?: UploadedImage[];
   // 总执行时间（毫秒）- Agent 消息专用
   totalDuration?: number;
+  // 发送时间（毫秒时间戳）
+  // - 用户消息：自己的发送时间
+  // - Agent 消息：对应的用户消息的发送时间
+  sentAt?: number;
 }
 
 export interface ChatSession {

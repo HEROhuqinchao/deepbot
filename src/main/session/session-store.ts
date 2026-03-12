@@ -32,6 +32,12 @@ export interface SessionMessage {
     timestamp: number;
     duration?: number;
   }>;
+  // 总执行时间（毫秒）- 仅 assistant 消息有
+  totalDuration?: number;
+  // 发送时间（毫秒时间戳）
+  // - user 消息：自己的发送时间
+  // - assistant 消息：对应的用户消息的发送时间
+  sentAt?: number;
 }
 
 /**

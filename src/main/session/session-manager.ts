@@ -35,11 +35,12 @@ export class SessionManager {
   /**
    * 保存用户消息
    */
-  async saveUserMessage(tabId: string, content: string): Promise<void> {
+  async saveUserMessage(tabId: string, content: string, sentAt?: number): Promise<void> {
     const message: SessionMessage = {
       role: 'user',
       content,
       timestamp: Date.now(),
+      sentAt, // 保存发送时间
     };
     
     await this.sessionStore.appendMessage(tabId, message);
@@ -51,6 +52,8 @@ export class SessionManager {
    * @param tabId - Tab ID
    * @param content - 响应内容
    * @param executionSteps - 执行步骤（可选）
+   * @param totalDuration - 总执行时间（毫秒，可选）
+   * @param sentAt - 对应的用户消息发送时间（可选）
    */
   async saveAssistantMessage(
     tabId: string, 
@@ -65,13 +68,17 @@ export class SessionManager {
       status: 'running' | 'success' | 'error';
       timestamp: number;
       duration?: number;
-    }>
+    }>,
+    totalDuration?: number,
+    sentAt?: number
   ): Promise<void> {
     const message: SessionMessage = {
       role: 'assistant',
       content,
       timestamp: Date.now(),
       executionSteps, // 保存执行步骤
+      totalDuration, // 保存总执行时间
+      sentAt, // 保存对应的用户消息发送时间
     };
     
     await this.sessionStore.appendMessage(tabId, message);
@@ -159,6 +166,8 @@ export class SessionManager {
         content,
         timestamp: msg.timestamp,
         executionSteps: msg.executionSteps, // 恢复执行步骤
+        totalDuration: msg.totalDuration, // 恢复总执行时间
+        sentAt: msg.sentAt, // 恢复发送时间
       };
     });
   }

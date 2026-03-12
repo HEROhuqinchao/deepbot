@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { Message } from '../../types/message';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { formatDuration } from '../../shared/utils/time-format';
+import { formatDuration, formatTimestamp } from '../../shared/utils/time-format';
 
 interface MessageBubbleProps {
   message: Message;
@@ -461,6 +461,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
           <span className="terminal-execution-time-value">
             {formatDuration(message.totalDuration)}
           </span>
+          {message.sentAt && (
+            <span className="terminal-execution-time-sent">
+              (发送于 {formatTimestamp(message.sentAt)})
+            </span>
+          )}
         </div>
       )}
     </div>

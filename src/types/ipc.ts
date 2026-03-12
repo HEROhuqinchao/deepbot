@@ -108,6 +108,8 @@ export interface StreamMessageChunk {
   content: string;
   done: boolean;
   executionSteps?: import('./message').ExecutionStep[]; // 执行步骤
+  totalDuration?: number; // 总执行时间（毫秒）
+  sentAt?: number; // 发送时间（毫秒时间戳）
 }
 
 // 错误响应
