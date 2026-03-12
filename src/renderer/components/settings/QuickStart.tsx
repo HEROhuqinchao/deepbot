@@ -82,7 +82,7 @@ export function QuickStart(_props: QuickStartProps) {
           <div style={{ color: 'var(--settings-text)' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
               <span style={{ marginRight: '8px' }}>🐍</span>
-              <span style={{ fontWeight: '600', marginRight: '6px' }}>Python + Conda（必需）：</span>
+              <span style={{ fontWeight: '600', marginRight: '6px' }}>Python（推荐）：</span>
               <span style={{ color: 'var(--settings-text-dim)' }}>用于执行 Python 脚本和 Skill</span>
             </div>
             <div style={{ 
@@ -94,45 +94,30 @@ export function QuickStart(_props: QuickStartProps) {
               color: 'var(--settings-text-dim)',
               lineHeight: '1.5'
             }}>
-              <div style={{ marginBottom: '8px', color: 'var(--settings-text)', fontWeight: '600' }}>
-                💡 为什么推荐 Conda？
-              </div>
-              <div style={{ marginBottom: '8px' }}>
-                • 隔离环境：避免不同项目的依赖冲突<br/>
-                • 版本管理：轻松切换 Python 版本<br/>
-                • 包管理：简化依赖安装和管理
-              </div>
               <div style={{ marginBottom: '6px', color: 'var(--settings-text)', fontWeight: '600' }}>
                 ⚡ 快速安装
               </div>
               <div style={{ marginBottom: '8px', color: 'var(--settings-accent)', fontWeight: '600' }}>
-                💬 只需告诉 DeepBot："帮我安装 conda"，即可自动完成安装！
+                💬 只需告诉 DeepBot："帮我安装 Python"，即可自动完成安装！
               </div>
               <div style={{ marginBottom: '6px', color: 'var(--settings-text)', fontWeight: '600' }}>
-                📦 手动安装 Miniconda
+                📦 手动安装 Python
               </div>
               <div style={{ fontFamily: 'monospace', fontSize: '11px' }}>
                 <div style={{ marginBottom: '4px' }}>
-                  <strong>macOS (M1/M2/M3):</strong><br/>
-                  curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh<br/>
-                  bash Miniconda3-latest-MacOSX-arm64.sh
+                  <strong>macOS:</strong><br/>
+                  brew install python
                 </div>
                 <div style={{ marginBottom: '4px' }}>
-                  <strong>macOS (Intel):</strong><br/>
-                  curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh<br/>
-                  bash Miniconda3-latest-MacOSX-x86_64.sh
-                </div>
-                <div style={{ marginBottom: '4px' }}>
-                  <strong>Linux:</strong><br/>
-                  curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh<br/>
-                  bash Miniconda3-latest-Linux-x86_64.sh
+                  <strong>Linux (Ubuntu/Debian):</strong><br/>
+                  sudo apt update && sudo apt install python3 python3-pip
                 </div>
                 <div style={{ marginBottom: '4px' }}>
                   <strong>Windows:</strong><br/>
-                  下载并运行：https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
+                  下载并运行：https://www.python.org/downloads/windows/
                 </div>
                 <div style={{ marginTop: '6px', color: 'var(--settings-text)' }}>
-                  <strong>验证安装:</strong> conda --version
+                  <strong>验证安装:</strong> python3 --version
                 </div>
               </div>
             </div>

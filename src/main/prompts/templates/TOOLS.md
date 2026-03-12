@@ -6,67 +6,55 @@
 
 为了充分发挥 DeepBot 的能力，建议配置以下开发环境：
 
-#### 1. Python 环境（推荐使用 Conda）
+#### 1. Python 环境
 
-**为什么推荐 Conda？**
-- 隔离环境：避免不同项目的依赖冲突
-- 版本管理：轻松切换 Python 版本
-- 包管理：简化依赖安装和管理
+**安装 Python**
 
-**安装 Miniconda**
-
-macOS (M1/M2/M3):
+macOS:
 ```bash
-curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh
-bash Miniconda3-latest-MacOSX-arm64.sh
-source ~/miniconda3/bin/activate
+# 使用 Homebrew 安装（推荐）
+brew install python
+
+# 或下载官方安装包
+# https://www.python.org/downloads/
 ```
 
-macOS (Intel):
+Linux (Ubuntu/Debian):
 ```bash
-curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
-bash Miniconda3-latest-MacOSX-x86_64.sh
-source ~/miniconda3/bin/activate
-```
+# 更新包列表
+sudo apt update
 
-Linux:
-```bash
-curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash Miniconda3-latest-Linux-x86_64.sh
-source ~/miniconda3/bin/activate
+# 安装 Python 3
+sudo apt install python3 python3-pip
+
+# 验证安装
+python3 --version
+pip3 --version
 ```
 
 Windows:
 ```bash
-# 下载并运行安装程序
-curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
-# 双击运行 .exe 文件，按向导完成安装
+# 使用 Chocolatey
+choco install python
+
+# 或使用 Winget
+winget install Python.Python.3
+
+# 或下载官方安装包
+# https://www.python.org/downloads/windows/
 ```
 
 **验证安装**:
 ```bash
-conda --version
-```
-
-**在 Conda 中安装 Python**:
-```bash
-# 创建新环境并安装 Python 3.12
-conda create -n deepbot python=3.12
-
-# 激活环境
-conda activate deepbot
-
-# 验证
+# 检查 Python 版本
+python3 --version
+# 或
 python --version
-```
 
-**设置环境变量**:
-```bash
-# macOS/Linux - 添加到 ~/.bashrc 或 ~/.zshrc
-export PATH="$HOME/miniconda3/bin:$PATH"
-
-# 重新加载配置
-source ~/.bashrc  # 或 source ~/.zshrc
+# 检查 pip 版本
+pip3 --version
+# 或
+pip --version
 ```
 
 #### 2. Node.js 环境（推荐使用 nvm）
@@ -150,7 +138,7 @@ sudo apt-get install -y nodejs
 安装完成后，在 DeepBot 中执行环境检查：
 1. 打开「系统配置」→「环境配置」
 2. 点击「检查环境」按钮
-3. 确认 Python、Conda 都已正确安装
+3. 确认 Python 已正确安装
 
 ---
 
@@ -419,7 +407,7 @@ google-chrome --remote-debugging-port=9222
 3. **从 `readme` 中提取正确的执行命令**：完整路径、脚本名、参数格式，不要猜测
 4. **适用于所有安装位置**：无论 Skill 安装在配置目录还是其他目录，都遵循相同流程
 
-### 🔍 Skill 查找和安装流程
+### 🔍 URL 安装流程（通用处理）
 
 **场景 1：用户提出需求，但不确定使用哪个 Skill**
 
@@ -433,28 +421,27 @@ google-chrome --remote-debugging-port=9222
    { "action": "search", "query": "关键词" }
    ```
 
-**场景 2：用户指定了 GitHub 仓库地址**
+**场景 2：用户提供了 URL 并要求安装某个东西**
 
-⚠️ **重要**：`skill_manager` 的 `install` 要求完整的 Skill 路径，格式必须是：
-```
-https://github.com/{owner}/{repo}/tree/{branch}/{skillPath}
-```
+⚠️ **重要**：用户提供 URL 时，不要直接假设是 Skill！先获取内容判断类型。
 
 **正确流程**：
 
-1. **使用 `web_fetch` 获取仓库内容**
+1. **使用 `web_fetch` 获取 URL 内容**
    ```json
-   { "tool": "web_fetch", "url": "用户提供的仓库地址", "mode": "full" }
+   { "tool": "web_fetch", "url": "用户提供的URL", "mode": "full" }
    ```
 
-2. **分析内容，找到 Skill 信息**
-   - 查找 README 或目录结构，确定 Skill 列表和路径
-   - 确定分支名称（通常是 `main` 或 `master`）
-   - **如果找不到完整的 Skill URL**：查看 README 中的安装说明，可能提供了其他安装方式（如 `npx`、`git clone`、本地路径等）
+2. **分析内容，判断项目类型**
+   - **Python 包**：查找 `setup.py`、`pyproject.toml`、`requirements.txt`
+   - **Node.js 包**：查找 `package.json`、`npm install` 说明
+   - **Skill 包**：查找 `SKILL.md` 文件或 skills/ 目录
+   - **普通软件**：查找安装说明、下载链接
+   - **脚本工具**：查找可执行脚本文件
 
-3. **根据情况选择安装方式**
+3. **根据项目类型选择安装方式**
 
-   **方式 A：找到了完整的 Skill 路径**
+   **类型 A：Skill 包**
    ```json
    {
      "action": "install",
@@ -463,50 +450,112 @@ https://github.com/{owner}/{repo}/tree/{branch}/{skillPath}
    }
    ```
 
-   **方式 B：README 提供了其他安装方式**
-   - 如果说明使用 `git clone` 或本地路径：先克隆到本地，再使用本地路径安装
-   - 如果说明使用 `npx` 或其他命令：使用 `exec` 工具执行安装命令
-   - 如果说明需要手动下载：使用 `file_write` 下载文件到本地，再安装
+   **类型 B：Python 包**
+   ```json
+   {
+     "tool": "exec",
+     "command": "pip3 install package-name"
+   }
+   ```
+   或者如果有 requirements.txt：
+   ```json
+   {
+     "tool": "exec", 
+     "command": "pip3 install -r requirements.txt"
+   }
+   ```
 
-**示例 1**（找到完整路径）：
+   **类型 C：Node.js 包**
+   ```json
+   {
+     "tool": "exec",
+     "command": "npm install -g package-name"
+   }
+   ```
 
-用户说："从某个 GitHub 仓库安装 XXX Skill"
+   **类型 D：需要克隆的项目**
+   ```json
+   {
+     "tool": "exec",
+     "command": "git clone <仓库地址> && cd <项目目录> && <安装命令>"
+   }
+   ```
+
+   **类型 E：直接下载的工具**
+   - 使用 `web_fetch` 下载文件
+   - 使用 `file_write` 保存到合适位置
+   - 使用 `exec` 设置执行权限
+
+**示例 1**（Python 包）：
+
+用户说："安装 https://github.com/microsoft/markitdown"
 
 ```
-步骤 1: web_fetch("用户提供的仓库地址")
-步骤 2: 分析内容，发现 XXX Skill 在 skills/xxx/ 目录
-步骤 3: 安装
+步骤 1: web_fetch("https://github.com/microsoft/markitdown")
+步骤 2: 分析内容，发现是 Python 包（有 setup.py 和 pip install 说明）
+步骤 3: 执行安装
 {
-  "action": "install",
-  "name": "xxx",
-  "repository": "https://github.com/{owner}/{repo}/tree/main/skills/xxx"
+  "tool": "exec",
+  "command": "pip3 install markitdown"
 }
 ```
 
-**示例 2**（使用 README 中的安装说明）：
+**示例 2**（Skill 包）：
+
+用户说："安装 https://github.com/openclaw/skills"
 
 ```
-步骤 1: web_fetch("用户提供的仓库地址")
-步骤 2: README 说明："使用 git clone 安装"
-步骤 3: 执行克隆命令
-{
-  "command": "cd ~/.agents/skills && git clone <仓库地址>"
-}
-步骤 4: 使用本地路径安装
+步骤 1: web_fetch("https://github.com/openclaw/skills")
+步骤 2: 分析内容，发现是 Skill 仓库（有 skills/ 目录和多个 SKILL.md）
+步骤 3: 询问用户要安装哪个具体的 Skill
+步骤 4: 安装指定的 Skill
 {
   "action": "install",
-  "name": "skill-name",
-  "repository": "~/.agents/skills/skill-name"
+  "name": "specific-skill",
+  "repository": "https://github.com/openclaw/skills/tree/main/skills/specific-skill"
+}
+```
+
+**示例 3**（Node.js 工具）：
+
+用户说："安装 https://github.com/some/nodejs-tool"
+
+```
+步骤 1: web_fetch("https://github.com/some/nodejs-tool")
+步骤 2: 分析内容，发现是 Node.js 包（有 package.json 和 npm install 说明）
+步骤 3: 执行安装
+{
+  "tool": "exec",
+  "command": "npm install -g nodejs-tool"
+}
+```
+
+**示例 4**（需要克隆的项目）：
+
+用户说："安装 https://github.com/some/custom-tool"
+
+```
+步骤 1: web_fetch("https://github.com/some/custom-tool")
+步骤 2: 分析内容，发现需要克隆后本地安装（README 说明了安装步骤）
+步骤 3: 执行克隆和安装
+{
+  "tool": "exec",
+  "command": "cd ~/.deepbot/tools && git clone https://github.com/some/custom-tool && cd custom-tool && ./install.sh"
 }
 ```
 
 ### 使用时机
 用户说了以下关键词时使用：
-- **搜索**："搜索 Skill"、"查找 Skill"、"有什么 Skill"
-- **安装**："安装 Skill"、"添加 Skill"
-- **列出**："列出已安装的 Skill"、"查看 Skill"
-- **卸载**："卸载/删除 Skill"
-- **查看详情**："查看 Skill 详情"、"Skill 使用说明"
+- **搜索 Skill**："搜索 Skill"、"查找 Skill"、"有什么 Skill"
+- **安装 Skill**："安装 Skill"、"添加 Skill"
+- **列出 Skill**："列出已安装的 Skill"、"查看 Skill"
+- **卸载 Skill**："卸载/删除 Skill"
+- **查看 Skill 详情**："查看 Skill 详情"、"Skill 使用说明"
+
+⚠️ **重要**：当用户提供 URL 要求安装时，不要直接假设是 Skill！
+- 先用 `web_fetch` 获取内容判断项目类型
+- 根据项目类型选择合适的安装方式（pip、npm、git clone、skill_manager 等）
+- 只有确认是 Skill 包时才使用 `skill_manager` 工具
 
 ### 安装方式
 
@@ -1137,44 +1186,35 @@ https://github.com/{owner}/{repo}/tree/{branch}/{skillPath}
 1. 禁止执行危险命令
 2. 使用工作区配置的目录
 3. 常规命令优先
-4. **Python 执行优先级**：Conda 环境 > 系统 Python
+4. **Python 执行优先级**：系统 Python > python 命令
 
 ### Python 执行规则（重要）
 
 **执行优先级**：
-1. **优先使用 Conda 环境**：如果检测到 conda 已安装，优先在 `deepbot` 环境中执行
-2. **降级到系统 Python**：如果 conda 未安装或 `deepbot` 环境不存在，使用系统 Python
-
-**检测 Conda 环境**：
-```bash
-# 检查 conda 是否安装
-conda --version
-
-# 检查 deepbot 环境是否存在
-conda env list | grep deepbot
-```
+1. **优先使用系统 Python**：使用系统安装的 Python 3
+2. **降级到 python 命令**：如果 python3 不可用，尝试 python 命令
 
 **执行 Python 脚本的标准流程**：
 ```bash
-# 1. 优先：在 Conda deepbot 环境中执行（推荐）
-conda run -n deepbot python script.py
-
-# 2. 降级：使用系统 Python（仅当 conda 不可用时）
+# 1. 优先：使用 python3（推荐）
 python3 script.py
+
+# 2. 降级：使用 python（仅当 python3 不可用时）
+python script.py
 ```
 
 **安装 Python 包的标准流程**：
 ```bash
-# 1. 优先：在 Conda deepbot 环境中安装（推荐）
-conda run -n deepbot pip install package-name
-
-# 2. 降级：使用系统 pip（仅当 conda 不可用时）
+# 1. 优先：使用 pip3（推荐）
 pip3 install package-name
+
+# 2. 降级：使用 pip（仅当 pip3 不可用时）
+pip install package-name
 ```
 
 ### 使用场景
 - ✅ 执行系统命令（ls, cat, mkdir, cp, mv）
-- ✅ 运行 Python/Node.js 脚本（优先使用 Conda 环境）
+- ✅ 运行 Python/Node.js 脚本（优先使用系统 Python）
 - ✅ 文件操作（复制、移动、删除）
 - ✅ 查看系统信息（df, ps, top）
 - ❌ 不要执行危险命令（rm -rf /, mkfs, shutdown）
@@ -1184,20 +1224,20 @@ pip3 install package-name
 
 **执行 Python 脚本（推荐方式）**：
 ```bash
-# 优先：在 Conda deepbot 环境中执行
-conda run -n deepbot python script.py
-
-# 降级：使用系统 Python（仅当 conda 不可用时）
+# 优先：使用 python3
 python3 script.py
+
+# 降级：使用 python（仅当 python3 不可用时）
+python script.py
 ```
 
 **安装 Python 包（推荐方式）**：
 ```bash
-# 优先：在 Conda deepbot 环境中安装
-conda run -n deepbot pip install requests
-
-# 降级：使用系统 pip（仅当 conda 不可用时）
+# 优先：使用 pip3
 pip3 install requests
+
+# 降级：使用 pip（仅当 pip3 不可用时）
+pip install requests
 ```
 
 **执行 Node.js 脚本**：
@@ -1210,10 +1250,10 @@ node script.js
 - ✅ 允许：`ls`、`cat`、`python3`、`cp`、`mkdir`
 
 
-**如果用户未安装 Conda**：
+**如果用户未安装 Python**：
 - 引导用户查看「环境配置建议」章节
-- 提供 Miniconda 安装命令
-- 说明如何创建 `deepbot` 环境
+- 提供 Python 安装命令
+- 说明如何验证安装
 
 ---
 

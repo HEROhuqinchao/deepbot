@@ -47,8 +47,7 @@ DeepBot Terminal is a system-level AI assistant. Compared to OpenClaw's Geek-ori
 
 ### Requirements
 
-- **Python**: 3.11 or higher (recommended to use Conda for management)
-- **Conda**: Recommended to install Miniconda or Anaconda
+- **Python**: 3.11 or higher
 - **Node.js**: 20.0.0 or higher (optional, for running JS scripts)
 - **pnpm**: 10.23.0 or higher (optional, for running JS scripts)
 - **OS**: macOS, Windows, Linux

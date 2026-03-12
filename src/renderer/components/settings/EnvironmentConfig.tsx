@@ -16,12 +16,6 @@ interface EnvironmentStatus {
     path?: string;
     error?: string;
   } | null;
-  conda: {
-    isInstalled: boolean;
-    version?: string;
-    path?: string;
-    error?: string;
-  } | null;
   allInstalled: boolean;
   needsCheck: boolean;
 }
@@ -141,7 +135,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
       <div>
         <h3 className="text-base font-semibold text-gray-900">环境配置</h3>
         <p className="text-sm text-gray-600 mt-1">
-          DeepBot 需要 Python 环境才能正常运行。推荐使用 Conda 管理 Python 环境。
+          DeepBot 需要 Python 环境才能正常运行。
         </p>
       </div>
 
@@ -164,7 +158,6 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
       {status && !status.needsCheck && (
         <div className="space-y-3">
           {renderEnvironmentItem('python', 'Python', status.python)}
-          {renderEnvironmentItem('conda', 'Conda（推荐）', status.conda)}
         </div>
       )}
 
@@ -230,7 +223,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
               }`}>
                 {status.allInstalled 
                   ? 'DeepBot 已准备就绪，可以正常使用所有功能。'
-                  : '部分依赖未安装，某些功能可能无法使用。请安装缺失的依赖。'
+                  : 'Python 未安装，某些功能可能无法使用。请安装 Python。'
                 }
               </p>
             </div>
@@ -247,7 +240,9 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
               <div>
                 <p className="font-medium">安装 Python:</p>
                 <code className="block bg-blue-100 px-2 py-1 rounded mt-1 text-xs">
-                  brew install python3
+                  # macOS: brew install python<br/>
+                  # Linux: sudo apt install python3 python3-pip<br/>
+                  # Windows: 下载官方安装包
                 </code>
               </div>
             )}

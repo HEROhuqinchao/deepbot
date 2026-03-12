@@ -99,22 +99,6 @@ function checkPython(): { installed: boolean; version?: string; path?: string; e
 }
 
 /**
- * 检查 Conda
- */
-function checkConda(): { installed: boolean; version?: string; path?: string; error?: string } {
-  console.info('[EnvironmentCheck] 🔍 检查 Conda 环境...');
-  const condaResult = checkCommand('conda');
-  
-  if (condaResult.installed) {
-    console.info('[EnvironmentCheck] ✅ 找到 Conda');
-  } else {
-    console.warn('[EnvironmentCheck] ⚠️  Conda 未找到');
-  }
-  
-  return condaResult;
-}
-
-/**
  * 创建环境检查工具
  */
 export function createEnvironmentCheckTool(): AgentTool {
@@ -123,7 +107,7 @@ export function createEnvironmentCheckTool(): AgentTool {
   return {
     name: TOOL_NAMES.ENVIRONMENT_CHECK,
     label: '环境检查',
-    description: '检查系统环境依赖（Python、Conda）并将结果保存到数据库',
+    description: '检查系统环境依赖（Python）并将结果保存到数据库',
     parameters: Type.Object({
       action: Type.Union([
         Type.Literal('check', { description: '检查环境依赖' }),
@@ -178,18 +162,6 @@ export function createEnvironmentCheckTool(): AgentTool {
             error: pythonResult.error,
           });
           
-          // 检查 Conda
-          const condaResult = checkConda();
-          store.saveEnvironmentConfig({
-            id: 'conda',
-            name: 'conda',
-            isInstalled: condaResult.installed,
-            version: condaResult.version,
-            path: condaResult.path,
-            lastChecked: Date.now(),
-            error: condaResult.error,
-          });
-          
           // 🔥 保险机制：将 Python 路径添加到环境变量
           if (pythonResult.installed && pythonResult.path) {
             const path = require('path');
@@ -235,16 +207,10 @@ export function createEnvironmentCheckTool(): AgentTool {
           } else {
             results.push(`❌ Python 未安装\n   错误: ${pythonResult.error}`);
           }
-          
-          if (condaResult.installed) {
-            results.push(`✅ Conda 已安装\n   版本: ${condaResult.version}\n   路径: ${condaResult.path}`);
-          } else {
-            results.push(`⚠️  Conda 未安装（推荐安装）\n   说明: Conda 可以更好地管理 Python 环境和依赖`);
-          }
 
           const allInstalled = pythonResult.installed;
           const summary = allInstalled 
-            ? (condaResult.installed ? '🎉 所有依赖已安装，环境配置完成！' : '✅ Python 已安装，建议安装 Conda 以更好地管理 Python 环境')
+            ? '🎉 Python 环境配置完成！'
             : '⚠️ Python 未安装，请先安装 Python';
 
           const message = `${summary}\n\n${results.join('\n\n')}`;
@@ -260,7 +226,6 @@ export function createEnvironmentCheckTool(): AgentTool {
               success: true,
               data: {
                 python: pythonResult,
-                conda: condaResult,
                 allInstalled,
               },
               message,
@@ -283,7 +248,6 @@ export function createEnvironmentCheckTool(): AgentTool {
                 success: true,
                 data: {
                   python: null,
-                  conda: null,
                   allInstalled: false,
                   needsCheck: true,
                 },
@@ -293,10 +257,9 @@ export function createEnvironmentCheckTool(): AgentTool {
           }
 
           const pythonConfig = configs.find(c => c.name === 'python');
-          const condaConfig = configs.find(c => c.name === 'conda');
           const allInstalled = pythonConfig?.isInstalled;
           const message = allInstalled 
-            ? (condaConfig?.isInstalled ? '✅ 环境配置完美' : '✅ Python 已安装，建议安装 Conda')
+            ? '✅ Python 环境配置完成'
             : '⚠️ Python 未安装';
 
           return {
@@ -310,7 +273,6 @@ export function createEnvironmentCheckTool(): AgentTool {
               success: true,
               data: {
                 python: pythonConfig,
-                conda: condaConfig,
                 allInstalled,
                 needsCheck: false,
               },
