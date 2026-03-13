@@ -9,6 +9,8 @@
 
 import React, { useRef } from 'react';
 import type { UploadedImage } from '../../types/message';
+import { Tooltip } from './Tooltip';
+import { readFileAsDataURL } from '../utils/file-reader';
 
 interface ImageUploaderProps {
   images: UploadedImage[];
@@ -17,6 +19,7 @@ interface ImageUploaderProps {
   maxSizeMB?: number;
   showButtonOnly?: boolean; // 只显示上传按钮（在输入框内）
   showPreviewOnly?: boolean; // 只显示预览（悬浮层）
+  hasFiles?: boolean; // 是否已有文件上传（用于互斥检查）
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
@@ -26,12 +29,19 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   maxSizeMB = 5,
   showButtonOnly = false,
   showPreviewOnly = false,
+  hasFiles = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 处理文件选择
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+
+    // 检查是否已有文件上传
+    if (hasFiles) {
+      alert('已上传文件，不能同时上传图片');
+      return;
+    }
 
     // 检查数量限制
     if (images.length >= maxImages) {
@@ -91,18 +101,17 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
   };
 
-  // 读取文件为 Data URL
-  const readFileAsDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
   // 删除图片
-  const handleRemove = (id: string) => {
+  const handleRemove = async (id: string) => {
+    const imageToRemove = images.find(img => img.id === id);
+    if (imageToRemove) {
+      // 删除临时文件
+      try {
+        await window.deepbot.deleteTempFile(imageToRemove.path);
+      } catch (error) {
+        console.error('删除临时文件失败:', error);
+      }
+    }
     onImagesChange(images.filter(img => img.id !== id));
   };
 
@@ -115,26 +124,27 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   if (showButtonOnly) {
     return (
       <>
-        <button
-          type="button"
-          className="image-upload-button-inline"
-          onClick={handleButtonClick}
-          title={`上传图片 (最多${maxImages}张，每张最大${maxSizeMB}MB)`}
-          disabled={images.length >= maxImages}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+        <Tooltip content={`上传图片 (最多${maxImages}张，每张最大${maxSizeMB}MB)`}>
+          <button
+            type="button"
+            className="image-upload-button-inline"
+            onClick={handleButtonClick}
+            disabled={images.length >= maxImages}
           >
-            <rect x="2" y="4" width="12" height="10" stroke="currentColor" strokeWidth="1.5" rx="1" />
-            <circle cx="5.5" cy="7.5" r="1.5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M2 11L5 8L8 11L11 8L14 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M8 2L8 6M6 4L8 2L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect x="2" y="4" width="12" height="10" stroke="currentColor" strokeWidth="1.5" rx="1" />
+              <circle cx="5.5" cy="7.5" r="1.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M2 11L5 8L8 11L11 8L14 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 2L8 6M6 4L8 2L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </Tooltip>
 
         {/* 隐藏的文件输入 */}
         <input
@@ -156,21 +166,23 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     return (
       <div className="image-preview-floating">
         {images.map((image) => (
-          <div key={image.id} className="image-preview-item-floating">
-            <img
-              src={image.dataUrl}
-              alt={image.name}
-              className="image-preview-thumbnail-floating"
-            />
-            <button
-              type="button"
-              className="image-preview-remove-floating"
-              onClick={() => handleRemove(image.id)}
-              title="删除图片"
-            >
-              ×
-            </button>
-          </div>
+          <Tooltip key={image.id} content={`${image.path}\n${image.name}`}>
+            <div className="image-preview-item-floating">
+              <img
+                src={image.dataUrl}
+                alt={image.name}
+                className="image-preview-thumbnail-floating"
+              />
+              <button
+                type="button"
+                className="image-preview-remove-floating"
+                onClick={() => handleRemove(image.id)}
+                title="删除图片"
+              >
+                ×
+              </button>
+            </div>
+          </Tooltip>
         ))}
       </div>
     );

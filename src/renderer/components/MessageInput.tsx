@@ -4,10 +4,11 @@
 
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { ImageUploader } from './ImageUploader';
-import type { UploadedImage } from '../../types/message';
+import { FileUploader } from './FileUploader';
+import type { UploadedImage, UploadedFile } from '../../types/message';
 
 interface MessageInputProps {
-  onSend: (content: string, images?: UploadedImage[]) => void;
+  onSend: (content: string, images?: UploadedImage[], files?: UploadedFile[]) => void;
   onStop: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
@@ -30,6 +31,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
 }, ref) => {
   const [content, setContent] = useState('');
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // 🔥 历史记录功能
@@ -143,9 +145,14 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
       setHistoryIndex(-1); // 重置历史索引
       setTempContent(''); // 清空临时内容
       
-      onSend(trimmedContent, uploadedImages.length > 0 ? uploadedImages : undefined);
+      onSend(
+        trimmedContent, 
+        uploadedImages.length > 0 ? uploadedImages : undefined,
+        uploadedFiles.length > 0 ? uploadedFiles : undefined
+      );
       setContent('');
       setUploadedImages([]); // 清空已上传的图片
+      setUploadedFiles([]); // 清空已上传的文件
 
       // 重置文本框高度和滚动条
       if (textareaRef.current) {
@@ -371,29 +378,21 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
 
         {/* 输入框容器（包含图片预览、文本框和上传按钮） */}
         <div className="terminal-input-with-upload">
-          {/* 图片预览（在输入框内部最前面） */}
-          {uploadedImages.length > 0 && (
-            <div className="input-images-inline">
-              {uploadedImages.map((image) => (
-                <div key={image.id} className="input-image-item">
-                  <img
-                    src={image.dataUrl}
-                    alt={image.name}
-                    className="input-image-thumbnail"
-                  />
-                  <button
-                    type="button"
-                    className="input-image-remove"
-                    onClick={() => setUploadedImages(uploadedImages.filter(img => img.id !== image.id))}
-                    title="删除图片"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <div className="input-images-separator">|</div>
-            </div>
-          )}
+          {/* 图片预览（悬浮层） */}
+          <ImageUploader
+            images={uploadedImages}
+            onImagesChange={setUploadedImages}
+            showPreviewOnly={true}
+            hasFiles={uploadedFiles.length > 0}
+          />
+
+          {/* 文件预览（悬浮层） */}
+          <FileUploader
+            files={uploadedFiles}
+            onFilesChange={setUploadedFiles}
+            showPreviewOnly={true}
+            hasImages={uploadedImages.length > 0}
+          />
 
           {/* 文本输入框 */}
           <textarea
@@ -412,6 +411,15 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
             images={uploadedImages}
             onImagesChange={setUploadedImages}
             showButtonOnly={true}
+            hasFiles={uploadedFiles.length > 0}
+          />
+
+          {/* 文件上传按钮（在输入框内部右侧） */}
+          <FileUploader
+            files={uploadedFiles}
+            onFilesChange={setUploadedFiles}
+            showButtonOnly={true}
+            hasImages={uploadedImages.length > 0}
           />
         </div>
 

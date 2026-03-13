@@ -139,6 +139,11 @@ const arePropsEqual = (
     return false;
   }
   
+  // 上传文件比较
+  if (prev.uploadedFiles?.length !== next.uploadedFiles?.length) {
+    return false;
+  }
+  
   // 执行步骤比较
   const prevSteps = prev.executionSteps || [];
   const nextSteps = next.executionSteps || [];
@@ -175,6 +180,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
   const isSubAgentResult = message.isSubAgentResult === true;
+
+  // 格式化文件大小
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   // 格式化时间戳 - 已禁用
   // const formatTimestamp = (timestamp: number): string => {
@@ -275,6 +287,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
                     loading="lazy"
                   />
                   <div className="terminal-image-caption">{image.name}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* 如果有上传的文件，显示文件列表 */}
+          {message.uploadedFiles && message.uploadedFiles.length > 0 && (
+            <div className="message-uploaded-files">
+              {message.uploadedFiles.map((file) => (
+                <div key={file.id} className="message-uploaded-file">
+                  <span className="message-file-icon">📄</span>
+                  <div className="message-file-info">
+                    <div className="message-file-name">{file.name}</div>
+                    <div className="message-file-size">
+                      {formatFileSize(file.size)}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

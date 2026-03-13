@@ -673,6 +673,104 @@ function registerIpcHandlers() {
     }
   });
 
+  // 上传文件（保存到临时目录）
+  ipcMain.handle(IPC_CHANNELS.UPLOAD_FILE, async (_event, { name, dataUrl, size, type }) => {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const crypto = await import('crypto');
+      
+      // 检查文件大小（最大 500MB）
+      if (size > 500 * 1024 * 1024) {
+        throw new Error('文件大小不能超过 500MB');
+      }
+      
+      // 从数据库读取工作目录配置
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const settings = store.getWorkspaceSettings();
+      
+      // 创建临时目录（在工作目录下）
+      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+      ensureDirectoryExists(tempDir);
+      
+      // 生成唯一文件名
+      const id = crypto.randomBytes(8).toString('hex');
+      const ext = path.extname(name);
+      const fileName = `${id}${ext}`;
+      const filePath = path.join(tempDir, fileName);
+      
+      // 解析 base64 数据
+      const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        throw new Error('无效的文件数据格式');
+      }
+      
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      // 保存文件
+      fs.writeFileSync(filePath, buffer);
+      
+      console.log('[Upload File] 文件上传成功:', filePath);
+      
+      return {
+        success: true,
+        file: {
+          id,
+          path: filePath,
+          name,
+          size,
+          type,
+        },
+      };
+    } catch (error) {
+      console.error('[Upload File] 上传失败:', error);
+      return {
+        success: false,
+        error: getErrorMessage(error),
+      };
+    }
+  });
+
+  // 删除临时文件
+  ipcMain.handle(IPC_CHANNELS.DELETE_TEMP_FILE, async (_event, { path: filePath }) => {
+    try {
+      const path = await import('path');
+      const { safeRemove } = await import('../shared/utils/fs-utils');
+      
+      // 从数据库读取工作目录配置
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const settings = store.getWorkspaceSettings();
+      
+      // 验证文件路径在临时目录内
+      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+      const normalizedPath = path.normalize(filePath);
+      const normalizedTempDir = path.normalize(tempDir);
+      
+      if (!normalizedPath.startsWith(normalizedTempDir)) {
+        throw new Error('只能删除临时目录中的文件');
+      }
+      
+      // 删除文件
+      const deleted = safeRemove(filePath);
+      if (deleted) {
+        console.log('[Delete Temp File] 删除成功:', filePath);
+      }
+      
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error('[Delete Temp File] 删除失败:', error);
+      return {
+        success: false,
+        error: getErrorMessage(error),
+      };
+    }
+  });
+
   // ==================== 工具配置 ====================
 
   // 获取图片生成工具配置

@@ -32,6 +32,8 @@ const IPC_CHANNELS = {
   SET_DEFAULT_SKILL_DIR: 'workspace:set-default-skill-dir',
   READ_IMAGE: 'image:read',
   UPLOAD_IMAGE: 'image:upload',
+  UPLOAD_FILE: 'file:upload',
+  DELETE_TEMP_FILE: 'file:delete-temp',
   GET_IMAGE_GENERATION_TOOL_CONFIG: 'tool-config:image-generation:get',
   SAVE_IMAGE_GENERATION_TOOL_CONFIG: 'tool-config:image-generation:save',
   GET_WEB_SEARCH_TOOL_CONFIG: 'tool-config:web-search:get',
@@ -124,6 +126,16 @@ contextBridge.exposeInMainWorld('deepbot', {
   // 上传图片
   uploadImage: (name: string, dataUrl: string, size: number) => {
     return ipcRenderer.invoke(IPC_CHANNELS.UPLOAD_IMAGE, { name, dataUrl, size });
+  },
+
+  // 上传文件
+  uploadFile: (name: string, dataUrl: string, size: number, type: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.UPLOAD_FILE, { name, dataUrl, size, type });
+  },
+
+  // 删除临时文件
+  deleteTempFile: (path: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.DELETE_TEMP_FILE, { path });
   },
 
   // 工具配置 - 图片生成工具

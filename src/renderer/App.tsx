@@ -565,7 +565,11 @@ function App() {
   }, [activeTabId]); // 只依赖 activeTabId，使用 tabsRef 访问最新的 tabs
 
   // 发送消息
-  const handleSendMessage = async (content: string, images?: import('../types/message').UploadedImage[]) => {
+  const handleSendMessage = async (
+    content: string, 
+    images?: import('../types/message').UploadedImage[],
+    files?: import('../types/message').UploadedFile[]
+  ) => {
     // 检查是否已配置模型
     if (!hasModelConfig) {
       const errorMessage: Message = {
@@ -586,13 +590,20 @@ function App() {
       messageContent = `${imagePaths}\n\n${content}`;
     }
 
-    // 添加用户消息（显示原始内容和图片）
+    // 🔥 如果有上传的文件，将文件路径插入到消息中
+    if (files && files.length > 0) {
+      const filePaths = files.map((file, index) => `[参考文件${index + 1}]: ${file.path}`).join('\n');
+      messageContent = `${filePaths}\n\n${messageContent}`;
+    }
+
+    // 添加用户消息（显示原始内容、图片和文件）
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content,
       timestamp: Date.now(),
       uploadedImages: images, // 添加上传的图片（用于前端显示）
+      uploadedFiles: files, // 添加上传的文件（用于前端显示）
     };
     updateCurrentTabMessages((prev) => [...prev, userMessage]);
 

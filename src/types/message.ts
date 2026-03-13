@@ -35,6 +35,17 @@ export interface UploadedImage {
   dataUrl: string; // base64 数据 URL（用于显示缩略图）
 }
 
+/**
+ * 上传的文件信息
+ */
+export interface UploadedFile {
+  id: string;
+  path: string; // 临时文件路径
+  name: string; // 原始文件名
+  size: number; // 文件大小（字节）
+  type: string; // MIME 类型
+}
+
 export interface Message {
   id: string;
   role: MessageRole;
@@ -48,6 +59,8 @@ export interface Message {
   executionSteps?: ExecutionStep[];
   // 上传的图片（用户消息）
   uploadedImages?: UploadedImage[];
+  // 上传的文件（用户消息）
+  uploadedFiles?: UploadedFile[];
   // 总执行时间（毫秒）- Agent 消息专用
   totalDuration?: number;
   // 发送时间（毫秒时间戳）

@@ -50,6 +50,12 @@ export const IPC_CHANNELS = {
   // 图片上传
   UPLOAD_IMAGE: 'image:upload',
   
+  // 文件上传
+  UPLOAD_FILE: 'file:upload',
+  
+  // 删除临时文件
+  DELETE_TEMP_FILE: 'file:delete-temp',
+  
   // 工具配置
   GET_IMAGE_GENERATION_TOOL_CONFIG: 'tool-config:image-generation:get',
   SAVE_IMAGE_GENERATION_TOOL_CONFIG: 'tool-config:image-generation:save',
@@ -274,6 +280,36 @@ export interface UploadImageResponse {
     size: number;
     dataUrl: string;
   };
+  error?: string;
+}
+
+// 上传文件
+export interface UploadFileRequest {
+  name: string;
+  dataUrl: string; // base64 data URL
+  size: number;
+  type: string; // MIME 类型
+}
+
+export interface UploadFileResponse {
+  success: boolean;
+  file?: {
+    id: string;
+    path: string; // 临时文件路径
+    name: string;
+    size: number;
+    type: string;
+  };
+  error?: string;
+}
+
+// 删除临时文件
+export interface DeleteTempFileRequest {
+  path: string; // 临时文件路径
+}
+
+export interface DeleteTempFileResponse {
+  success: boolean;
   error?: string;
 }
 

@@ -901,6 +901,7 @@ ul.terminal-list {
   align-items: center;
   justify-content: center;
   border-radius: 3px;
+  z-index: 2; /* 确保按钮在最上层，tooltip 能正常显示 */
 }
 
 .image-upload-button-inline svg {
@@ -1073,6 +1074,304 @@ ul.terminal-list {
   color: var(--terminal-text-dim);
 }
 
+/* ==================== 文件上传组件样式 ==================== */
+
+.file-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-upload-button {
+  padding: 4px 8px;
+  min-width: auto;
+  font-size: 16px;
+}
+
+.file-upload-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 输入框内的文件上传按钮（小图标） */
+.file-upload-button-inline {
+  position: absolute;
+  right: 32px; /* 在图片上传按钮左侧 */
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--terminal-text-dim);
+  padding: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  z-index: 2; /* 确保按钮在最上层，tooltip 能正常显示 */
+}
+
+.file-upload-button-inline svg {
+  width: 16px;
+  height: 16px;
+  transition: all 0.2s;
+}
+
+.file-upload-button-inline:hover {
+  color: var(--terminal-prompt-user);
+  background: rgba(122, 162, 247, 0.1);
+}
+
+.file-upload-button-inline:hover svg {
+  transform: scale(1.1);
+}
+
+.file-upload-button-inline:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.file-upload-button-inline:disabled:hover svg {
+  transform: none;
+}
+
+/* 输入框内的文件预览（在图片后面） */
+.input-files-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.input-file-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: rgba(122, 162, 247, 0.1);
+  border: 1px solid var(--terminal-border);
+  border-radius: 3px;
+  max-width: 150px;
+}
+
+.input-file-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.input-file-name {
+  font-size: 11px;
+  color: var(--terminal-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.input-file-remove {
+  background: transparent;
+  border: none;
+  color: var(--terminal-text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.input-file-remove:hover {
+  color: var(--terminal-error);
+}
+
+/* 文件和文字之间的分隔符 */
+.input-files-separator {
+  color: var(--terminal-text-dim);
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 0 4px;
+  user-select: none;
+}
+
+/* 悬浮的文件预览（在输入框左上方） */
+.file-preview-floating {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+  padding: 6px;
+  background: rgba(26, 31, 46, 0.95);
+  border: 1px solid var(--terminal-border);
+  border-radius: 4px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.file-preview-item-floating {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--terminal-border);
+  background: rgba(122, 162, 247, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-icon-floating {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.file-preview-remove-floating {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.file-preview-remove-floating:hover {
+  background: var(--terminal-error);
+}
+
+/* 原有的文件预览列表样式（保留兼容性） */
+.file-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 400px;
+}
+
+.file-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(122, 162, 247, 0.05);
+  border: 1px solid var(--terminal-border);
+  border-radius: 4px;
+}
+
+.file-preview-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.file-preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-preview-name {
+  font-size: 12px;
+  color: var(--terminal-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-preview-size {
+  font-size: 11px;
+  color: var(--terminal-text-dim);
+  opacity: 0.7;
+}
+
+.file-preview-remove {
+  background: transparent;
+  border: none;
+  color: var(--terminal-text-dim);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.file-preview-remove:hover {
+  color: var(--terminal-error);
+}
+
+/* ==================== 消息中的上传文件样式 ==================== */
+
+.message-uploaded-files {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  max-width: 400px;
+}
+
+.message-uploaded-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(122, 162, 247, 0.08);
+  border: 1px solid var(--terminal-border);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.message-uploaded-file:hover {
+  background: rgba(122, 162, 247, 0.12);
+}
+
+.message-file-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.message-file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.message-file-name {
+  font-size: 12px;
+  color: var(--terminal-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.message-file-size {
+  font-size: 11px;
+  color: var(--terminal-text-dim);
+  opacity: 0.7;
+}
+
 /* Markdown 表格样式 */
 .terminal-message table {
   border-collapse: collapse;
@@ -1167,3 +1466,50 @@ ul.terminal-list {
 .command-suggestions::-webkit-scrollbar-thumb:hover {
   background: var(--terminal-text);
 }
+
+/* ==================== 自定义 Tooltip 样式 ==================== */
+
+.tooltip-wrapper {
+  display: contents; /* 让子元素直接参与父容器的布局 */
+}
+
+.tooltip-content {
+  position: fixed; /* 使用 fixed 定位，相对于视口 */
+  background: rgba(26, 31, 46, 0.98);
+  color: var(--terminal-text);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: pre-line; /* 支持多行显示 */
+  max-width: 300px; /* 限制最大宽度 */
+  text-align: left; /* 左对齐 */
+  z-index: 10000; /* 🔥 使用非常高的 z-index 确保在最上层 */
+  pointer-events: none;
+  border: 1px solid var(--terminal-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: tooltipFadeIn 0.15s ease-out;
+  transform: translate(-50%, calc(-100% - 6px)); /* 居中并向上偏移 */
+}
+
+/* Tooltip 箭头 */
+.tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(26, 31, 46, 0.98);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% - 8px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, calc(-100% - 6px));
+  }
+}
+

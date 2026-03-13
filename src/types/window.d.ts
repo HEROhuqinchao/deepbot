@@ -23,6 +23,12 @@ interface DeepBotAPI {
     image?: { id: string; path: string; name: string; size: number; dataUrl: string }; 
     error?: string 
   }>;
+  uploadFile: (name: string, dataUrl: string, size: number, type: string) => Promise<{ 
+    success: boolean; 
+    file?: { id: string; path: string; name: string; size: number; type: string }; 
+    error?: string 
+  }>;
+  deleteTempFile: (path: string) => Promise<{ success: boolean; error?: string }>;
   getImageGenerationToolConfig: () => Promise<{ model: string; apiUrl: string; apiKey: string } | null>;
   saveImageGenerationToolConfig: (config: { model: string; apiUrl: string; apiKey: string }) => Promise<void>;
   getBrowserToolConfig: () => Promise<{ mode: 'headless' | 'cdp'; cdpPort: number } | null>;
