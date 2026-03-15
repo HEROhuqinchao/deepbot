@@ -4,7 +4,7 @@
 
 <p>
 
-## **Intelligent ｜ Secure ｜ Extensible**
+**Let AI deeply participate in enterprise daily operations and become your real working partner**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)

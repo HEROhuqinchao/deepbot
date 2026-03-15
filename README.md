@@ -4,7 +4,7 @@
 
 <p>
 
-## **智能 | 安全 | 可扩展**
+ **让 AI 深入参与企业日常办公，成为你真正干活的伙伴**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
