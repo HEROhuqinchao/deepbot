@@ -262,9 +262,10 @@ export async function analyzeImageWithGemini(params: {
   apiKey: string;
   apiUrl: string;
   model: string;
+  prompt?: string; // 🔥 可选的自定义提示词
   signal?: AbortSignal;
 }): Promise<string> {
-  const { imagePath, apiKey, apiUrl, model, signal } = params;
+  const { imagePath, apiKey, apiUrl, model, prompt, signal } = params;
 
   // 检查是否已被取消
   if (signal?.aborted) {
@@ -276,6 +277,9 @@ export async function analyzeImageWithGemini(params: {
   // 读取图片
   const { buffer, mimeType, expandedPath } = readImageFile(imagePath);
   const base64Image = buffer.toString('base64');
+
+  // 🔥 使用自定义提示词或默认提示词
+  const analysisPrompt = prompt || '请详细描述这张图片的内容、风格、色彩、构图等特征，生成一个适合用于图片生成的提示词（prompt）。提示词应该包含：\n1. 主要内容和主体\n2. 艺术风格\n3. 色彩特征\n4. 构图和视角\n5. 光影效果\n6. 其他重要细节\n\n请用简洁的英文短语描述，用逗号分隔。';
 
   // 构建请求体
   const requestBody = {
@@ -290,7 +294,7 @@ export async function analyzeImageWithGemini(params: {
             },
           },
           {
-            text: '请详细描述这张图片的内容、风格、色彩、构图等特征，生成一个适合用于图片生成的提示词（prompt）。提示词应该包含：\n1. 主要内容和主体\n2. 艺术风格\n3. 色彩特征\n4. 构图和视角\n5. 光影效果\n6. 其他重要细节\n\n请用简洁的英文短语描述，用逗号分隔。',
+            text: analysisPrompt,
           },
         ],
       },
@@ -305,6 +309,7 @@ export async function analyzeImageWithGemini(params: {
 
   console.log('[Gemini Image Analysis] 调用 Gemini API 解析图片...');
   console.log(`   图片路径: ${imagePath}`);
+  console.log(`   提示词: ${prompt ? '自定义' : '默认'}`);
 
   // 调用 API
   const url = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;

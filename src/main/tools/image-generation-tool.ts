@@ -79,6 +79,9 @@ const ImageGenerationSchema = Type.Object({
   imagePath: Type.Optional(Type.String({
     description: '要解析的图片路径。action=analyze 时必填',
   })),
+  analysisPrompt: Type.Optional(Type.String({
+    description: '图片分析的自定义提示词（可选）。用于引导分析结果，例如："请识别图片中的文字"、"请分析图片中的情绪"、"请描述图片的艺术风格"等',
+  })),
   aspectRatio: Type.Optional(Type.Union([
     Type.Literal('1:1', { description: '正方形' }),
     Type.Literal('4:3', { description: '横向标准' }),
@@ -135,6 +138,7 @@ async function analyzeImage(params: {
   apiUrl: string;
   model: string;
   provider: 'gemini' | 'qwen';
+  prompt?: string; // 🔥 可选的自定义提示词
   signal?: AbortSignal;
 }): Promise<string> {
   // 目前只有 Gemini 支持图片解析，Qwen 暂不支持
@@ -187,6 +191,7 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
           action?: 'generate' | 'analyze';
           prompt?: string;
           imagePath?: string;
+          analysisPrompt?: string; // 🔥 图片分析的自定义提示词
           aspectRatio?: '1:1' | '4:3' | '16:9' | '9:16' | '3:4' | '3:2' | '2:3' | '4:5' | '5:4' | '21:9';
           resolution?: '1K' | '2K' | '4K';
           referenceImages?: string[];
@@ -216,6 +221,9 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
 
           console.log('[Image Analysis] 开始解析图片...');
           console.log(`   图片路径: ${params.imagePath}`);
+          if (params.analysisPrompt) {
+            console.log(`   自定义提示词: ${params.analysisPrompt.substring(0, 50)}...`);
+          }
 
           const analysisResult = await analyzeImage({
             imagePath: params.imagePath,
@@ -223,6 +231,7 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
             apiUrl: toolConfig.apiUrl,
             model: toolConfig.model,
             provider: toolConfig.provider,
+            prompt: params.analysisPrompt, // 🔥 传递自定义提示词
             signal,
           });
 
