@@ -16,13 +16,17 @@ export enum LogLevel {
 class Logger {
   private level: LogLevel = LogLevel.INFO;
   private module: string;
+  private enableFileLogging: boolean = false; // 默认不启用文件日志
   private static logDir: string = expandUserPath('~/.deepbot/logs');
   private static logFile: string = join(Logger.logDir, 'deepbot.log');
   private static initialized: boolean = false;
 
-  constructor(module: string) {
+  constructor(module: string, enableFileLogging: boolean = false) {
     this.module = module;
-    Logger.initializeLogFile();
+    this.enableFileLogging = enableFileLogging;
+    if (this.enableFileLogging) {
+      Logger.initializeLogFile();
+    }
   }
 
   private static initializeLogFile() {
@@ -45,6 +49,8 @@ class Logger {
   }
 
   private writeToFile(level: string, message: string, ...args: any[]) {
+    if (!this.enableFileLogging) return; // 如果未启用文件日志，直接返回
+    
     try {
       const timestamp = new Date().toISOString();
       const argsStr = args.length > 0 ? ' ' + args.map(arg => 
@@ -60,6 +66,16 @@ class Logger {
 
   setLevel(level: LogLevel) {
     this.level = level;
+  }
+
+  /**
+   * 启用或禁用文件日志
+   */
+  setFileLogging(enabled: boolean) {
+    this.enableFileLogging = enabled;
+    if (enabled && !Logger.initialized) {
+      Logger.initializeLogFile();
+    }
   }
 
   /**
@@ -80,28 +96,36 @@ class Logger {
   debug(message: string, ...args: any[]) {
     if (this.level <= LogLevel.DEBUG) {
       this.safeConsoleLog('debug', `🔍 ${message}`, ...args);
-      this.writeToFile('DEBUG', message, ...args);
+      if (this.enableFileLogging) {
+        this.writeToFile('DEBUG', message, ...args);
+      }
     }
   }
 
   info(message: string, ...args: any[]) {
     if (this.level <= LogLevel.INFO) {
       this.safeConsoleLog('info', `ℹ️  ${message}`, ...args);
-      this.writeToFile('INFO', message, ...args);
+      if (this.enableFileLogging) {
+        this.writeToFile('INFO', message, ...args);
+      }
     }
   }
 
   warn(message: string, ...args: any[]) {
     if (this.level <= LogLevel.WARN) {
       this.safeConsoleLog('warn', `⚠️  ${message}`, ...args);
-      this.writeToFile('WARN', message, ...args);
+      if (this.enableFileLogging) {
+        this.writeToFile('WARN', message, ...args);
+      }
     }
   }
 
   error(message: string, ...args: any[]) {
     if (this.level <= LogLevel.ERROR) {
       this.safeConsoleLog('error', `❌ ${message}`, ...args);
-      this.writeToFile('ERROR', message, ...args);
+      if (this.enableFileLogging) {
+        this.writeToFile('ERROR', message, ...args);
+      }
     }
   }
 
@@ -122,9 +146,11 @@ class Logger {
 
 /**
  * 创建日志记录器
+ * @param module 模块名称
+ * @param enableFileLogging 是否启用文件日志（默认 false）
  */
-export function createLogger(module: string): Logger {
-  return new Logger(module);
+export function createLogger(module: string, enableFileLogging: boolean = false): Logger {
+  return new Logger(module, enableFileLogging);
 }
 
 /**
