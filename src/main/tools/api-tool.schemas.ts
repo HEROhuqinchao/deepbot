@@ -82,10 +82,6 @@ export const SetModelConfigSchema = Type.Object({
     description: '快速模型 ID（可选，用于轻量级任务）',
   })),
   
-  modelName: Type.Optional(Type.String({
-    description: '模型名称',
-  })),
-  
   apiKey: Type.Optional(Type.String({
     description: 'API Key',
   })),

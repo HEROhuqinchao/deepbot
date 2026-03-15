@@ -25,7 +25,7 @@ export function formatGetConfigResult(result: any): string {
     message += `🤖 模型配置：\n`;
     message += `  • 提供商类型: ${result.model.providerType}\n`;
     message += `  • 提供商: ${result.model.providerName}\n`;
-    message += `  • 主模型: ${result.model.modelName}\n`;
+    message += `  • 主模型: ${result.model.modelId}\n`;
     if (result.model.modelId2) {
       message += `  • 快速模型: ${result.model.modelId2}\n`;
     }
@@ -180,8 +180,8 @@ export function formatSetModelConfigResult(params: any): string {
   if (params.providerName) {
     message += `  • 提供商: ${params.providerName}\n`;
   }
-  if (params.modelName) {
-    message += `  • 主模型: ${params.modelName}\n`;
+  if (params.modelId) {
+    message += `  • 主模型: ${params.modelId}\n`;
   }
   if (params.modelId2 !== undefined) {
     message += `  • 快速模型: ${params.modelId2 || '未设置'}\n`;

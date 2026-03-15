@@ -221,7 +221,6 @@ export interface ModelConfig {
   providerName: string;
   baseUrl: string;
   modelId: string;         // 模型 ID（主模型）
-  modelName: string;
   apiType: string;         // API 类型（'openai-completions' | 'google-generative-ai'）
   modelId2?: string;       // 模型 ID 2（快速模型，选填，用于轻量级任务）
   apiKey: string;

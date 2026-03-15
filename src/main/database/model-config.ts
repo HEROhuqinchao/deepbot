@@ -23,7 +23,6 @@ export function getModelConfig(db: Database.Database): ModelConfig | null {
       providerName: row.provider_name,
       baseUrl: row.base_url,
       modelId: row.model_id,
-      modelName: row.model_name,
       apiType: row.api_type || 'openai-completions', // 默认 OpenAI 兼容
       modelId2: row.model_id_2 || undefined, // 快速模型（选填）
       apiKey: row.api_key,
@@ -52,7 +51,7 @@ export function saveModelConfig(db: Database.Database, config: ModelConfig): voi
     config.providerName,
     config.baseUrl,
     config.modelId,
-    config.modelName,
+    config.modelId, // 使用 modelId 作为 model_name
     config.apiType || 'openai-completions', // 默认 OpenAI 兼容
     config.modelId2 || null, // 快速模型（选填）
     config.apiKey,
@@ -66,7 +65,7 @@ export function saveModelConfig(db: Database.Database, config: ModelConfig): voi
   console.info('[SystemConfigStore] ✅ 模型配置已保存并同步到磁盘:', {
     providerType: config.providerType,
     provider: config.providerName,
-    model: config.modelName,
+    model: config.modelId, // 使用 modelId
     modelId2: config.modelId2 || '(未设置)',
     contextWindow: config.contextWindow,
   });

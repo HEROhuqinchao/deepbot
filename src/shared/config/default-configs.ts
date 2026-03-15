@@ -90,7 +90,6 @@ export const DEFAULT_MODEL_CONFIG = {
   baseUrl: PROVIDER_PRESETS.qwen.baseUrl,
   modelId: PROVIDER_PRESETS.qwen.defaultModelId,
   modelId2: PROVIDER_PRESETS.qwen.defaultModelId2,  // 快速模型默认值
-  modelName: PROVIDER_PRESETS.qwen.defaultModelId,
   apiType: PROVIDER_PRESETS.qwen.apiType,
   apiKey: '',
 };

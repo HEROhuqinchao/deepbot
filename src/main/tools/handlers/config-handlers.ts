@@ -151,7 +151,6 @@ export async function handleSetModelConfig(
     baseUrl: string;
     modelId: string;
     modelId2: string;
-    modelName: string;
     apiType: string;
     apiKey: string;
     contextWindow: number;
@@ -176,7 +175,6 @@ export async function handleSetModelConfig(
       baseUrl: params.baseUrl || currentConfig?.baseUrl || DEFAULT_MODEL_CONFIG.baseUrl,
       modelId: params.modelId !== undefined ? params.modelId : currentConfig?.modelId || DEFAULT_MODEL_CONFIG.modelId,
       modelId2: params.modelId2 !== undefined ? params.modelId2 : currentConfig?.modelId2,
-      modelName: params.modelName || currentConfig?.modelName || DEFAULT_MODEL_CONFIG.modelName,
       apiType: params.apiType || currentConfig?.apiType || DEFAULT_MODEL_CONFIG.apiType,
       apiKey: params.apiKey || currentConfig?.apiKey || DEFAULT_MODEL_CONFIG.apiKey,
       contextWindow: params.contextWindow || currentConfig?.contextWindow,
@@ -185,6 +183,15 @@ export async function handleSetModelConfig(
     
     // 保存配置
     store.saveModelConfig(newConfig);
+    
+    // 🔥 触发 Gateway 重新加载模型配置
+    const gateway = await getGatewayInstance();
+    
+    if (gateway) {
+      logger.info('模型配置已更新，重新加载 Gateway...');
+      await gateway.reloadModelConfig();
+      logger.info('Gateway 模型配置已重新加载');
+    }
     
     return createSuccessResponse(
       formatters.formatSetModelConfigResult(params),
@@ -218,9 +225,9 @@ export async function handleSetImageGenerationConfig(
     
     // 合并配置（优先级：用户输入 > 当前配置 > 默认配置）
     const newConfig = {
-      model: params.model || currentConfig?.model || DEFAULT_IMAGE_GENERATION_CONFIG.model,
-      apiUrl: params.apiUrl || currentConfig?.apiUrl || DEFAULT_IMAGE_GENERATION_CONFIG.apiUrl,
-      apiKey: params.apiKey || currentConfig?.apiKey || DEFAULT_IMAGE_GENERATION_CONFIG.apiKey,
+      model: params.model !== undefined ? params.model : currentConfig?.model || DEFAULT_IMAGE_GENERATION_CONFIG.model,
+      apiUrl: params.apiUrl !== undefined ? params.apiUrl : currentConfig?.apiUrl || DEFAULT_IMAGE_GENERATION_CONFIG.apiUrl,
+      apiKey: params.apiKey !== undefined ? params.apiKey : currentConfig?.apiKey || DEFAULT_IMAGE_GENERATION_CONFIG.apiKey,
     };
     
     // 保存配置
@@ -259,10 +266,10 @@ export async function handleSetWebSearchConfig(
     
     // 合并配置（优先级：用户输入 > 当前配置 > 默认配置）
     const newConfig = {
-      provider: params.provider || currentConfig?.provider || DEFAULT_WEB_SEARCH_CONFIG.provider,
-      model: params.model || currentConfig?.model || DEFAULT_WEB_SEARCH_CONFIG.model,
-      apiUrl: params.apiUrl || currentConfig?.apiUrl || DEFAULT_WEB_SEARCH_CONFIG.apiUrl,
-      apiKey: params.apiKey || currentConfig?.apiKey || DEFAULT_WEB_SEARCH_CONFIG.apiKey,
+      provider: params.provider !== undefined ? params.provider : currentConfig?.provider || DEFAULT_WEB_SEARCH_CONFIG.provider,
+      model: params.model !== undefined ? params.model : currentConfig?.model || DEFAULT_WEB_SEARCH_CONFIG.model,
+      apiUrl: params.apiUrl !== undefined ? params.apiUrl : currentConfig?.apiUrl || DEFAULT_WEB_SEARCH_CONFIG.apiUrl,
+      apiKey: params.apiKey !== undefined ? params.apiKey : currentConfig?.apiKey || DEFAULT_WEB_SEARCH_CONFIG.apiKey,
     };
     
     // 保存配置

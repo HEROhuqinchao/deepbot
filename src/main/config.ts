@@ -46,7 +46,7 @@ export function getConfig(): DeepBotConfig {
         apiKey: modelConfig.apiKey,
         baseUrl: modelConfig.baseUrl,
         modelId: modelConfig.modelId,
-        modelName: modelConfig.modelName,
+        modelName: modelConfig.modelId, // 使用 modelId 作为显示名称
         providerName: modelConfig.providerId,
         apiType: modelConfig.apiType || 'openai-completions', // 默认 OpenAI 兼容
         modelId2: modelConfig.modelId2, // 快速模型（选填）

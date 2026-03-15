@@ -146,7 +146,7 @@ export function registerModelConfigHandlers(): void {
         const model = apiType === 'google-generative-ai' ? {
           api: 'google-generative-ai' as const,
           id: request.config.modelId,
-          name: request.config.modelName,
+          name: request.config.modelId, // 使用 modelId 作为名称
           provider: request.config.providerId,
           input: ['text', 'image'] as const,
           reasoning: false,
@@ -162,7 +162,7 @@ export function registerModelConfigHandlers(): void {
         } : {
           api: 'openai-completions' as const,
           id: request.config.modelId,
-          name: request.config.modelName,
+          name: request.config.modelId, // 使用 modelId 作为名称
           provider: request.config.providerId,
           input: ['text'] as const,
           reasoning: false,
