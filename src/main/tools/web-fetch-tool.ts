@@ -10,8 +10,6 @@
  * - 大小限制和超时控制
  * - HTML 清理（移除隐藏元素）
  * - 不可见字符过滤（防止 prompt injection）
- * 
- * 参考：Clawdbot 的 web-fetch-utils.ts 实现
  */
 
 import { Type } from '@sinclair/typebox';
@@ -204,7 +202,7 @@ async function extractReadableContent(
 }
 
 /**
- * HTML 转 Markdown（参考 Clawdbot 实现）
+ * HTML 转 Markdown
  */
 function htmlToMarkdown(html: string): { text: string; title?: string } {
   // 提取标题

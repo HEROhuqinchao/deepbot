@@ -9,9 +9,6 @@
  * - 手动触发任务
  * - 查看执行历史
  * 
- * 参考：
- * - Clawdbot Cron Jobs: clawdbot/docs/automation/cron-jobs.md
- * 
  * 技术选型：
  * - SQLite: 存储任务数据
  * - cron: Cron 表达式解析

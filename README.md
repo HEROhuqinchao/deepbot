@@ -713,9 +713,8 @@ deepbot/
 
 DeepBot 的开发受到以下项目的启发：
 
-- [Clawdbot](https://github.com/openclaw/openclaw) - 导师项目，提供了架构参考
+- [Clawdbot](https://github.com/openclaw/openclaw) - 提供了架构参考
 - [@mariozechner/pi-agent-core](https://github.com/badlogic/pi-agent) - AI Agent Runtime
-- [Electron](https://www.electronjs.org/) - 跨平台桌面应用框架
 
 ---
 

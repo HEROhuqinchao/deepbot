@@ -716,9 +716,8 @@ This project is licensed under the [MIT License](LICENSE).
 
 DeepBot's development was inspired by the following projects:
 
-- [Clawdbot](https://github.com/openclaw/openclaw) - Mentor project, provided architectural reference
+- [Clawdbot](https://github.com/openclaw/openclaw) - Provided architectural reference
 - [@mariozechner/pi-agent-core](https://github.com/badlogic/pi-agent) - AI Agent Runtime
-- [Electron](https://www.electronjs.org/) - Cross-platform desktop application framework
 
 ---
 

@@ -6,8 +6,6 @@
  * - 启动/停止 Connector
  * - 配置管理
  * - 处理外部消息并转发到 Gateway
- * 
- * 参考：Clawdbot Channel Plugin 系统
  */
 
 import type { Gateway } from '../gateway';
