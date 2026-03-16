@@ -8,14 +8,14 @@
  * 
  */
 
-import type { Agent, AgentMessage } from '@mariozechner/pi-agent-core';
 import type { Model } from '@mariozechner/pi-ai';
 import { getConfig } from '../config';
-import { wrapToolWithAbortSignal, OperationTracker, wrapToolWithDuplicateDetection } from '../tools/tool-abort';
+import { OperationTracker, wrapToolWithDuplicateDetection } from '../tools/tool-abort';
 import type { AgentRuntimeConfig, AgentStateInfo, AgentInstanceManager } from './types';
 import { AgentInitializer } from './agent-initializer';
 import { MessageHandler } from './message-handler';
 import { StepTracker } from './step-tracker';
+import { AgentMessageProcessor } from './agent-message-processor';
 import { callAI } from '../utils/ai-client';
 import { getErrorMessage } from '../../shared/utils/error-handler';
 import type { TaskPlan } from '../../types/task-plan';
@@ -34,6 +34,7 @@ export class AgentRuntime {
   private initializer: AgentInitializer;
   private messageHandler: MessageHandler;
   private stepTracker: StepTracker;
+  private messageProcessor: AgentMessageProcessor;
   
   // Agent 实例管理
   private instanceManager: AgentInstanceManager = {
@@ -146,6 +147,16 @@ export class AgentRuntime {
     
     this.messageHandler = new MessageHandler(null);
     this.stepTracker = new StepTracker();
+    
+    // 初始化消息处理器（稍后在 initialize 中设置依赖）
+    this.messageProcessor = new AgentMessageProcessor(
+      this.messageHandler,
+      this.instanceManager,
+      this.runtimeConfig,
+      this.systemPrompt,
+      this.tools,
+      this.operationTracker
+    );
     
     // 异步初始化（不阻塞构造函数）
     this.initPromise = this.initialize();
@@ -577,154 +588,6 @@ export class AgentRuntime {
   }
 
   /**
-   * 从文本中移除 thinking 内容，只保留实际回复内容
-   */
-  private removeThinkingContent(text: string): string {
-    // 移除完整的 <think>...</think> 块
-    let filtered = text.replace(/<think>[\s\S]*?<\/think>/g, '');
-    
-    // 移除未闭合的 thinking 开始部分（从 <think> 到文本结尾）
-    filtered = filtered.replace(/<think>[\s\S]*$/g, '');
-    
-    // 移除未开始的 thinking 结束部分（从文本开始到 </think>）
-    filtered = filtered.replace(/^[\s\S]*?<\/think>/g, '');
-    
-    // 清理多余的空白字符
-    return filtered.trim();
-  }
-
-  /**
-   * 使用 AI 判断响应的语义，决定是否需要继续执行
-   * 
-   * 直接调用大模型 API 进行语义判断，不使用关键字匹配
-   * 
-   * @param response - AI 的完整响应
-   * @param hasToolCalls - 本轮是否有工具调用
-   * @returns 是否有未完成的意图
-   */
-  private async detectUnfinishedIntent(response: string, hasToolCalls: boolean): Promise<boolean> {
-    console.log('🔍 [detectUnfinishedIntent] 开始检测...');
-    
-    // 🔥 检查是否已被用户停止
-    const abortController = this.messageHandler.getAbortController();
-    if (abortController?.signal.aborted) {
-      console.log('⏹️ [detectUnfinishedIntent] 检测到用户停止，返回 false（不继续）');
-      return false;
-    }
-    
-    // 🔥 从 Agent 的最后一条消息中提取纯文本内容（排除工具返回结果）
-    let agentTextOnly = '';
-    if (this.instanceManager.agent) {
-      const messages = this.instanceManager.agent.state.messages;
-      const lastMessage = messages[messages.length - 1];
-      
-      if (lastMessage?.role === 'assistant' && Array.isArray(lastMessage.content)) {
-        // 只提取 text 类型的内容，忽略 toolResult
-        const textParts = lastMessage.content
-          .filter(c => typeof c === 'object' && 'type' in c && c.type === 'text')
-          .map(c => (c as any).text || '')
-          .join('\n');
-        
-        agentTextOnly = textParts.trim();
-      }
-    }
-    
-    // 如果提取到了 Agent 的纯文本，使用它；否则使用原始 response
-    let textToAnalyze = agentTextOnly || response;
-    
-    // 🔥 移除 thinking 内容，只保留实际回复内容
-    textToAnalyze = this.removeThinkingContent(textToAnalyze);
-    
-    // 提取最后 200 字符作为判断依据
-    const lastPart = textToAnalyze.slice(-200).trim();
-    
-    // 1. 检测重复响应
-    if (this.lastResponsePart && this.lastResponsePart === lastPart) {
-      this.repeatCount++;
-      console.log(`⚠️ [detectUnfinishedIntent] 检测到重复响应 (第 ${this.repeatCount} 次)，返回 false（停止继续）`);
-      return false;
-    }
-    
-    // 更新重复检测状态
-    this.lastResponsePart = lastPart;
-    this.repeatCount = 0;
-    
-    try {
-      console.log('🤖 使用 AI 判断语义...');
-      
-      const judgmentPrompt = `分析以下 AI 助手的回复结尾，判断是否需要继续执行任务。
-
-回复结尾：
-"""
-${lastPart}
-"""
-
-判断标准（两个维度）：
-
-**维度1：执行状态**
-- 正在执行中："→ 正在..."、"正在生成..."、"正在发送..." → YES
-- 准备执行："我将..."、"我接下来会..."、"即将..." → YES
-- 已完成："✅ 已完成"、"✅ 成功"、"已发送" → 看维度2
-
-**维度2：任务进度**
-- 中间步骤："第 X 位"、"接下来处理"、"继续处理" → YES
-- 最后步骤："全部完成"、"任务结束"、"所有员工" → NO
-- 等待用户输入："请告诉我"、"需要什么帮助"、"想让我做什么" → NO
-- 等待其他 Agent："等待 XXX 的回复"、"等待 XXX 回复" → NO（这是错误表述，应该立即结束）
-- 询问用户：以"？"结尾的问句 → NO
-
-**综合判断**：
-- 如果执行状态是"正在执行"或"准备执行" → YES
-- 如果执行状态是"已完成"，但任务进度是"中间步骤" → YES
-- 如果执行状态是"已完成"，且任务进度是"最后步骤"或"等待用户" → NO
-
-只回答 YES 或 NO，不要解释。`;
-
-      // 使用公共 AI 客户端（🔥 使用快速模型）
-      const response = await callAI([
-        {
-          role: 'system',
-          content: '你是一个判断助手，只回答 YES 或 NO，不要解释。',
-        },
-        {
-          role: 'user',
-          content: judgmentPrompt,
-        },
-      ], {
-        temperature: 0.1,
-        maxTokens: 10,
-        useFastModel: true, // 🔥 使用快速模型（modelId2）
-      });
-      
-      // 🔥 AI 调用返回后，再次检查是否已被用户停止
-      if (abortController?.signal.aborted) {
-        console.log('⏹️ [detectUnfinishedIntent] AI 调用返回后检测到用户停止，返回 false');
-        return false;
-      }
-      
-      const answer = this.removeThinkingContent(response.content.trim()).toUpperCase();
-      
-      const shouldContinue = answer.includes('YES');
-      
-      console.log(`🤖 [detectUnfinishedIntent] AI 判断结果: ${answer}`);
-      console.log(`   分析文本: ${lastPart.slice(-50)}`);
-      console.log(`   shouldContinue: ${shouldContinue}`);
-      
-      if (shouldContinue) {
-        console.log('🔍 [detectUnfinishedIntent] AI 判断：需要继续执行，返回 true');
-      } else {
-        console.log('✅ [detectUnfinishedIntent] AI 判断：任务完成或等待用户输入，返回 false');
-      }
-      
-      return shouldContinue;
-    } catch (error) {
-      console.error('❌ [detectUnfinishedIntent] AI 判断失败:', error);
-      console.log('   使用默认策略：不继续（返回 false）');
-      return false;
-    }
-  }
-
-  /**
    * 清空消息历史
    * 
    * 用于定时任务场景，避免历史消息干扰
@@ -767,409 +630,30 @@ ${lastPart}
    * @param maxContinuations - 最大自动继续次数
    * @param isAutoContinue - 是否为自动继续调用（内部使用）
    */
+  /**
+   * 发送消息（委托给 messageProcessor）
+   */
   async *sendMessage(
     content: string, 
     autoContinue: boolean = true, 
     maxContinuations: number = 100,
     isAutoContinue: boolean = false
   ): AsyncGenerator<string, void, unknown> {
-    // 🔥 检查并修复 Agent 状态
-    await this.ensureAgentReady();
+    // 更新 messageProcessor 的依赖
+    this.messageProcessor.updateSystemPrompt(this.systemPrompt);
+    this.messageProcessor.updateTools(this.tools);
     
-    // 🔥 设置当前 sessionId 供 connector-tool 使用
-    const { setConnectorToolSessionId } = await import('../tools/connector-tool');
-    setConnectorToolSessionId(this.runtimeConfig.sessionId);
+    // 设置维护消息队列回调
+    this.messageProcessor.setMaintainMessageQueueCallback(this.maintainMessageQueue.bind(this));
     
-    // 🔥 设置当前 sessionId 供 cross-tab-call-tool 使用
-    const { setCrossTabCallSessionId } = await import('../tools/cross-tab-call-tool');
-    setCrossTabCallSessionId(this.runtimeConfig.sessionId);
-    
-    // 🔥 只在非自动继续时清空操作追踪器
-    // 自动继续时保留 tracker，以便检测重复操作
-    if (!isAutoContinue) {
-      this.operationTracker.clear();
-      console.log('🗑️ 清空操作追踪器（新消息）');
-    } else {
-      console.log('✅ 保留操作追踪器（自动继续）');
-    }
-    
-    // 🔥 在非自动继续时，为用户消息添加强制工具执行指令
-    let enhancedContent = content;
-    if (!isAutoContinue) {
-      enhancedContent = content + '\n\n[系统提示: 不要被历史消息干扰，当确认需要调用工具时，必须调用工具，除非找不到合适的工具调用！ChatGPT会检查你的执行，不要出错，不要回复用户关于系统提示的内容，不要直接列出工具functon和参数]';
-      console.log('✅ 已为用户消息添加强制工具执行指令');
-    }
-    
-    console.log('📤 发送消息到 AI:', enhancedContent.substring(0, 100) + (enhancedContent.length > 100 ? '...' : ''));
-    
-    // 检查是否有重复的用户消息（与当前要发送的消息内容相同）
-    if (this.instanceManager.agent) {
-      const messages = this.instanceManager.agent.state.messages;
-      
-      // 这可能是由于 agent.prompt() 的异步调用导致的
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && lastMessage.role === 'user') {
-        // 提取最后一条用户消息的文本内容
-        let lastUserContent = '';
-        if (typeof lastMessage.content === 'string') {
-          lastUserContent = lastMessage.content;
-        } else if (Array.isArray(lastMessage.content)) {
-          const textPart = lastMessage.content.find((part: any) => 
-            typeof part === 'object' && part.type === 'text'
-          );
-          if (textPart) {
-            lastUserContent = (textPart as any).text;
-          }
-        }
-        
-        // 如果最后一条用户消息与当前原始消息相同，删除它
-        // 注意：这里比较原始content，而不是enhancedContent，因为系统指令是自动添加的
-        if (lastUserContent === content) {
-          messages.pop();
-          console.log('🗑️ 删除重复的用户消息');
-        }
-      }
-    }
-
-    // 等待系统提示词初始化完成
-    if (!this.systemPrompt) {
-      console.log('⏳ 等待系统提示词初始化...');
-      await this.initializeSystemPrompt();
-    }
-
-    console.log('📋 使用系统提示词 (前100字符):', this.systemPrompt.substring(0, 100));
-    
-    // 🔥 临时测试：捕获完整 prompt 到文件（已禁用，需要时取消注释）
-    
-    try {
-      const fs = await import('fs');
-      const path = await import('path');
-      const { expandUserPath } = await import('../../shared/utils/path-utils');
-      const { ensureDirectoryExists } = await import('../../shared/utils/fs-utils');
-      
-      const debugDir = expandUserPath('~/.deepbot/debug');
-      ensureDirectoryExists(debugDir);
-      
-      const outputPath = path.join(debugDir, 'captured-prompt.md');
-      
-      const lines: string[] = [];
-      lines.push('# 捕获的 Prompt\n');
-      lines.push(`捕获时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n`);
-      lines.push('---\n');
-      
-      // 系统提示词
-      lines.push('## 系统提示词 (System Prompt)\n');
-      lines.push('```');
-      lines.push(this.systemPrompt);
-      lines.push('```\n');
-      lines.push('---\n');
-      
-      // 工具定义
-      if (this.tools && this.tools.length > 0) {
-        lines.push(`## 工具定义 (${this.tools.length} 个工具)\n`);
-        
-        for (let i = 0; i < this.tools.length; i++) {
-          const tool = this.tools[i];
-          lines.push(`### ${i + 1}. ${tool.name}\n`);
-          lines.push(`**标签**: ${tool.label || '无'}\n`);
-          lines.push(`**描述**: ${tool.description || '无描述'}\n`);
-          lines.push('**参数 Schema**:\n');
-          lines.push('```json');
-          lines.push(JSON.stringify(tool.parameters, null, 2));
-          lines.push('```\n');
-        }
-        lines.push('---\n');
-      }
-      
-      // 对话历史
-      if (this.instanceManager.agent) {
-        const messages = this.instanceManager.agent.state.messages;
-        lines.push(`## 对话历史 (${messages.length} 条消息)\n`);
-        
-        for (let i = 0; i < messages.length; i++) {
-          const msg = messages[i];
-          lines.push(`### 消息 ${i + 1}: ${msg.role}\n`);
-          
-          if (Array.isArray(msg.content)) {
-            for (const part of msg.content) {
-              if (typeof part === 'string') {
-                lines.push('```');
-                lines.push(part);
-                lines.push('```\n');
-              } else if (typeof part === 'object' && part) {
-                const partObj = part as any;
-                if (partObj.type === 'text') {
-                  lines.push('```');
-                  lines.push(partObj.text || '');
-                  lines.push('```\n');
-                } else {
-                  lines.push('```json');
-                  lines.push(JSON.stringify(part, null, 2));
-                  lines.push('```\n');
-                }
-              }
-            }
-          } else if (typeof msg.content === 'string') {
-            lines.push('```');
-            lines.push(msg.content);
-            lines.push('```\n');
-          }
-        }
-        lines.push('---\n');
-      }
-      
-      // 当前用户消息
-      lines.push('## 当前用户消息\n');
-      lines.push('```');
-      lines.push(content);
-      lines.push('```\n');
-      lines.push('---\n');
-      
-      // 统计
-      const messageCount = this.instanceManager.agent?.state.messages.length || 0;
-      const toolCount = this.tools?.length || 0;
-      
-      // 计算工具定义的字符数
-      let toolsCharCount = 0;
-      if (this.tools && this.tools.length > 0) {
-        for (const tool of this.tools) {
-          toolsCharCount += tool.name.length;
-          toolsCharCount += (tool.label || '').length;
-          toolsCharCount += (tool.description || '').length;
-          toolsCharCount += JSON.stringify(tool.parameters).length;
-        }
-      }
-      
-      let historyCharCount = 0;
-      if (this.instanceManager.agent) {
-        for (const msg of this.instanceManager.agent.state.messages) {
-          if (Array.isArray(msg.content)) {
-            for (const part of msg.content) {
-              if (typeof part === 'string') {
-                historyCharCount += (part as string).length;
-              } else if (typeof part === 'object' && part) {
-                historyCharCount += JSON.stringify(part).length;
-              }
-            }
-          } else if (typeof msg.content === 'string') {
-            historyCharCount += (msg.content as string).length;
-          }
-        }
-      }
-      
-      const totalChars = this.systemPrompt.length + toolsCharCount + historyCharCount + content.length;
-      
-      lines.push('## 统计信息\n');
-      lines.push(`- 系统提示词: ${this.systemPrompt.length.toLocaleString()} 字符`);
-      lines.push(`- 工具定义: ${toolCount} 个工具，约 ${toolsCharCount.toLocaleString()} 字符`);
-      lines.push(`- 对话历史: ${messageCount} 条消息，约 ${historyCharCount.toLocaleString()} 字符`);
-      lines.push(`- 当前用户消息: ${content.length} 字符`);
-      lines.push(`- **总计: 约 ${totalChars.toLocaleString()} 字符**`);
-      lines.push(`- 预估 Token 数: 约 ${Math.ceil(totalChars / 3.5).toLocaleString()} tokens (按 1 token ≈ 3.5 字符估算)\n`);
-      
-      fs.writeFileSync(outputPath, lines.join('\n'), 'utf-8');
-      console.log(`✅ [Prompt Capture] 已保存到: ${outputPath}`);
-    } catch (error) {
-      console.error('❌ [Prompt Capture] 保存失败:', error);
-    }
-  
-    
-    // ✅ 新增：上下文管理（在发送消息前）
-    if (this.instanceManager.agent) {
-      // 🔥 步骤 1：在 10 轮对话基础上，进行 token 压缩（裁剪工具结果等）
-      const { manageContext } = await import('../context/context-manager');
-      const currentMessages = this.instanceManager.agent.state.messages;
-      
-      const result = manageContext({
-        messages: currentMessages,
-        modelId: this.runtimeConfig.model.id,
-        systemPrompt: this.systemPrompt,
-        tools: this.tools,
-      });
-      
-      if (result.compressed) {
-        console.info(
-          `[Context Manager] 📊 压缩统计: ` +
-          `${result.stats.messagesBefore} → ${result.stats.messagesAfter} 条消息, ` +
-          `${result.stats.tokensBefore} → ${result.stats.tokensAfter} tokens ` +
-          `(${(result.stats.usageRatioBefore * 100).toFixed(1)}% → ${(result.stats.usageRatioAfter * 100).toFixed(1)}%)`
-        );
-        
-        // 更新 Agent 的消息列表
-        this.instanceManager.agent.state.messages = result.messages;
-      }
-    }
-
-    // 收集完整的响应和工具调用信息
-    let fullResponse = '';
-    let hasToolCalls = false;
-    
-    try {
-      // 🔥 在调用 sendMessage 之前，设置 AbortController 创建回调
-      // 这样可以在 AbortController 创建后立即包装工具，确保工具执行前就有 signal
-      this.messageHandler.setOnAbortControllerCreated((abortController) => {
-        if (this.instanceManager.agent) {
-          const toolsWithAbort = this.tools.map(tool => 
-            wrapToolWithAbortSignal(tool, abortController.signal)
-          );
-          
-          // 更新 Agent 的工具列表
-          this.instanceManager.agent.state.tools = toolsWithAbort as any;
-          
-          console.log('✅ 已为工具添加取消支持（在 AbortController 创建后立即包装）');
-        }
-      });
-      
-      // 使用 MessageHandler 处理消息
-      console.log('🔄 开始调用 MessageHandler.sendMessage...');
-      // 🔥 自动继续时保留执行步骤历史
-      for await (const chunk of this.messageHandler.sendMessage(enhancedContent, isAutoContinue)) {
-        fullResponse += chunk;
-        yield chunk;
-      }
-      console.log('✅ MessageHandler.sendMessage 完成，响应长度:', fullResponse.length);
-      console.log('📊 Agent 执行完成后的状态:');
-      if (this.instanceManager.agent) {
-        console.log(`   消息总数: ${this.instanceManager.agent.state.messages.length}`);
-        console.log(`   最后一条消息角色: ${this.instanceManager.agent.state.messages[this.instanceManager.agent.state.messages.length - 1]?.role}`);
-      }
-      
-      // 检查响应是否为空
-      // 🔥 如果是用户主动停止（aborted），不抛出错误
-      const wasAborted = this.messageHandler.wasAbortedByUser();
-      
-      if (fullResponse.trim().length === 0 && !wasAborted) {
-        // 🔥 添加更多调试信息，特别是针对 Gemini 模型
-        console.error('❌ AI 返回空响应，开始诊断...');
-        console.error('   模型配置:', {
-          modelId: this.runtimeConfig.model.id,
-          apiType: this.runtimeConfig.model.api,
-          baseUrl: this.runtimeConfig.model.baseUrl,
-          hasApiKey: !!this.runtimeConfig.apiKey,
-          apiKeyPrefix: this.runtimeConfig.apiKey ? 
-            `${this.runtimeConfig.apiKey.substring(0, 8)}...` : 'none'
-        });
-        
-        // 检查 Agent 状态
-        if (this.instanceManager.agent) {
-          const messages = this.instanceManager.agent.state.messages;
-          const lastMessage = messages[messages.length - 1];
-          console.error('   Agent 状态:', {
-            totalMessages: messages.length,
-            lastMessageRole: lastMessage?.role,
-            lastMessageContentType: Array.isArray(lastMessage?.content) ? 'array' : typeof lastMessage?.content,
-            lastMessageContentLength: Array.isArray(lastMessage?.content) ? 
-              lastMessage.content.length : 
-              (typeof lastMessage?.content === 'string' ? lastMessage.content.length : 0)
-          });
-          
-          // 如果最后一条消息是 assistant，检查其内容
-          if (lastMessage?.role === 'assistant' && Array.isArray(lastMessage.content)) {
-            const contentTypes = lastMessage.content.map(c => 
-              typeof c === 'object' && c && 'type' in c ? c.type : 'unknown'
-            );
-            console.error('   最后一条 assistant 消息内容类型:', contentTypes);
-            
-            // 检查是否有文本内容
-            const textContent = lastMessage.content
-              .filter(c => typeof c === 'object' && c && 'type' in c && c.type === 'text')
-              .map(c => (c as any).text || '')
-              .join('');
-            console.error('   提取的文本内容长度:', textContent.length);
-            console.error('   提取的文本内容预览:', textContent.substring(0, 200));
-          }
-        }
-        
-        throw new Error('AI 返回空响应，可能是 API 配置错误或网络问题');
-      }
-      
-      // 如果是用户主动停止，直接返回（不继续执行）
-      if (wasAborted) {
-        console.log('⏹️ 用户主动停止生成，结束执行');
-        return;
-      }
-    } catch (error) {
-      console.error('❌ MessageHandler.sendMessage 失败:', error);
-      
-      // 🔥 如果是用户主动停止，不抛出错误
-      if (this.messageHandler.wasAbortedByUser()) {
-        console.log('⏹️ 用户主动停止生成（捕获异常），结束执行');
-        return;
-      }
-      
-      throw error; // 重新抛出其他错误
-    }
-    
-    // 检查本轮是否有工具调用（只检查最后一条消息）
-    console.log('🔍 检查最后一条消息是否有工具调用...');
-    if (this.instanceManager.agent) {
-      const messages = this.instanceManager.agent.state.messages;
-      const lastMessage = messages[messages.length - 1];
-      
-      console.log(`   最后一条消息: role=${lastMessage?.role}, contentType=${Array.isArray(lastMessage?.content) ? 'array' : typeof lastMessage?.content}`);
-      
-      if (lastMessage?.role === 'assistant' && lastMessage.content) {
-        const content = lastMessage.content;
-        if (Array.isArray(content)) {
-          hasToolCalls = content.some(c => 
-            typeof c === 'object' && 'type' in c && c.type === 'toolCall'
-          );
-          
-          // 打印内容类型统计
-          const contentTypes = content.map(c => typeof c === 'object' && 'type' in c ? c.type : 'unknown');
-          console.log(`   内容类型: ${contentTypes.join(', ')}`);
-        }
-      }
-      
-      if (hasToolCalls) {
-        console.log('✅ 最后一条消息有工具调用');
-      } else {
-        console.log('❌ 最后一条消息没有工具调用');
-      }
-    }
-    console.log('🔍 开始检测未完成的意图...');
-    console.log(`   autoContinue: ${autoContinue}, maxContinuations: ${maxContinuations}, hasToolCalls: ${hasToolCalls}`);
-    
-    if (autoContinue && maxContinuations > 0 && this.instanceManager.agent) {
-      // 🔥 在检测未完成意图之前，先检查是否已被用户停止
-      const abortController = this.messageHandler.getAbortController();
-      if (abortController?.signal.aborted) {
-        console.log('⏹️ 检测到用户停止，跳过自动继续');
-        return;
-      }
-      
-      const hasUnfinishedIntent = await this.detectUnfinishedIntent(fullResponse, hasToolCalls);
-      
-      console.log(`   detectUnfinishedIntent 返回: ${hasUnfinishedIntent}`);
-      
-      if (hasUnfinishedIntent) {
-        // 🔥 在自动继续之前，再次检查是否已被用户停止
-        if (abortController?.signal.aborted) {
-          console.log('⏹️ 检测到用户停止，取消自动继续');
-          return;
-        }
-        
-        console.log('🔄 检测到未完成的意图，自动继续执行...');
-        console.log(`   剩余继续次数: ${maxContinuations - 1}`);
-        
-        // 发送明确的执行指令，而不是简单的"继续"
-        // 🔥 传递 isAutoContinue=true，保留 operationTracker
-        yield '\n\n';
-        yield* this.sendMessage(
-          '立即执行你刚才说的操作。直接调用工具，不要再说明。',
-          true,
-          maxContinuations - 1,
-          true  // 标记为自动继续
-        );
-      } else {
-        console.log('✅ 任务已完成或等待用户输入，不继续');
-      }
-    } else {
-      console.log('⏭️ 跳过未完成意图检测（autoContinue=false 或 maxContinuations=0）');
-    }
-    
-    // 🔥 响应完成后：维护消息队列，确保不超过 10 轮用户对话
-    this.maintainMessageQueue();
+    // 委托给 messageProcessor
+    yield* this.messageProcessor.sendMessage(
+      content,
+      autoContinue,
+      maxContinuations,
+      isAutoContinue,
+      this.ensureAgentReady.bind(this)
+    );
   }
 
   /**
