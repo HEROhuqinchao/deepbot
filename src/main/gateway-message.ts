@@ -40,6 +40,7 @@ export class GatewayMessageHandler {
   private getOrCreateRuntimeFn: ((sessionId: string) => AgentRuntime) | null = null;
   private resetSessionRuntimeFn: ((sessionId: string, options: { reason?: string; recreate?: boolean }) => Promise<AgentRuntime | null>) | null = null;
   private executeSystemCommandFn: ((commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<void>) | null = null;
+  private sendResponseToConnectorFn: ((tabId: string, response: string) => Promise<void>) | null = null;
   
   constructor() {}
   
@@ -52,12 +53,14 @@ export class GatewayMessageHandler {
     getOrCreateRuntime: (sessionId: string) => AgentRuntime;
     resetSessionRuntime: (sessionId: string, options: { reason?: string; recreate?: boolean }) => Promise<AgentRuntime | null>;
     executeSystemCommand: (commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<void>;
+    sendResponseToConnector: (tabId: string, response: string) => Promise<void>;
   }): void {
     this.mainWindow = deps.mainWindow;
     this.sessionManager = deps.sessionManager;
     this.getOrCreateRuntimeFn = deps.getOrCreateRuntime;
     this.resetSessionRuntimeFn = deps.resetSessionRuntime;
     this.executeSystemCommandFn = deps.executeSystemCommand;
+    this.sendResponseToConnectorFn = deps.sendResponseToConnector;
   }
   
   /**
@@ -441,6 +444,16 @@ export class GatewayMessageHandler {
         console.log(`[MessageHandler] 💾 已保存 AI 响应和 ${finalSteps.length} 个执行步骤`);
       } else if (isTaskTab && fullResponse.trim()) {
         console.log('[MessageHandler] 🚫 跳过保存 AI 响应到历史记录（定时任务 Tab）');
+      }
+      
+      // 如果是连接器 Tab，发送响应到连接器
+      if (this.sendResponseToConnectorFn && fullResponse.trim()) {
+        try {
+          await this.sendResponseToConnectorFn(sessionId, fullResponse);
+          console.log('[MessageHandler] ✅ 已发送响应到连接器');
+        } catch (error) {
+          console.error('[MessageHandler] ❌ 发送响应到连接器失败:', getErrorMessage(error));
+        }
       }
       
       // Agent 执行完成后，处理队列中的下一条消息

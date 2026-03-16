@@ -312,6 +312,7 @@ export class Gateway {
         this.messageHandler.sendError(error, sessionId);
       },
       resetSessionRuntime: this.resetSessionRuntime.bind(this),
+      executeSystemCommand: this.executeSystemCommand.bind(this),
     });
     
     // 设置消息处理器的依赖
@@ -321,6 +322,7 @@ export class Gateway {
       getOrCreateRuntime: this.getOrCreateRuntime.bind(this),
       resetSessionRuntime: this.resetSessionRuntime.bind(this),
       executeSystemCommand: this.executeSystemCommand.bind(this),
+      sendResponseToConnector: this.sendResponseToConnector.bind(this),
     });
   }
 

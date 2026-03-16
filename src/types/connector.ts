@@ -51,6 +51,12 @@ export interface GatewayMessage {
     text?: string;            // 文本内容
     fileUrl?: string;         // 文件 URL
     fileName?: string;        // 文件名
+    // 图片相关
+    imageKey?: string;        // 飞书图片 Key
+    imagePath?: string;       // 本地图片路径
+    // 文件相关
+    fileKey?: string;         // 飞书文件 Key
+    filePath?: string;        // 本地文件路径
   };
   
   // 原始数据（用于调试）
@@ -165,6 +171,12 @@ export interface FeishuIncomingMessage {
     text?: string;
     fileUrl?: string;
     fileName?: string;
+    // 图片相关
+    imageKey?: string;        // 飞书图片 Key
+    imagePath?: string;       // 本地图片路径
+    // 文件相关
+    fileKey?: string;         // 飞书文件 Key
+    filePath?: string;        // 本地文件路径
   };
   raw: any;
 }

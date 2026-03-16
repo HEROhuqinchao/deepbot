@@ -205,8 +205,117 @@ export class FeishuConnector implements Connector {
   
   // ========== 消息处理 ==========
   
+  /**
+   * 下载飞书图片到本地临时目录
+   * 注意：用户发送的图片需要使用 message-resource API，不能使用 image.get API
+   */
+  private async downloadImage(messageId: string, fileKey: string): Promise<{ path: string; name: string } | null> {
+    try {
+      console.log('[FeishuConnector] 开始下载图片:', { messageId, fileKey });
+      
+      // 1. 调用飞书 API 下载图片（使用获取消息中的资源文件接口）
+      const response = await this.client.im.messageResource.get({
+        path: {
+          message_id: messageId,
+          file_key: fileKey,
+        },
+        params: {
+          type: 'image',
+        },
+      });
+      
+      console.log('[FeishuConnector] 图片下载响应:', response);
+      
+      // 2. 保存到临时目录
+      const crypto = await import('crypto');
+      const { SystemConfigStore } = await import('../../database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const settings = store.getWorkspaceSettings();
+      
+      // 创建临时目录（与上传图片使用相同的目录）
+      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      // 生成唯一文件名（使用 file_key 的一部分作为文件名）
+      const id = crypto.randomBytes(8).toString('hex');
+      const fileName = `feishu_image_${id}.png`; // 飞书图片通常是 PNG 格式
+      const filePath = path.join(tempDir, fileName);
+      
+      // 使用 SDK 的 writeFile 方法保存文件
+      await response.writeFile(filePath);
+      
+      console.log('[FeishuConnector] ✅ 图片已保存:', filePath);
+      
+      return {
+        path: filePath,
+        name: fileName,
+      };
+    } catch (error) {
+      console.error('[FeishuConnector] ❌ 下载图片失败:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * 下载飞书文件到本地临时目录
+   * 注意：用户发送的文件需要使用 message-resource API，不能使用 file.get API
+   */
+  private async downloadFile(messageId: string, fileKey: string, fileName: string): Promise<{ path: string; name: string } | null> {
+    try {
+      console.log('[FeishuConnector] 开始下载文件:', { messageId, fileKey, fileName });
+      
+      // 1. 调用飞书 API 下载文件（使用获取消息中的资源文件接口）
+      const response = await this.client.im.messageResource.get({
+        path: {
+          message_id: messageId,
+          file_key: fileKey,
+        },
+        params: {
+          type: 'file',
+        },
+      });
+      
+      console.log('[FeishuConnector] 文件下载响应:', response);
+      
+      // 2. 保存到临时目录
+      const crypto = await import('crypto');
+      const { SystemConfigStore } = await import('../../database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const settings = store.getWorkspaceSettings();
+      
+      // 创建临时目录（与上传文件使用相同的目录）
+      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      // 生成唯一文件名（保留原始扩展名）
+      const id = crypto.randomBytes(8).toString('hex');
+      const ext = path.extname(fileName);
+      const baseName = path.basename(fileName, ext);
+      const uniqueFileName = `${baseName}_${id}${ext}`;
+      const filePath = path.join(tempDir, uniqueFileName);
+      
+      // 使用 SDK 的 writeFile 方法保存文件
+      await response.writeFile(filePath);
+      
+      console.log('[FeishuConnector] ✅ 文件已保存:', filePath);
+      
+      return {
+        path: filePath,
+        name: uniqueFileName,
+      };
+    } catch (error) {
+      console.error('[FeishuConnector] ❌ 下载文件失败:', error);
+      return null;
+    }
+  }
+  
   private async handleIncomingMessage(event: any): Promise<void> {
     console.log('[FeishuConnector] 处理接收消息');
+    console.log('[FeishuConnector] 🔍 原始事件结构:', JSON.stringify(event, null, 2));
     
     try {
       // 1. 解析飞书消息
@@ -215,6 +324,14 @@ export class FeishuConnector implements Connector {
       
       // 使用 ID 的后 8 位作为显示名
       const senderName = `用户_${senderId.slice(-8)}`;
+      
+      // 解析消息类型和内容
+      const msgType = event.message.message_type || event.message.msg_type; // 飞书使用 message_type
+      console.log('[FeishuConnector] 📋 消息类型 (message_type):', msgType);
+      console.log('[FeishuConnector] 📋 消息内容 (content):', event.message.content);
+      
+      const messageContent = safeJsonParse(event.message.content, {}) as any;
+      console.log('[FeishuConnector] 📋 解析后的内容:', messageContent);
       
       const feishuMessage: FeishuIncomingMessage = {
         messageId: event.message.message_id,
@@ -228,19 +345,22 @@ export class FeishuConnector implements Connector {
           type: event.message.chat_type === 'p2p' ? 'private' : 'group',
         },
         content: {
-          type: 'text',
-          text: safeJsonParse(event.message.content, { text: '' }).text || '',
+          type: msgType === 'image' ? 'image' : msgType === 'file' ? 'file' : 'text',
+          text: messageContent.text || '',
         },
         raw: event,
       };
       
-      console.log('[FeishuConnector] 消息详情:', {
+      console.log('[FeishuConnector] 📨 收到消息:', {
         messageId: feishuMessage.messageId,
         sender: feishuMessage.sender.name,
         senderId: feishuMessage.sender.id,
         conversation: feishuMessage.conversation.id,
-        type: feishuMessage.conversation.type,
+        conversationType: feishuMessage.conversation.type,
+        msgType: msgType,
+        contentType: feishuMessage.content.type,
         text: feishuMessage.content.text,
+        messageContent: messageContent,
       });
       
       // 2. 消息去重检查（基于 message_id）
@@ -282,7 +402,70 @@ export class FeishuConnector implements Connector {
         }
       }
       
-      // 4. 检测并读取飞书文档
+      // 4. 处理图片和文件消息
+      if (msgType === 'image') {
+        console.log('[FeishuConnector] 📷 检测到图片消息');
+        console.log('[FeishuConnector] 图片消息内容:', messageContent);
+        const imageKey = messageContent.image_key;
+        console.log('[FeishuConnector] 图片 Key:', imageKey);
+        
+        if (imageKey) {
+          console.log('[FeishuConnector] 开始下载图片...');
+          const downloadedImage = await this.downloadImage(feishuMessage.messageId, imageKey);
+          if (downloadedImage) {
+            feishuMessage.content.text = `[收到图片: ${downloadedImage.name}]`;
+            feishuMessage.content.imageKey = imageKey;
+            feishuMessage.content.imagePath = downloadedImage.path;
+            console.log('[FeishuConnector] ✅ 图片已下载:', {
+              name: downloadedImage.name,
+              path: downloadedImage.path,
+            });
+          } else {
+            console.error('[FeishuConnector] ❌ downloadImage 返回 null');
+            feishuMessage.content.text = '[图片下载失败: 返回空]';
+          }
+        } else {
+          console.error('[FeishuConnector] ❌ 图片消息中没有 image_key');
+          feishuMessage.content.text = '[图片消息格式错误: 缺少 image_key]';
+        }
+      } else if (msgType === 'file') {
+        console.log('[FeishuConnector] 📎 检测到文件消息');
+        console.log('[FeishuConnector] 文件消息内容:', messageContent);
+        const fileKey = messageContent.file_key;
+        const fileName = messageContent.file_name || '未知文件';
+        console.log('[FeishuConnector] 文件 Key:', fileKey, '文件名:', fileName);
+        
+        if (fileKey) {
+          console.log('[FeishuConnector] 开始下载文件...');
+          const downloadedFile = await this.downloadFile(feishuMessage.messageId, fileKey, fileName);
+          if (downloadedFile) {
+            feishuMessage.content.text = `[收到文件: ${downloadedFile.name}]`;
+            feishuMessage.content.fileKey = fileKey;
+            feishuMessage.content.filePath = downloadedFile.path;
+            feishuMessage.content.fileName = downloadedFile.name;
+            console.log('[FeishuConnector] ✅ 文件已下载:', {
+              name: downloadedFile.name,
+              path: downloadedFile.path,
+            });
+          } else {
+            console.error('[FeishuConnector] ❌ downloadFile 返回 null');
+            feishuMessage.content.text = `[文件下载失败: ${fileName}]`;
+          }
+        } else {
+          console.error('[FeishuConnector] ❌ 文件消息中没有 file_key');
+          feishuMessage.content.text = `[文件消息格式错误: 缺少 file_key]`;
+        }
+      }
+      
+      console.log('[FeishuConnector] 📤 准备转发消息:', {
+        messageId: feishuMessage.messageId,
+        contentType: feishuMessage.content.type,
+        text: feishuMessage.content.text,
+        imagePath: feishuMessage.content.imagePath,
+        filePath: feishuMessage.content.filePath,
+      });
+      
+      // 5. 检测并读取飞书文档
       const messageText = feishuMessage.content.text || '';
       const documentUrls = this.documentHandler.extractDocumentUrls(messageText);
       if (documentUrls.length > 0) {
@@ -321,7 +504,7 @@ export class FeishuConnector implements Connector {
         console.log('[FeishuConnector] 消息中未检测到飞书文档链接');
       }
       
-      // 5. 安全检查
+      // 6. 安全检查
       if (!this.checkSecurity(feishuMessage)) {
         console.log('[FeishuConnector] 安全检查未通过，忽略消息');
         
@@ -337,7 +520,7 @@ export class FeishuConnector implements Connector {
         return;
       }
       
-      // 6. 转发到 Connector Manager
+      // 7. 转发到 Connector Manager
       await this.connectorManager.handleIncomingMessage('feishu', feishuMessage);
       
       console.log('[FeishuConnector] ✅ 消息已转发');

@@ -9,7 +9,6 @@
 
 import { BrowserWindow } from 'electron';
 import type { GatewayMessage } from '../types/connector';
-import type { AgentTab } from '../types/agent-tab';
 import { IPC_CHANNELS } from '../types/ipc';
 import { getErrorMessage } from '../shared/utils/error-handler';
 import { generateMessageId, generateUserMessageId } from '../shared/utils/id-generator';
@@ -34,6 +33,7 @@ export class GatewayConnectorHandler {
   private sendAIResponseFn: ((runtime: AgentRuntime, message: string, sessionId: string, sentAt?: number) => Promise<void>) | null = null;
   private sendErrorFn: ((error: string, sessionId?: string) => void) | null = null;
   private resetSessionRuntimeFn: ((sessionId: string, options: { reason?: string; recreate?: boolean }) => Promise<AgentRuntime | null>) | null = null;
+  private executeSystemCommandFn: ((commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<void>) | null = null;
   
   constructor() {}
   
@@ -50,6 +50,7 @@ export class GatewayConnectorHandler {
     sendAIResponse: (runtime: AgentRuntime, message: string, sessionId: string, sentAt?: number) => Promise<void>;
     sendError: (error: string, sessionId?: string) => void;
     resetSessionRuntime: (sessionId: string, options: { reason?: string; recreate?: boolean }) => Promise<AgentRuntime | null>;
+    executeSystemCommand: (commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<void>;
   }): void {
     this.mainWindow = deps.mainWindow;
     this.connectorManager = deps.connectorManager;
@@ -60,6 +61,7 @@ export class GatewayConnectorHandler {
     this.sendAIResponseFn = deps.sendAIResponse;
     this.sendErrorFn = deps.sendError;
     this.resetSessionRuntimeFn = deps.resetSessionRuntime;
+    this.executeSystemCommandFn = deps.executeSystemCommand;
   }
   
   /**
@@ -78,11 +80,15 @@ export class GatewayConnectorHandler {
       return;
     }
     
-    console.log('[ConnectorHandler] 处理连接器消息:', {
+    console.log('[ConnectorHandler] 📨 收到连接器消息:', {
       connectorId: message.source.connectorId,
       conversationId: message.source.conversationId,
       senderId: message.source.senderId,
       senderName: message.source.senderName,
+      contentType: message.content.type,
+      text: message.content.text,
+      imagePath: message.content.imagePath,
+      filePath: message.content.filePath,
     });
     
     try {
@@ -108,13 +114,78 @@ export class GatewayConnectorHandler {
       }
       
       // 发送消息给 Agent 处理
-      const content = message.content.text || '';
+      let content = message.content.text || '';
+      let displayContent = '';
       const senderName = message.source.senderName || '用户';
-      const displayContent = content;
+      
+      // 检查是否是系统指令
+      const systemCommandMatch = content.match(/^\/(\w+)(?:\s+(.*))?$/);
+      if (systemCommandMatch) {
+        const commandName = systemCommandMatch[1];
+        const commandArgs = systemCommandMatch[2];
+        
+        console.log('[ConnectorHandler] 🔧 检测到系统指令:', {
+          command: commandName,
+          args: commandArgs,
+          tabId: tab.id,
+        });
+        
+        if (this.executeSystemCommandFn) {
+          await this.executeSystemCommandFn(commandName, commandArgs, tab.id);
+          console.log('[ConnectorHandler] ✅ 系统指令已执行');
+          return;
+        } else {
+          console.error('[ConnectorHandler] ❌ executeSystemCommand 回调未设置');
+          return;
+        }
+      }
+      
+      // 处理图片消息
+      if (message.content.type === 'image' && message.content.imagePath) {
+        const imagePath = message.content.imagePath;
+        content = `[系统通知: 用户发送了一张图片]
+
+图片已自动下载并保存到: ${imagePath}
+
+请立即回复用户:
+1. 确认收到图片
+2. 告知图片保存位置
+3. 询问用户需要对图片做什么操作`;
+        displayContent = `[收到图片]`;
+      }
+      // 处理文件消息
+      else if (message.content.type === 'file' && message.content.filePath) {
+        const fileName = message.content.fileName || '未知文件';
+        const filePath = message.content.filePath;
+        content = `[系统通知: 用户发送了文件]
+
+文件名: ${fileName}
+文件已自动下载并保存到: ${filePath}
+
+请立即回复用户:
+1. 确认收到文件
+2. 告知文件保存位置
+3. 询问用户需要对文件做什么操作`;
+        displayContent = `[收到文件: ${fileName}]`;
+      }
+      // 处理文本消息
+      else {
+        displayContent = content;
+      }
+      
       const contentWithSource = `[来自: ${senderName}]\n${content}`;
-      const systemHint = `\n\n[系统提示: 这是外部通讯会话。
-你可以使用 connector_send_image 和 connector_send_file 工具发送图片和文件]`;
+      const systemHint = `\n\n[系统提示: 这是飞书通讯会话，除了系统的工具，你还可以使用以专用下工具:
+- connector_send_image: 发送图片给对方
+- connector_send_file: 发送文件给对方
+
+不用回复你有什么工具，需要的时候直接执行]`;
       const contentForAgent = contentWithSource + systemHint;
+      
+      console.log('[ConnectorHandler] 📤 准备发送给 Agent:', {
+        displayContent: displayContent.substring(0, 1000),
+        contentForAgent: contentForAgent.substring(0, 1000),
+        tabId: tab.id,
+      });
       
       await this.handleSendMessageFn(contentForAgent, tab.id, displayContent);
       console.log('[ConnectorHandler] ✅ 连接器消息已处理');
@@ -167,7 +238,7 @@ export class GatewayConnectorHandler {
   /**
    * 执行系统命令
    */
-  async executeSystemCommand(commandName: string, commandArgs: string | undefined, sessionId: string): Promise<void> {
+  async executeSystemCommand(commandName: string, _commandArgs: string | undefined, sessionId: string): Promise<void> {
     if (!this.sendErrorFn) {
       console.error('[ConnectorHandler] sendError 未设置');
       return;
