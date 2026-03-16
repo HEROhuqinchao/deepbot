@@ -313,12 +313,47 @@ export class FeishuConnector implements Connector {
     }
   }
   
+  /**
+   * 立即回复表情，让用户知道已收到消息
+   */
+  private async replyWithReaction(messageId: string): Promise<void> {
+    try {
+      // 从预设表情中随机选择一个
+      const emojis = ['OK', 'THUMBSUP', 'DONE', 'STRIVE', 'STRONG','Typing','HIGHFIVE'];
+      const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+      
+      console.log('[FeishuConnector] 回复表情:', randomEmoji);
+      
+      await this.client.im.messageReaction.create({
+        path: {
+          message_id: messageId,
+        },
+        data: {
+          reaction_type: {
+            emoji_type: randomEmoji,
+          },
+        },
+      });
+      
+      console.log('[FeishuConnector] ✅ 表情已回复');
+    } catch (error) {
+      // 表情回复失败不影响主流程
+      console.error('[FeishuConnector] ⚠️ 回复表情失败:', error);
+    }
+  }
+  
   private async handleIncomingMessage(event: any): Promise<void> {
     console.log('[FeishuConnector] 处理接收消息');
     console.log('[FeishuConnector] 🔍 原始事件结构:', JSON.stringify(event, null, 2));
     
     try {
-      // 1. 解析飞书消息
+      // 1. 立即回复表情，让用户知道已收到
+      const messageId = event.message.message_id;
+      this.replyWithReaction(messageId).catch(err => {
+        console.error('[FeishuConnector] 表情回复异步失败:', err);
+      });
+      
+      // 2. 解析飞书消息
       // 飞书事件结构：event.sender.sender_id 包含 open_id, user_id, union_id
       const senderId = event.sender.sender_id.user_id || event.sender.sender_id.open_id;
       
