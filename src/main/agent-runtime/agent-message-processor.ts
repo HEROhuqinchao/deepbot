@@ -266,6 +266,186 @@ ${cleanResponse}
   }
   
   /**
+   * 保存 captured-prompt 用于调试
+   */
+  /**
+   * 保存完整的 prompt 到文件（用于调试）
+   * 在发送给 AI 之前调用，确保保存的内容和实际发送的一致
+   */
+  private async saveCapturedPrompt(enhancedContent: string): Promise<void> {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const { SystemConfigStore } = await import('../database/system-config-store');
+      
+      const store = SystemConfigStore.getInstance();
+      const settings = store.getWorkspaceSettings();
+      const debugDir = path.join(settings.workspaceDir, '.deepbot', 'debug');
+      
+      // 确保目录存在
+      if (!fs.existsSync(debugDir)) {
+        fs.mkdirSync(debugDir, { recursive: true });
+      }
+      
+      // 使用 AgentMessageProcessor 中存储的系统提示词和工具（这是最终发送给 AI 的）
+      let actualSystemPrompt = this.systemPrompt;
+      let actualTools = this.tools;
+      
+      if (this.instanceManager.agent) {
+        // 优先使用 Agent.state 中的系统提示词（如果不为空）
+        const stateSystemPrompt = this.instanceManager.agent.state.systemPrompt as string;
+        if (stateSystemPrompt && stateSystemPrompt.trim().length > 0) {
+          actualSystemPrompt = stateSystemPrompt;
+          console.log('✅ [Debug] 从 Agent.state 获取系统提示词，长度:', actualSystemPrompt.length);
+        } else {
+          console.log('✅ [Debug] 使用 AgentMessageProcessor 中的系统提示词，长度:', actualSystemPrompt.length);
+        }
+        
+        // 优先使用 Agent.state 中的工具列表
+        if (this.instanceManager.agent.state.tools && this.instanceManager.agent.state.tools.length > 0) {
+          actualTools = this.instanceManager.agent.state.tools as any[];
+          console.log('✅ [Debug] 从 Agent.state 获取工具列表，数量:', actualTools.length);
+        }
+      }
+      
+      // 如果还是为空，显示警告
+      if (!actualSystemPrompt || actualSystemPrompt.trim().length === 0) {
+        console.error('❌ [Debug] 系统提示词仍然为空');
+        actualSystemPrompt = '[系统提示词未初始化]';
+      }
+      
+      if (!actualTools || actualTools.length === 0) {
+        console.warn('⚠️ [Debug] 工具列表为空');
+        actualTools = [];
+      }
+      
+      console.log('🔍 [Debug] 最终系统提示词长度:', actualSystemPrompt.length);
+      console.log('🔍 [Debug] 最终工具数量:', actualTools.length);
+      
+      // 构建完整的 prompt 内容
+      let promptContent = '# Captured Prompt\n\n';
+      promptContent += `生成时间: ${new Date().toISOString()}\n`;
+      promptContent += `Session ID: ${this.runtimeConfig.sessionId}\n`;
+      promptContent += `Model: ${this.runtimeConfig.model.id}\n\n`;
+      
+      promptContent += '## System Prompt\n\n';
+      promptContent += '```\n' + actualSystemPrompt + '\n```\n\n';
+      
+      promptContent += '## Tools\n\n';
+      promptContent += '```json\n' + JSON.stringify(actualTools.map(t => ({
+        name: t.name,
+        description: t.description,
+      })), null, 2) + '\n```\n\n';
+      
+      promptContent += '## Messages\n\n';
+      const messages = this.instanceManager.agent?.state.messages || [];
+      for (const msg of messages) {
+        promptContent += `### ${msg.role}\n\n`;
+        
+        if (typeof msg.content === 'string') {
+          promptContent += '```\n' + msg.content + '\n```\n\n';
+        } else if (Array.isArray(msg.content)) {
+          for (const part of msg.content) {
+            if (typeof part === 'object' && part && 'type' in part) {
+              const partType = (part as any).type;
+              if (partType === 'text') {
+                promptContent += '```\n' + (part as any).text + '\n```\n\n';
+              } else if (partType === 'toolCall') {
+                promptContent += '**Tool Call:**\n';
+                promptContent += '```json\n' + JSON.stringify(part, null, 2) + '\n```\n\n';
+              } else if (partType === 'toolResult') {
+                promptContent += '**Tool Result:**\n';
+                promptContent += '```json\n' + JSON.stringify(part, null, 2) + '\n```\n\n';
+              } else {
+                promptContent += '**Other:**\n';
+                promptContent += '```json\n' + JSON.stringify(part, null, 2) + '\n```\n\n';
+              }
+            }
+          }
+        }
+      }
+      
+      promptContent += '## New User Message\n\n';
+      promptContent += '```\n' + enhancedContent + '\n```\n\n';
+      
+      // 统计信息
+      promptContent += '## Statistics\n\n';
+      
+      // 统计对话轮数（一轮 = 一条 user 消息 + 一条 assistant 消息）
+      let userMessageCount = 0;
+      let assistantMessageCount = 0;
+      
+      for (const msg of messages) {
+        if (msg.role === 'user') userMessageCount++;
+        if (msg.role === 'assistant') assistantMessageCount++;
+      }
+      
+      const conversationRounds = Math.min(userMessageCount, assistantMessageCount);
+      
+      // 简单的 token 估算函数（4 个字符 ≈ 1 token）
+      const estimateStringTokens = (text: string): number => {
+        return Math.ceil(text.length / 4);
+      };
+      
+      // 计算系统提示词 token
+      const systemPromptTokens = estimateStringTokens(actualSystemPrompt);
+      
+      // 计算所有消息的 token（包括工具调用）
+      let messagesTokens = 0;
+      for (const msg of messages) {
+        if (typeof msg.content === 'string') {
+          messagesTokens += estimateStringTokens(msg.content);
+        } else if (Array.isArray(msg.content)) {
+          for (const part of msg.content) {
+            if (typeof part === 'string') {
+              messagesTokens += estimateStringTokens(part);
+            } else if (typeof part === 'object' && part) {
+              // 对于对象类型的内容（如 toolCall、toolResult），序列化后计算
+              messagesTokens += estimateStringTokens(JSON.stringify(part));
+            }
+          }
+        }
+      }
+      
+      // 计算新消息的 token
+      const newMessageTokens = estimateStringTokens(enhancedContent);
+      
+      // 计算工具定义的 token
+      const toolsJson = JSON.stringify(actualTools);
+      const toolsTokens = estimateStringTokens(toolsJson);
+      
+      // 总 token = 系统提示词 + 历史消息 + 新消息 + 工具定义
+      const totalTokens = systemPromptTokens + messagesTokens + newMessageTokens + toolsTokens;
+      
+      promptContent += `- **对话轮数**: ${conversationRounds} 轮\n`;
+      promptContent += `- **用户消息数**: ${userMessageCount} 条\n`;
+      promptContent += `- **助手消息数**: ${assistantMessageCount} 条\n`;
+      promptContent += `- **系统提示词 Token**: ${systemPromptTokens.toLocaleString()}\n`;
+      promptContent += `- **历史消息 Token**: ${messagesTokens.toLocaleString()}\n`;
+      promptContent += `- **新消息 Token**: ${newMessageTokens.toLocaleString()}\n`;
+      promptContent += `- **工具定义 Token**: ${toolsTokens.toLocaleString()}\n`;
+      promptContent += `- **总 Token 数**: ${totalTokens.toLocaleString()}\n`;
+      promptContent += `- **模型上下文窗口**: ${this.runtimeConfig.model.contextWindow?.toLocaleString() || 'N/A'}\n`;
+      
+      if (this.runtimeConfig.model.contextWindow) {
+        const usagePercent = (totalTokens / this.runtimeConfig.model.contextWindow * 100).toFixed(2);
+        promptContent += `- **上下文使用率**: ${usagePercent}%\n`;
+      }
+      
+      promptContent += '\n';
+      
+      // 保存到文件
+      const filePath = path.join(debugDir, 'captured-prompt.md');
+      fs.writeFileSync(filePath, promptContent, 'utf-8');
+      
+      console.log('🔍 [Debug] 已保存完整 prompt 到:', filePath);
+      console.log(`📊 [Debug] 统计: ${conversationRounds} 轮对话, ${totalTokens.toLocaleString()} tokens`);
+    } catch (error) {
+      console.error('⚠️ [Debug] 保存 captured-prompt.md 失败:', getErrorMessage(error));
+    }
+  }
+
+  /**
    * 发送消息并处理响应
    */
   async *sendMessage(
@@ -349,6 +529,13 @@ ${cleanResponse}
         
         this.instanceManager.agent.state.messages = result.messages;
       }
+    }
+    
+    // 🔍 Debug: 在发送给 AI 之前保存完整的 prompt（确保和实际发送的一致）
+    try {
+      await this.saveCapturedPrompt(enhancedContent);
+    } catch (error) {
+      console.error('⚠️ [Debug] 保存 captured-prompt 失败:', getErrorMessage(error));
     }
     
     // 收集完整的响应和工具调用信息

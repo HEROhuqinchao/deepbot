@@ -639,6 +639,12 @@ export class AgentRuntime {
     maxContinuations: number = 100,
     isAutoContinue: boolean = false
   ): AsyncGenerator<string, void, unknown> {
+    // 🔥 确保系统提示词已初始化
+    if (!this.systemPrompt || this.systemPrompt.trim().length === 0) {
+      console.log('⏳ 系统提示词未初始化，等待初始化完成...');
+      await this.initializeSystemPrompt();
+    }
+    
     // 更新 messageProcessor 的依赖
     this.messageProcessor.updateSystemPrompt(this.systemPrompt);
     this.messageProcessor.updateTools(this.tools);
