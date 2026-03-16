@@ -536,38 +536,66 @@ export class FeishuConnector implements Connector {
       conversationId: string;
       content: string;
       replyTo?: string;
+      replyToMessageId?: string;
     }): Promise<void> => {
       console.log('[FeishuConnector] 发送消息:', {
         conversationId: params.conversationId,
         contentLength: params.content.length,
+        replyToMessageId: params.replyToMessageId,
       });
       
       try {
-        // 使用 SDK 发送消息
-        const res = await this.client.im.message.create({
-          params: {
-            receive_id_type: 'chat_id',
-          },
-          data: {
-            receive_id: params.conversationId,
-            msg_type: 'text',
-            content: JSON.stringify({
-              text: params.content,
-            }),
-          },
-        });
-        
-        // 飞书 SDK 的响应格式检查
-        // 正常响应: { code: 0, msg: "success", data: {...} }
-        // 错误响应: { code: 非0, msg: "错误信息" }
-        if (res && typeof res === 'object' && 'code' in res) {
-          if (res.code !== 0) {
-            const errorMsg = (res as any).msg || (res as any).message || '未知错误';
-            throw new Error(`发送消息失败: ${errorMsg}`);
+        // 如果有 replyToMessageId，使用 reply API
+        if (params.replyToMessageId) {
+          console.log('[FeishuConnector] 使用 reply API 回复消息');
+          const res = await this.client.im.message.reply({
+            path: {
+              message_id: params.replyToMessageId,
+            },
+            data: {
+              content: JSON.stringify({
+                text: params.content,
+              }),
+              msg_type: 'text',
+              reply_in_thread: false,  // 普通回复，不使用话题
+            },
+          });
+          
+          // 飞书 SDK 的响应格式检查
+          if (res && typeof res === 'object' && 'code' in res) {
+            if (res.code !== 0) {
+              const errorMsg = (res as any).msg || (res as any).message || '未知错误';
+              throw new Error(`回复消息失败: ${errorMsg}`);
+            }
           }
+          
+          console.log('[FeishuConnector] ✅ 消息已通过 reply API 发送');
+        } else {
+          // 没有 replyToMessageId，使用普通 create API
+          console.log('[FeishuConnector] 使用 create API 发送消息');
+          const res = await this.client.im.message.create({
+            params: {
+              receive_id_type: 'chat_id',
+            },
+            data: {
+              receive_id: params.conversationId,
+              msg_type: 'text',
+              content: JSON.stringify({
+                text: params.content,
+              }),
+            },
+          });
+          
+          // 飞书 SDK 的响应格式检查
+          if (res && typeof res === 'object' && 'code' in res) {
+            if (res.code !== 0) {
+              const errorMsg = (res as any).msg || (res as any).message || '未知错误';
+              throw new Error(`发送消息失败: ${errorMsg}`);
+            }
+          }
+          
+          console.log('[FeishuConnector] ✅ 消息已通过 create API 发送');
         }
-        
-        console.log('[FeishuConnector] ✅ 消息已发送');
       } catch (error) {
         console.error('[FeishuConnector] ❌ 发送消息失败:', error);
         throw error;
@@ -578,10 +606,12 @@ export class FeishuConnector implements Connector {
       conversationId: string;
       imagePath: string;
       caption?: string;
+      replyToMessageId?: string;
     }): Promise<void> => {
       console.log('[FeishuConnector] 发送图片:', {
         conversationId: params.conversationId,
         imagePath: params.imagePath,
+        replyToMessageId: params.replyToMessageId,
       });
       
       try {
@@ -607,7 +637,6 @@ export class FeishuConnector implements Connector {
         console.log('[FeishuConnector] 上传响应:', JSON.stringify(uploadRes, null, 2));
         
         // 飞书 SDK 返回类型检查
-        // 注意：飞书 SDK 可能返回不同的响应格式
         if (!uploadRes) {
           throw new Error('上传图片无响应');
         }
@@ -627,24 +656,48 @@ export class FeishuConnector implements Connector {
         
         console.log('[FeishuConnector] ✅ 图片已上传，image_key:', imageKey);
         
-        // 3. 发送图片消息
-        const sendRes = await this.client.im.message.create({
-          params: {
-            receive_id_type: 'chat_id',
-          },
-          data: {
-            receive_id: params.conversationId,
-            msg_type: 'image',
-            content: JSON.stringify({
-              image_key: imageKey,
-            }),
-          },
-        });
-        
-        if (sendRes && typeof sendRes === 'object' && 'code' in sendRes) {
-          if (sendRes.code !== 0) {
-            const errorMsg = (sendRes as any).msg || (sendRes as any).message || '未知错误';
-            throw new Error(`发送图片消息失败: ${errorMsg}`);
+        // 3. 发送图片消息（使用 reply API 或 create API）
+        if (params.replyToMessageId) {
+          console.log('[FeishuConnector] 使用 reply API 发送图片');
+          const sendRes = await this.client.im.message.reply({
+            path: {
+              message_id: params.replyToMessageId,
+            },
+            data: {
+              content: JSON.stringify({
+                image_key: imageKey,
+              }),
+              msg_type: 'image',
+              reply_in_thread: false,  // 普通回复，不使用话题
+            },
+          });
+          
+          if (sendRes && typeof sendRes === 'object' && 'code' in sendRes) {
+            if (sendRes.code !== 0) {
+              const errorMsg = (sendRes as any).msg || (sendRes as any).message || '未知错误';
+              throw new Error(`回复图片消息失败: ${errorMsg}`);
+            }
+          }
+        } else {
+          console.log('[FeishuConnector] 使用 create API 发送图片');
+          const sendRes = await this.client.im.message.create({
+            params: {
+              receive_id_type: 'chat_id',
+            },
+            data: {
+              receive_id: params.conversationId,
+              msg_type: 'image',
+              content: JSON.stringify({
+                image_key: imageKey,
+              }),
+            },
+          });
+          
+          if (sendRes && typeof sendRes === 'object' && 'code' in sendRes) {
+            if (sendRes.code !== 0) {
+              const errorMsg = (sendRes as any).msg || (sendRes as any).message || '未知错误';
+              throw new Error(`发送图片消息失败: ${errorMsg}`);
+            }
           }
         }
         
@@ -653,6 +706,7 @@ export class FeishuConnector implements Connector {
           await this.outbound.sendMessage({
             conversationId: params.conversationId,
             content: params.caption,
+            replyToMessageId: params.replyToMessageId,
           });
         }
         
@@ -667,10 +721,12 @@ export class FeishuConnector implements Connector {
       conversationId: string;
       filePath: string;
       fileName?: string;
+      replyToMessageId?: string;
     }): Promise<void> => {
       console.log('[FeishuConnector] 发送文件:', {
         conversationId: params.conversationId,
         filePath: params.filePath,
+        replyToMessageId: params.replyToMessageId,
       });
       
       try {
@@ -716,24 +772,48 @@ export class FeishuConnector implements Connector {
         
         console.log('[FeishuConnector] ✅ 文件已上传，file_key:', fileKey);
         
-        // 3. 发送文件消息
-        const sendRes = await this.client.im.message.create({
-          params: {
-            receive_id_type: 'chat_id',
-          },
-          data: {
-            receive_id: params.conversationId,
-            msg_type: 'file',
-            content: JSON.stringify({
-              file_key: fileKey,
-            }),
-          },
-        });
-        
-        if (sendRes && typeof sendRes === 'object' && 'code' in sendRes) {
-          if (sendRes.code !== 0) {
-            const errorMsg = (sendRes as any).msg || (sendRes as any).message || '未知错误';
-            throw new Error(`发送文件消息失败: ${errorMsg}`);
+        // 3. 发送文件消息（使用 reply API 或 create API）
+        if (params.replyToMessageId) {
+          console.log('[FeishuConnector] 使用 reply API 发送文件');
+          const sendRes = await this.client.im.message.reply({
+            path: {
+              message_id: params.replyToMessageId,
+            },
+            data: {
+              content: JSON.stringify({
+                file_key: fileKey,
+              }),
+              msg_type: 'file',
+              reply_in_thread: false,  // 普通回复，不使用话题
+            },
+          });
+          
+          if (sendRes && typeof sendRes === 'object' && 'code' in sendRes) {
+            if (sendRes.code !== 0) {
+              const errorMsg = (sendRes as any).msg || (sendRes as any).message || '未知错误';
+              throw new Error(`回复文件消息失败: ${errorMsg}`);
+            }
+          }
+        } else {
+          console.log('[FeishuConnector] 使用 create API 发送文件');
+          const sendRes = await this.client.im.message.create({
+            params: {
+              receive_id_type: 'chat_id',
+            },
+            data: {
+              receive_id: params.conversationId,
+              msg_type: 'file',
+              content: JSON.stringify({
+                file_key: fileKey,
+              }),
+            },
+          });
+          
+          if (sendRes && typeof sendRes === 'object' && 'code' in sendRes) {
+            if (sendRes.code !== 0) {
+              const errorMsg = (sendRes as any).msg || (sendRes as any).message || '未知错误';
+              throw new Error(`发送文件消息失败: ${errorMsg}`);
+            }
           }
         }
         

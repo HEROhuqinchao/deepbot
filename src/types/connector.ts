@@ -35,6 +35,7 @@ export interface GatewayMessage {
   tabId: string;              // Tab ID（由 Gateway 分配）
   messageId: string;          // 消息 ID
   timestamp: number;          // 时间戳
+  replyToMessageId?: string;  // 要回复的消息 ID（用于飞书 reply API）
   
   // 来源信息
   source: {
@@ -93,18 +94,21 @@ export interface Connector {
       conversationId: string;
       content: string;
       replyTo?: string;
+      replyToMessageId?: string;  // 飞书 reply API 需要的 message_id
     }): Promise<void>;
     
     sendImage?(params: {
       conversationId: string;
       imagePath: string;
       caption?: string;
+      replyToMessageId?: string;  // 飞书 reply API 需要的 message_id
     }): Promise<void>;
     
     sendFile?(params: {
       conversationId: string;
       filePath: string;
       fileName?: string;
+      replyToMessageId?: string;  // 飞书 reply API 需要的 message_id
     }): Promise<void>;
   };
   

@@ -113,6 +113,12 @@ export class GatewayConnectorHandler {
         });
       }
       
+      // 保存 replyToMessageId 到 Tab（用于后续回复）
+      if (message.replyToMessageId) {
+        (tab as any).replyToMessageId = message.replyToMessageId;
+        console.log('[ConnectorHandler] 保存 replyToMessageId:', message.replyToMessageId);
+      }
+      
       // 发送消息给 Agent 处理
       let content = message.content.text || '';
       let displayContent = '';
@@ -215,18 +221,23 @@ export class GatewayConnectorHandler {
       return;
     }
     
+    // 获取 replyToMessageId（如果有）
+    const replyToMessageId = (tab as any).replyToMessageId;
+    
     console.log('[ConnectorHandler] 发送响应到连接器:', {
       tabId,
       connectorId: tab.connectorId,
       conversationId: tab.conversationId,
       responseLength: response.length,
+      replyToMessageId,
     });
     
     try {
       await this.connectorManager.sendOutgoingMessage(
         tab.connectorId as any,
         tab.conversationId,
-        response
+        response,
+        replyToMessageId  // 传递 replyToMessageId
       );
       console.log('[ConnectorHandler] ✅ 响应已发送到连接器');
     } catch (error) {

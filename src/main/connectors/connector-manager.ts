@@ -143,6 +143,7 @@ export class ConnectorManager {
         tabId: '', // 由 Gateway 分配
         messageId: parsedMessage.messageId,
         timestamp: parsedMessage.timestamp,
+        replyToMessageId: parsedMessage.messageId,  // 保存原始消息 ID，用于回复
         source: {
           type: 'connector',
           connectorId,
@@ -170,11 +171,13 @@ export class ConnectorManager {
    * @param connectorId - 连接器 ID
    * @param conversationId - 会话 ID
    * @param content - 消息内容
+   * @param replyToMessageId - 要回复的消息 ID（可选，用于飞书 reply API）
    */
   async sendOutgoingMessage(
     connectorId: ConnectorId,
     conversationId: string,
-    content: string
+    content: string,
+    replyToMessageId?: string
   ): Promise<void> {
     const connector = this.connectors.get(connectorId);
     if (!connector) {
@@ -184,12 +187,14 @@ export class ConnectorManager {
     console.log(`[ConnectorManager] 发送消息到外部: ${connectorId}`, {
       conversationId,
       contentLength: content.length,
+      replyToMessageId,
     });
     
     try {
       await connector.outbound.sendMessage({
         conversationId,
         content,
+        replyToMessageId,
       });
       
       console.log(`[ConnectorManager] ✅ 消息已发送`);
