@@ -10,6 +10,7 @@
 
 import type { Model } from '@mariozechner/pi-ai';
 import { getConfig } from '../config';
+import { SystemConfigStore } from '../database/system-config-store';
 import { OperationTracker, wrapToolWithDuplicateDetection } from '../tools/tool-abort';
 import type { AgentRuntimeConfig, AgentStateInfo, AgentInstanceManager } from './types';
 import { AgentInitializer } from './agent-initializer';
@@ -64,6 +65,26 @@ export class AgentRuntime {
   constructor(workspaceDir: string, sessionId?: string) {
     this.config = getConfig();
     
+    // 🔥 从数据库获取完整的模型配置（包括 contextWindow）
+    let contextWindow: number | undefined;
+    try {
+      const store = SystemConfigStore.getInstance();
+      const modelConfig = store.getModelConfig();
+      if (modelConfig && modelConfig.contextWindow) {
+        contextWindow = modelConfig.contextWindow;
+        console.log('✅ 从数据库获取上下文窗口:', contextWindow);
+      }
+    } catch (error) {
+      console.warn('⚠️ 从数据库获取上下文窗口失败，将使用推断值');
+    }
+    
+    // 如果数据库中没有，使用模型 ID 推断
+    if (!contextWindow) {
+      const { getContextWindowFromModelId } = require('./utils/model-info-fetcher');
+      contextWindow = getContextWindowFromModelId(this.config.modelId);
+      console.log('✅ 从模型 ID 推断上下文窗口:', contextWindow);
+    }
+    
     // 🔥 添加配置调试信息
     console.log('🔧 AgentRuntime 配置调试:');
     console.log('   原始配置:', {
@@ -74,10 +95,14 @@ export class AgentRuntime {
       providerName: this.config.providerName,
       apiType: this.config.apiType,
       modelId2: this.config.modelId2,
+      contextWindow,
     });
     
     // 🔥 根据配置的 apiType 创建正确的模型对象
     let model: Model<'openai-completions' | 'google-generative-ai'>;
+    
+    // 计算合理的 maxTokens（通常是 contextWindow 的 1/4 到 1/2）
+    const maxTokens = Math.floor((contextWindow || 64000) / 2)
     
     if (this.config.apiType === 'google-generative-ai') {
       model = {
@@ -88,8 +113,8 @@ export class AgentRuntime {
         input: ['text', 'image'],
         reasoning: false,
         baseUrl: this.config.baseUrl,
-        contextWindow: 32768,
-        maxTokens: 8192,
+        contextWindow: contextWindow || 32000,
+        maxTokens: maxTokens,
         cost: {
           input: 0,
           output: 0,
@@ -106,8 +131,8 @@ export class AgentRuntime {
         input: ['text'],
         reasoning: false,
         baseUrl: this.config.baseUrl,
-        contextWindow: 8192,
-        maxTokens: 8192,
+        contextWindow: contextWindow || 32000,
+        maxTokens: maxTokens,
         cost: {
           input: 0,
           output: 0,
