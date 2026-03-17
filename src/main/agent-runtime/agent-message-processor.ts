@@ -163,6 +163,25 @@ export class AgentMessageProcessor {
       return false;
     }
     
+    // 🔥 检查是否包含执行计划关键词（如"现在开始执行"），且本轮一个工具都没有调用
+    // 说明 Agent 输出了计划但假装执行了，需要强制触发继续执行
+    const planKeywords = [
+      '现在开始执行',
+      '开始执行',
+      '立即执行',
+      '马上执行',
+      '现在执行',
+      '执行计划',
+      '按照计划',
+      '按计划执行',
+    ];
+
+    const hasPlanKeyword = planKeywords.some(kw => cleanResponse.includes(kw));
+    if (hasPlanKeyword && !hasToolCalls) {
+      console.log('⚠️ [detectUnfinishedIntent] 检测到执行计划关键词且本轮无任何工具调用（假调用），直接判定继续执行');
+      return true;
+    }
+
     // 🔥 检查是否包含"我会"、"我将"、"让我"等意图关键词
     const intentKeywords = [
       '我会',
