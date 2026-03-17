@@ -24,7 +24,7 @@ DeepBot is a system-level AI assistant that focuses on exploring enterprise prod
 ### ✨ Core Features
 
 - 🎯 **Multi-Task Parallel Processing** - Handle multiple tasks simultaneously without interference
-- 🔧 **13 Built-in Tools** - File operations, command execution, browser control, image generation, AI chat, cross-session communication, web content fetching, etc.
+- 🔧 **14 Built-in Tools** - File operations, command execution, browser control, image generation, AI chat, cross-session communication, web content fetching, Feishu document operations, etc.
 - 🧠 **Memory System** - Long-term memory of user preferences and important information
 - ⏰ **Scheduled Tasks** - Automated execution of periodic tasks
 - 🎨 **Skill Extensions** - Combine tools to implement complex functions through Skills
@@ -149,7 +149,7 @@ DeepBot adopts a modular architecture that supports multi-Agent communication an
 └─────────────────┬───────────────────────┘
                   │
 ┌─────────────────▼───────────────────────┐
-│      13 Tools + Security Check          │
+│      14 Tools + Security Check          │
 │    🔒 Path Whitelist • Workspace Isolation│
 │    🔄 Cross-Tab Message Tool 🆕          │
 └─────────────────┬───────────────────────┘
@@ -199,7 +199,7 @@ DeepBot adopts a modular architecture that supports multi-Agent communication an
 - **Session**: Independent conversation unit with its own Agent Runtime, memory, and context
 - **Agent Runtime**: Based on `@mariozechner/pi-agent-core`, responsible for intelligent decision-making and tool orchestration
 - **System Prompt Assembly Layer**: Dynamically assembles system prompts including base system prompts, tool instructions, memory files, Skills instructions, etc.
-- **Tools**: 13 built-in tools including cross-Tab calling tool for inter-Agent communication
+- **Tools**: 14 built-in tools including cross-Tab calling tool for inter-Agent communication
 - **Security Check**: All file and command operations are validated through path whitelist
 - **Multi-Agent Collaboration**: Agents in different Tabs can send messages to each other for collaborative complex task completion
 
@@ -243,6 +243,8 @@ Interact with DeepBot through Feishu bot, supporting private chats and group cha
 - ✅ Group messages (supports @mention)
 - ✅ Message deduplication (prevents duplicate responses)
 - ✅ Independent session management (each conversation has its own Tab)
+- ✅ Send images/files to users
+- ✅ Feishu document operations (create, read, edit, delete, comment)
 
 **Configuration Steps**:
 
@@ -266,7 +268,7 @@ Includes complete Feishu Open Platform configuration steps, permission settings,
 
 ---
 
-## 🔧 13 Built-in Tools
+## 🔧 14 Built-in Tools
 
 | Tool | Function | Typical Use Cases |
 |------|----------|-------------------|
@@ -283,6 +285,7 @@ Includes complete Feishu Open Platform configuration steps, permission settings,
 | **Scheduled Task** | Scheduled tasks | Create/manage/execute scheduled tasks |
 | **Chat Tool** | AI conversation processing | Internal tool AI calls, backend AI processing, independent from main Agent context |
 | **Cross Tab Call** 🆕 | Cross-Tab communication | Inter-Agent messaging and multi-Agent collaboration for complex tasks |
+| **Feishu Doc Tool** | Feishu document operations | Create documents, read content, append/update/delete blocks, add comments, delete documents |
 
 ### Creating Custom Tools
 
