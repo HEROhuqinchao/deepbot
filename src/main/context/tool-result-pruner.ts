@@ -29,8 +29,8 @@ export const DEFAULT_PRUNING_SETTINGS: PruningSettings = {
   headChars: 500,
   tailChars: 500,
   placeholder: '[工具结果已清除以节省上下文空间]',
-  keepLastAssistants: 3,
-  minPrunableChars: 2000, // 只裁剪超过 2000 字符的结果
+  keepLastAssistants: 1, // 减少到只保护最后 1 个 assistant 消息
+  minPrunableChars: 1000, // 降低最小裁剪阈值
 };
 
 /**
@@ -243,12 +243,14 @@ function hardClearToolResult(
  * @param messages - 消息数组
  * @param settings - 裁剪配置
  * @param modelId - 模型 ID
+ * @param fixedOverheadTokens - 固定开销 token 数（系统提示词 + 工具定义）
  * @returns 裁剪后的消息数组和统计信息
  */
 export function pruneToolResults(
   messages: AgentMessage[],
   settings: PruningSettings = DEFAULT_PRUNING_SETTINGS,
-  modelId?: string
+  modelId?: string,
+  fixedOverheadTokens: number = 0
 ): {
   messages: AgentMessage[];
   stats: {
@@ -261,15 +263,24 @@ export function pruneToolResults(
   };
 } {
   const contextWindow = getContextWindowTokens(modelId);
-  const charWindow = contextWindow * 4; // 字符数 = token 数 * 4
 
-  // 计算初始 token 数
-  const tokensBefore = messages.reduce((sum, m) => sum + estimateTokens(m), 0);
-  let totalChars = tokensBefore * 4;
-  let ratio = totalChars / charWindow;
+  // 计算初始 token 数（包含固定开销）
+  const messagesTokens = messages.reduce((sum, m) => sum + estimateTokens(m), 0);
+  const tokensBefore = messagesTokens;
+  const totalTokensBefore = fixedOverheadTokens + messagesTokens;
+  const ratio = totalTokensBefore / contextWindow;
+
+  console.debug(`[Tool Result Pruner] Token 分析:`);
+  console.debug(`  - 上下文窗口: ${contextWindow} tokens`);
+  console.debug(`  - 固定开销: ${fixedOverheadTokens} tokens`);
+  console.debug(`  - 消息部分: ${messagesTokens} tokens`);
+  console.debug(`  - 总计: ${totalTokensBefore} tokens`);
+  console.debug(`  - 使用率: ${(ratio * 100).toFixed(1)}%`);
+  console.debug(`  - Soft Trim 阈值: ${(settings.softTrimRatio * 100).toFixed(1)}%`);
 
   // 如果使用率 < softTrimRatio，不裁剪
   if (ratio < settings.softTrimRatio) {
+    console.debug(`[Tool Result Pruner] 使用率未达到修剪阈值，跳过修剪`);
     return {
       messages,
       stats: {
@@ -288,8 +299,29 @@ export function pruneToolResults(
   const firstUserIndex = findFirstUserIndex(messages);
   const pruneStartIndex = firstUserIndex === null ? messages.length : firstUserIndex;
 
+  console.debug(`[Tool Result Pruner] 保护区域分析:`);
+  console.debug(`  - 总消息数: ${messages.length}`);
+  console.debug(`  - 保护最后 ${settings.keepLastAssistants} 个 assistant 消息`);
+  console.debug(`  - cutoffIndex: ${cutoffIndex}`);
+  console.debug(`  - firstUserIndex: ${firstUserIndex}`);
+  console.debug(`  - pruneStartIndex: ${pruneStartIndex}`);
+  
+  // 调试：打印消息结构
+  console.debug(`[Tool Result Pruner] 消息结构分析:`);
+  for (let i = 0; i < Math.min(messages.length, 10); i++) {
+    const msg = messages[i];
+    const role = msg?.role || 'unknown';
+    const isToolResult = role === 'toolResult';
+    const toolName = isToolResult ? (msg as any).toolName : '';
+    console.debug(`  [${i}] ${role}${toolName ? ` (${toolName})` : ''}`);
+  }
+  if (messages.length > 10) {
+    console.debug(`  ... (${messages.length - 10} 条消息省略)`);
+  }
+
   // 如果没有可裁剪的区域
   if (cutoffIndex === null || pruneStartIndex >= cutoffIndex) {
+    console.debug(`[Tool Result Pruner] 没有可裁剪区域，跳过修剪`);
     return {
       messages,
       stats: {
@@ -308,32 +340,54 @@ export function pruneToolResults(
   let next: AgentMessage[] | null = null;
   const prunableIndexes: number[] = [];
 
+  console.debug(`[Tool Result Pruner] 开始扫描可修剪的工具结果 (${pruneStartIndex} → ${cutoffIndex})`);
+
   // 第一阶段：Soft Trim
   for (let i = pruneStartIndex; i < cutoffIndex; i++) {
     const msg = messages[i];
     if (!msg || msg.role !== 'toolResult') continue;
-    if (hasImageBlocks((msg as ToolResultMessage).content)) continue;
+    
+    const toolMsg = msg as ToolResultMessage;
+    console.debug(`[Tool Result Pruner] 发现工具结果 [${i}]: ${toolMsg.toolName}`);
+    
+    if (hasImageBlocks(toolMsg.content)) {
+      console.debug(`[Tool Result Pruner] 跳过包含图片的工具结果 [${i}]`);
+      continue;
+    }
+    
+    const parts = collectTextSegments(toolMsg.content);
+    const rawLen = estimateJoinedTextLength(parts);
+    console.debug(`[Tool Result Pruner] 工具结果 [${i}] 长度: ${rawLen} 字符`);
     
     prunableIndexes.push(i);
 
-    const updated = softTrimToolResult(msg as ToolResultMessage, settings);
-    if (!updated) continue;
+    const updated = softTrimToolResult(toolMsg, settings);
+    if (!updated) {
+      console.debug(`[Tool Result Pruner] 工具结果 [${i}] 太短，跳过修剪`);
+      continue;
+    }
 
-    const beforeChars = estimateTokens(msg) * 4;
-    const afterChars = estimateTokens(updated as AgentMessage) * 4;
-    totalChars += afterChars - beforeChars;
+    const beforeTokens = estimateTokens(msg);
+    const afterTokens = estimateTokens(updated as AgentMessage);
     
     if (!next) next = messages.slice();
     next[i] = updated as AgentMessage;
     softTrimmed++;
+    
+    console.debug(`[Tool Result Pruner] Soft Trim [${i}]: ${beforeTokens} → ${afterTokens} tokens`);
   }
 
+  console.debug(`[Tool Result Pruner] Soft Trim 完成: ${softTrimmed} 个工具结果被修剪`);
+
   const outputAfterSoftTrim = next ?? messages;
-  ratio = totalChars / charWindow;
+  const messagesTokensAfterSoftTrim = outputAfterSoftTrim.reduce((sum, m) => sum + estimateTokens(m), 0);
+  const totalTokensAfterSoftTrim = fixedOverheadTokens + messagesTokensAfterSoftTrim;
+  const ratioAfterSoftTrim = totalTokensAfterSoftTrim / contextWindow;
+
+  console.debug(`[Tool Result Pruner] Soft Trim 后使用率: ${(ratioAfterSoftTrim * 100).toFixed(1)}%`);
 
   // 如果使用率 < hardClearRatio，停止
-  if (ratio < settings.hardClearRatio) {
-    const tokensAfter = outputAfterSoftTrim.reduce((sum, m) => sum + estimateTokens(m), 0);
+  if (ratioAfterSoftTrim < settings.hardClearRatio) {
     return {
       messages: outputAfterSoftTrim,
       stats: {
@@ -341,33 +395,43 @@ export function pruneToolResults(
         softTrimmed,
         hardCleared: 0,
         tokensBefore,
-        tokensAfter,
-        tokensSaved: tokensBefore - tokensAfter,
+        tokensAfter: messagesTokensAfterSoftTrim,
+        tokensSaved: tokensBefore - messagesTokensAfterSoftTrim,
       },
     };
   }
 
   // 第二阶段：Hard Clear
+  console.debug(`[Tool Result Pruner] 开始 Hard Clear 阶段`);
+  
   for (const i of prunableIndexes) {
-    if (ratio < settings.hardClearRatio) break;
+    const currentTokens = fixedOverheadTokens + (next ?? messages).reduce((sum, m) => sum + estimateTokens(m), 0);
+    const currentRatio = currentTokens / contextWindow;
+    
+    if (currentRatio < settings.hardClearRatio) {
+      console.debug(`[Tool Result Pruner] 使用率已降至 ${(currentRatio * 100).toFixed(1)}%，停止 Hard Clear`);
+      break;
+    }
     
     const msg = (next ?? messages)[i];
     if (!msg || msg.role !== 'toolResult') continue;
 
-    const beforeChars = estimateTokens(msg) * 4;
+    const beforeTokens = estimateTokens(msg);
     const cleared = hardClearToolResult(msg as ToolResultMessage, settings);
     
     if (!next) next = messages.slice();
     next[i] = cleared as AgentMessage;
     
-    const afterChars = estimateTokens(cleared as AgentMessage) * 4;
-    totalChars += afterChars - beforeChars;
-    ratio = totalChars / charWindow;
+    const afterTokens = estimateTokens(cleared as AgentMessage);
     hardCleared++;
+    
+    console.debug(`[Tool Result Pruner] Hard Clear [${i}]: ${beforeTokens} → ${afterTokens} tokens`);
   }
 
+  console.debug(`[Tool Result Pruner] Hard Clear 完成: ${hardCleared} 个工具结果被清除`);
+
   const finalMessages = next ?? messages;
-  const tokensAfter = finalMessages.reduce((sum, m) => sum + estimateTokens(m), 0);
+  const finalMessagesTokens = finalMessages.reduce((sum, m) => sum + estimateTokens(m), 0);
 
   return {
     messages: finalMessages,
@@ -376,8 +440,8 @@ export function pruneToolResults(
       softTrimmed,
       hardCleared,
       tokensBefore,
-      tokensAfter,
-      tokensSaved: tokensBefore - tokensAfter,
+      tokensAfter: finalMessagesTokens,
+      tokensSaved: tokensBefore - finalMessagesTokens,
     },
   };
 }

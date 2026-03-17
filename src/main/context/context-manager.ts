@@ -222,7 +222,7 @@ export function manageContext(params: {
   if (usageRatioBefore >= settings.pruning.softTrimRatio) {
     console.debug(`[Context Manager] 📋 裁剪工具结果...`);
     
-    const pruneResult = pruneToolResults(currentMessages, settings.pruning, modelId);
+    const pruneResult = pruneToolResults(currentMessages, settings.pruning, modelId, fixedOverheadTokens);
     currentMessages = pruneResult.messages;
     toolResultsStats = {
       softTrimmed: pruneResult.stats.softTrimmed,
@@ -236,6 +236,8 @@ export function manageContext(params: {
         `[Context Manager] ✂️ 工具结果裁剪: Soft=${toolResultsStats.softTrimmed}, ` +
         `Hard=${toolResultsStats.hardCleared}, 节省=${toolResultsStats.tokensSaved} tokens`
       );
+    } else {
+      console.debug(`[Context Manager] 工具结果裁剪: 没有找到可裁剪的内容`);
     }
   }
 
