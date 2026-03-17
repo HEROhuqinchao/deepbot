@@ -17,8 +17,15 @@ const ChatToolSchema = Type.Object({
   maxChunkSize: Type.Optional(Type.Number({ description: '分段大小，默认 8000' })),
 });
 
-const DEFAULT_MAX_CHUNK_SIZE = 8000;
 const DEFAULT_CHUNK_OVERLAP = 200;
+
+/**
+ * 根据模型 contextWindow 动态计算分段大小
+ * 输入预留 contextWindow 的 40%（转为字符数，中文按 1:1，英文按 1:4 保守取 1:2）
+ */
+function calcMaxChunkSize(contextWindow: number): number {
+  return Math.floor(contextWindow * 0.4) * 2;
+}
 
 function splitTextIntoChunks(text: string, maxChunkSize: number): string[] {
   if (text.length <= maxChunkSize) return [text];
@@ -58,6 +65,10 @@ function createModel(configStore: SystemConfigStore): Model<'openai-completions'
   if (!modelConfig || !modelConfig.apiKey) {
     throw new Error('模型未配置。请在系统设置中配置 API Key');
   }
+
+  // 与 agent-runtime 保持一致：从配置读取 contextWindow，maxTokens = contextWindow / 2
+  const contextWindow = modelConfig.contextWindow || 32000;
+  const maxTokens = Math.floor(contextWindow / 2);
   
   return {
     api: 'openai-completions',
@@ -67,8 +78,8 @@ function createModel(configStore: SystemConfigStore): Model<'openai-completions'
     input: ['text'],
     reasoning: false,
     baseUrl: modelConfig.baseUrl,
-    contextWindow: 8192,
-    maxTokens: 8192,
+    contextWindow,
+    maxTokens,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
   };
 }
@@ -197,7 +208,9 @@ export function createChatTool(configStore: SystemConfigStore): AgentTool {
           throw new Error('缺少参数: prompt');
         }
         
-        const maxChunkSize = params.maxChunkSize || DEFAULT_MAX_CHUNK_SIZE;
+        const modelConfig = configStore.getModelConfig();
+        const contextWindow = modelConfig?.contextWindow || 32000;
+        const maxChunkSize = params.maxChunkSize || calcMaxChunkSize(contextWindow);
         
         // 无 content，直接对话
         if (!params.content) {
@@ -264,6 +277,7 @@ export function createChatTool(configStore: SystemConfigStore): AgentTool {
         const results: string[] = [];
         
         for (let i = 0; i < chunks.length; i++) {
+          // 只检查用户主动取消
           if (signal?.aborted) {
             const err = new Error('Chat 操作被取消');
             err.name = 'AbortError';
@@ -271,6 +285,12 @@ export function createChatTool(configStore: SystemConfigStore): AgentTool {
           }
           
           console.log(`[Chat Tool] 处理第 ${i + 1}/${chunks.length} 段...`);
+          
+          // 为每段创建独立的 AbortController，避免上一段 stream 结束后污染 signal 状态
+          const chunkAbortController = new AbortController();
+          if (signal) {
+            signal.addEventListener('abort', () => chunkAbortController.abort(), { once: true });
+          }
           
           const messages: Array<{ role: string; content: string }> = [];
           
@@ -284,7 +304,7 @@ export function createChatTool(configStore: SystemConfigStore): AgentTool {
           const chunkAnswer = await callAIStream({
             messages,
             configStore,
-            signal,
+            signal: chunkAbortController.signal,
             onUpdate: (text) => {
               const tempResults = [...results, text];
               const fullResult = tempResults.join('\n\n');
