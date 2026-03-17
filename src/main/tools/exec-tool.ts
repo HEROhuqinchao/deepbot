@@ -208,6 +208,16 @@ function checkCommandPathSecurity(command: string): void {
         continue;
       }
       
+      // 跳过单独的 /（根目录，通常是误匹配，如 "url1 / url2" 中的分隔符）
+      if (pathToCheck === '/') {
+        continue;
+      }
+      
+      // 跳过 URL（http:// 或 https:// 开头）
+      if (pathToCheck.startsWith('http://') || pathToCheck.startsWith('https://')) {
+        continue;
+      }
+      
       // 跳过纯文件名（不包含路径分隔符）
       if (!pathToCheck.includes('/') && !pathToCheck.includes('\\') && !pathToCheck.startsWith('~')) {
         continue;
