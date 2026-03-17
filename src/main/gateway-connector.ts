@@ -180,11 +180,28 @@ export class GatewayConnectorHandler {
       }
       
       const contentWithSource = `[来自: ${senderName}]\n${content}`;
-      const systemHint = `\n\n[系统提示: 这是飞书通讯会话，除了系统的工具，你还可以使用以专用下工具:
+      
+      // 更新飞书文档工具的当前发送者 ID（用于创建文档后自动添加协作者）
+      const { setCurrentSenderIdForFeishuDocTool } = require('./tools/feishu-doc-tool');
+      if (message.source.senderId) {
+        setCurrentSenderIdForFeishuDocTool(message.source.senderId);
+      }
+
+      const systemHint = `\n\n[系统提示: 这是飞书通讯会话，除了系统的工具，你还可以使用以下专用工具:
 - connector_send_image: 发送图片给对方
 - connector_send_file: 发送文件给对方
+- feishu_doc_create: 创建飞书云文档（参数: title, folder_token?）
+- feishu_doc_get: 获取文档信息和纯文本内容（参数: document_id）
+- feishu_doc_get_blocks: 获取文档所有块列表，更新/删除块前先调用此工具获取 block_id（参数: document_id）
+- feishu_doc_append: 追加内容到文档末尾（参数: document_id, content）
+- feishu_doc_update_block: 更新指定块的文本内容（参数: document_id, block_id, content）
+- feishu_doc_delete_blocks: 删除文档中指定范围的块（参数: document_id, parent_block_id, start_index, end_index）
+- feishu_doc_delete_file: 永久删除整篇文档文件，不可恢复（参数: document_id）
+- feishu_doc_add_comment: 在文档中添加评论（参数: document_id, content）
 
-不用回复你有什么工具，需要的时候直接执行]`;
+注意：
+1. feishu_doc_append和feishu_doc_add_comment的区别，客户要求添加评论时使用feishu_doc_add_comment
+2. 不用回复你有什么工具，需要的时候直接执行]`;
       const contentForAgent = contentWithSource + systemHint;
       
       console.log('[ConnectorHandler] 📤 准备发送给 Agent:', {

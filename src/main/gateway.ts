@@ -82,6 +82,12 @@ export class Gateway {
     setGatewayForConnectorTool(this);
     console.info('[Gateway] Gateway 实例已传递给 Connector Tool');
     
+    // 设置 configStore 供飞书云文档工具使用
+    const { setConfigStoreForFeishuDocTool } = require('./tools/feishu-doc-tool');
+    const { SystemConfigStore: FeishuDocConfigStore } = require('./database/system-config-store');
+    setConfigStoreForFeishuDocTool(FeishuDocConfigStore.getInstance());
+    console.info('[Gateway] configStore 已传递给 Feishu Doc Tool');
+    
     // 设置 Gateway 实例供 cross-tab-call-tool 使用
     const { setGatewayForCrossTabCallTool } = require('./tools/cross-tab-call-tool');
     setGatewayForCrossTabCallTool(this);

@@ -62,6 +62,16 @@ export const TOOL_NAMES = {
   CONNECTOR_SEND_IMAGE: 'connector_send_image',
   CONNECTOR_SEND_FILE: 'connector_send_file',
   
+  // 飞书云文档工具
+  FEISHU_DOC_CREATE: 'feishu_doc_create',
+  FEISHU_DOC_GET: 'feishu_doc_get',
+  FEISHU_DOC_APPEND: 'feishu_doc_append',
+  FEISHU_DOC_UPDATE_BLOCK: 'feishu_doc_update_block',
+  FEISHU_DOC_DELETE_BLOCKS: 'feishu_doc_delete_blocks',
+  FEISHU_DOC_DELETE_FILE: 'feishu_doc_delete_file',
+  FEISHU_DOC_GET_BLOCKS: 'feishu_doc_get_blocks',
+  FEISHU_DOC_ADD_COMMENT: 'feishu_doc_add_comment',
+  
   // AI 对话工具
   CHAT: 'chat',
   

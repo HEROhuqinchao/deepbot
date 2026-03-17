@@ -31,6 +31,7 @@ import { apiToolPlugin } from '../api-tool';
 import { connectorToolPlugin } from '../connector-tool';
 import { crossTabCallToolPlugin } from '../cross-tab-call-tool';
 import { commandToolPlugin } from '../command-tool';
+import { feishuDocToolPlugin } from '../feishu-doc-tool';
 
 /**
  * 工具加载器类
@@ -284,6 +285,22 @@ export class ToolLoader {
       } else {
         tools.push(commandTools);
       }
+
+      // 飞书云文档工具
+      const feishuDocToolsResult = feishuDocToolPlugin.create({
+        workspaceDir: this.workspaceDir,
+        sessionId: this.sessionId,
+        configStore,
+      });
+      const feishuDocTools = feishuDocToolsResult instanceof Promise
+        ? await feishuDocToolsResult
+        : feishuDocToolsResult;
+      if (Array.isArray(feishuDocTools)) {
+        tools.push(...feishuDocTools);
+      } else {
+        tools.push(feishuDocTools);
+      }
+
     } catch (error) {
       console.error('❌ 加载内置工具失败:', error);
     }
