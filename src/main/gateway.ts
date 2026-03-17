@@ -460,14 +460,7 @@ export class Gateway {
     console.log(`[Gateway] 📝 重置原因: ${reason}`);
     console.log(`[Gateway] 🔧 重新创建: ${recreate ? '是' : '否'}`);
     
-    // 步骤 1: 停止当前 Runtime 的生成
-    const runtime = this.agentRuntimes.get(sessionId);
-    if (runtime) {
-      console.log('[Gateway] 🛑 停止当前 Runtime 生成...');
-      await runtime.stopGeneration();
-    }
-    
-    // 步骤 2: 销毁当前 Runtime
+    // destroy() 内部已包含 stopGeneration()，直接销毁即可
     console.log('[Gateway] 🗑️ 销毁当前 Runtime...');
     await this.destroySessionRuntime(sessionId);
     
