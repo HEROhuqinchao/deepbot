@@ -194,6 +194,31 @@ export function approvePairingRecord(db: Database.Database, pairingCode: string)
 }
 
 /**
+ * 设置/取消管理员
+ */
+export function setAdminPairing(db: Database.Database, connectorId: string, userId: string, isAdmin: boolean): void {
+  const stmt = db.prepare(`
+    UPDATE connector_pairing SET is_admin = ? WHERE connector_id = ? AND user_id = ?
+  `);
+  stmt.run(isAdmin ? 1 : 0, connectorId, userId);
+}
+
+/**
+ * 检查用户是否是管理员
+ */
+export function isAdminUser(db: Database.Database, connectorId: string, userId: string): boolean {
+  try {
+    const stmt = db.prepare(`
+      SELECT is_admin FROM connector_pairing WHERE connector_id = ? AND user_id = ?
+    `);
+    const row = stmt.get(connectorId, userId) as any;
+    return row?.is_admin === 1;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * 删除 Pairing 记录
  */
 export function deletePairingRecord(db: Database.Database, connectorId: string, userId: string): void {
@@ -212,6 +237,7 @@ export function getAllPairingRecords(db: Database.Database, connectorId?: string
   userId: string;
   pairingCode: string;
   approved: boolean;
+  isAdmin: boolean;
   createdAt: number;
   approvedAt?: number;
 }> {
@@ -236,6 +262,7 @@ export function getAllPairingRecords(db: Database.Database, connectorId?: string
       userId: row.user_id,
       pairingCode: row.pairing_code,
       approved: row.approved === 1,
+      isAdmin: row.is_admin === 1,
       createdAt: row.created_at,
       approvedAt: row.approved_at,
     }));

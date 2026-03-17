@@ -19,6 +19,8 @@ import type {
   GetPairingRecordsResponse,
   ApprovePairingRequest,
   ApprovePairingResponse,
+  SetAdminPairingRequest,
+  SetAdminPairingResponse,
   DeletePairingRequest,
   DeletePairingResponse,
 } from '../../types/ipc';
@@ -316,6 +318,21 @@ export function registerConnectorHandlers(): void {
     }
   );
   
+  // 设置/取消管理员
+  registerIpcHandler<SetAdminPairingRequest, SetAdminPairingResponse>(
+    IPC_CHANNELS.CONNECTOR_SET_ADMIN_PAIRING,
+    async (_event, request): Promise<SetAdminPairingResponse> => {
+      try {
+        const store = SystemConfigStore.getInstance();
+        store.setAdminPairing(request.connectorId, request.userId, request.isAdmin);
+        return { success: true };
+      } catch (error) {
+        console.error('[IPC] 设置管理员失败:', error);
+        return { success: false, error: getErrorMessage(error) };
+      }
+    }
+  );
+
   // 删除 Pairing 记录
   registerIpcHandler<DeletePairingRequest, DeletePairingResponse>(
     IPC_CHANNELS.CONNECTOR_DELETE_PAIRING,

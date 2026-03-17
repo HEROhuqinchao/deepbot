@@ -152,6 +152,7 @@ export class ConnectorManager {
           senderName: parsedMessage.sender.name,
         },
         content: parsedMessage.content,
+        systemContext: parsedMessage.systemContext,
         raw: parsedMessage.raw,
       };
       

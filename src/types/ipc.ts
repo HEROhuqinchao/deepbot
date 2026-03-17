@@ -91,6 +91,7 @@ export const IPC_CHANNELS = {
   CONNECTOR_HEALTH_CHECK: 'connector:health-check',
   CONNECTOR_GET_PAIRING_RECORDS: 'connector:get-pairing-records',
   CONNECTOR_APPROVE_PAIRING: 'connector:approve-pairing',
+  CONNECTOR_SET_ADMIN_PAIRING: 'connector:set-admin-pairing',
   CONNECTOR_DELETE_PAIRING: 'connector:delete-pairing',
   
   // 应用信息
@@ -417,6 +418,7 @@ export interface GetPairingRecordsResponse {
     userId: string;
     pairingCode: string;
     approved: boolean;
+    isAdmin: boolean;
     createdAt: number;
     approvedAt?: number;
   }>;
@@ -428,6 +430,17 @@ export interface ApprovePairingRequest {
 }
 
 export interface ApprovePairingResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface SetAdminPairingRequest {
+  connectorId: string;
+  userId: string;
+  isAdmin: boolean;
+}
+
+export interface SetAdminPairingResponse {
   success: boolean;
   error?: string;
 }

@@ -36,6 +36,7 @@ interface PairingRecord {
   userId: string;
   pairingCode: string;
   approved: boolean;
+  isAdmin: boolean;
   createdAt: number;
   approvedAt?: number;
 }
@@ -147,6 +148,21 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
       }
     } catch (error) {
       showMessage('error', `批准失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  const handleSetAdmin = async (connectorId: string, userId: string, isAdmin: boolean) => {
+    try {
+      const result = await window.deepbot.connectorSetAdminPairing(connectorId, userId, isAdmin);
+      const actualResult = result.data || result;
+      if (actualResult.success) {
+        showMessage('success', isAdmin ? '已设为管理员' : '已取消管理员');
+        await loadPairingRecords(selectedConnector || undefined);
+      } else {
+        showMessage('error', actualResult.error || '操作失败');
+      }
+    } catch (error) {
+      showMessage('error', `操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   };
 
@@ -529,6 +545,11 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
                                 待批准
                               </span>
                             )}
+                            {record.isAdmin && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
+                                管理员
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-gray-500">
                             配对码: <span className="font-mono font-medium">{record.pairingCode}</span>
@@ -549,6 +570,16 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
                               批准
                             </button>
                           )}
+                          <button
+                            onClick={() => handleSetAdmin(record.connectorId, record.userId, !record.isAdmin)}
+                            className={`px-3 py-1 text-sm rounded transition-colors whitespace-nowrap ${
+                              record.isAdmin
+                                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            {record.isAdmin ? '管理员 ✓' : '设为管理员'}
+                          </button>
                           <button
                             onClick={() => handleDeletePairing(record.connectorId, record.userId)}
                             className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors whitespace-nowrap"

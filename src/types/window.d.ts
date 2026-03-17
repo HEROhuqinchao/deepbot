@@ -56,6 +56,7 @@ interface DeepBotAPI {
   connectorHealthCheck: (connectorId: string) => Promise<any>;
   connectorGetPairingRecords: (connectorId?: string) => Promise<any>;
   connectorApprovePairing: (pairingCode: string) => Promise<any>;
+  connectorSetAdminPairing: (connectorId: string, userId: string, isAdmin: boolean) => Promise<any>;
   connectorDeletePairing: (connectorId: string, userId: string) => Promise<any>;
   onSubAgentStatusUpdate: (callback: (data: any) => void) => () => void;
   onMessageStream: (callback: (chunk: any) => void) => () => void;

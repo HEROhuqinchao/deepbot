@@ -260,6 +260,18 @@ export class SystemConfigStore {
     } catch (error) {
       console.warn('[SystemConfigStore] ⚠️ 数据库迁移检查失败（表可能不存在）:', error);
     }
+    // 迁移：添加 is_admin 字段到 connector_pairing 表
+    try {
+      const pairingTableInfo = this.db.prepare("PRAGMA table_info(connector_pairing)").all() as any[];
+      const hasIsAdminColumn = pairingTableInfo.some((col: any) => col.name === 'is_admin');
+      if (!hasIsAdminColumn) {
+        console.log('[SystemConfigStore] 🔄 迁移数据库：添加 is_admin 字段到 connector_pairing 表');
+        this.db.exec(`ALTER TABLE connector_pairing ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0`);
+        console.log('[SystemConfigStore] ✅ connector_pairing 迁移完成');
+      }
+    } catch (error) {
+      console.warn('[SystemConfigStore] ⚠️ connector_pairing 迁移检查失败:', error);
+    }
   }
 
   // ========== 环境配置 ==========
@@ -460,6 +472,14 @@ export class SystemConfigStore {
     return ConnectorConfigModule.approvePairingRecord(this.db, pairingCode);
   }
 
+  setAdminPairing(connectorId: string, userId: string, isAdmin: boolean): void {
+    return ConnectorConfigModule.setAdminPairing(this.db, connectorId, userId, isAdmin);
+  }
+
+  isAdminUser(connectorId: string, userId: string): boolean {
+    return ConnectorConfigModule.isAdminUser(this.db, connectorId, userId);
+  }
+
   deletePairingRecord(connectorId: string, userId: string): void {
     return ConnectorConfigModule.deletePairingRecord(this.db, connectorId, userId);
   }
@@ -469,6 +489,7 @@ export class SystemConfigStore {
     userId: string;
     pairingCode: string;
     approved: boolean;
+    isAdmin: boolean;
     createdAt: number;
     approvedAt?: number;
   }> {

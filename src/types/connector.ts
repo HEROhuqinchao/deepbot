@@ -62,6 +62,9 @@ export interface GatewayMessage {
   
   // 原始数据（用于调试）
   raw?: any;
+
+  // 系统上下文（连接器注入给 agent 的额外提示，如首次登录提示等）
+  systemContext?: string;
 }
 
 // ========== 连接器接口 ==========
@@ -182,6 +185,8 @@ export interface FeishuIncomingMessage {
     fileKey?: string;         // 飞书文件 Key
     filePath?: string;        // 本地文件路径
   };
+  // 系统上下文（注入给 agent 的额外提示）
+  systemContext?: string;
   raw: any;
 }
 

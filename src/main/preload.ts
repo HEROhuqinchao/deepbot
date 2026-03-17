@@ -61,6 +61,7 @@ const IPC_CHANNELS = {
   CONNECTOR_HEALTH_CHECK: 'connector:health-check',
   CONNECTOR_GET_PAIRING_RECORDS: 'connector:get-pairing-records',
   CONNECTOR_APPROVE_PAIRING: 'connector:approve-pairing',
+  CONNECTOR_SET_ADMIN_PAIRING: 'connector:set-admin-pairing',
   CONNECTOR_DELETE_PAIRING: 'connector:delete-pairing',
 } as const;
 
@@ -286,7 +287,11 @@ contextBridge.exposeInMainWorld('deepbot', {
   connectorApprovePairing: (pairingCode: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_APPROVE_PAIRING, { pairingCode });
   },
-  
+
+  connectorSetAdminPairing: (connectorId: string, userId: string, isAdmin: boolean) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_SET_ADMIN_PAIRING, { connectorId, userId, isAdmin });
+  },
+
   connectorDeletePairing: (connectorId: string, userId: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_DELETE_PAIRING, { connectorId, userId });
   },

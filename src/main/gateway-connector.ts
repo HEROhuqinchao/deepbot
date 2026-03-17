@@ -195,7 +195,7 @@ export class GatewayConnectorHandler {
 1. feishu_doc_append 是追加正文内容，feishu_doc_add_comment 是添加评论，客户要求添加评论时使用后者
 2. 不用回复你有什么工具，需要的时候直接执行]`;
 
-      const contentForAgent = contentWithSource + systemHint;
+      const contentForAgent = contentWithSource + systemHint + (message.systemContext ? `\n\n${message.systemContext}` : '');
 
       logger.info('📤 准备发送给 Agent:', {
         displayContent: displayContent.substring(0, 200),

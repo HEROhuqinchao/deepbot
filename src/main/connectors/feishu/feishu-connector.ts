@@ -355,6 +355,7 @@ export class FeishuConnector implements Connector {
       
       // 2. 解析飞书消息
       // 飞书事件结构：event.sender.sender_id 包含 open_id, user_id, union_id
+      // 优先使用 user_id（企业内部用户），fallback 到 open_id（外部用户/机器人）
       const senderId = event.sender.sender_id.user_id || event.sender.sender_id.open_id;
       
       // 使用 ID 的后 8 位作为显示名
@@ -539,13 +540,31 @@ export class FeishuConnector implements Connector {
         console.log('[FeishuConnector] 消息中未检测到飞书文档链接');
       }
       
-      // 6. 安全检查
+      // 6. 检查是否是管理员指令（在安全检查之前处理，允许管理员执行 pairing approve）
+      const commandHandled = await this.handleAdminCommand(feishuMessage);
+      if (commandHandled) {
+        return;
+      }
+
+      // 7. 安全检查
       if (!this.checkSecurity(feishuMessage)) {
-        console.log('[FeishuConnector] 安全检查未通过，忽略消息');
-        
         // 如果是 pairing 模式，发送配对码
         if (this.connectorConfig.dmPolicy === 'pairing' && feishuMessage.conversation.type === 'private') {
           const code = this.pairing!.generatePairingCode(feishuMessage.sender.id);
+
+          // 检查是否被自动批准（首位用户）
+          const store = SystemConfigStore.getInstance();
+          const record = store.getPairingRecordByUser('feishu', feishuMessage.sender.id);
+          if (record?.approved) {
+            // 首位用户：自动批准并设为管理员，直接转发消息，附带系统上下文
+            feishuMessage.systemContext = `[系统通知] 这是第一次有用户连接到 DeepBot。该用户已被自动设置为管理员。请在回复中告知用户：
+1. 他已被自动设置为管理员
+2. 作为管理员，他可以通过发送 "deepbot pairing approve feishu <配对码>" 来批准其他用户的配对请求
+3. 也可以在 DeepBot 桌面端的"系统管理 → 飞书 → Pairing 管理"界面中管理用户权限`;
+            await this.connectorManager.handleIncomingMessage('feishu', feishuMessage);
+            return;
+          }
+
           await this.outbound.sendMessage({
             conversationId: feishuMessage.conversation.id,
             content: `请使用配对码进行授权：${code}\n\n管理员可以使用以下命令批准：\ndeepbot pairing approve feishu ${code}`,
@@ -555,7 +574,7 @@ export class FeishuConnector implements Connector {
         return;
       }
       
-      // 7. 转发到 Connector Manager
+      // 8. 转发到 Connector Manager
       await this.connectorManager.handleIncomingMessage('feishu', feishuMessage);
       
       console.log('[FeishuConnector] ✅ 消息已转发');
@@ -868,6 +887,74 @@ export class FeishuConnector implements Connector {
     requireMention: true,
   };
   
+  /**
+   * 处理管理员指令（在安全检查之前执行，允许管理员执行 pairing approve）
+   * 支持指令：deepbot pairing approve feishu <code>
+   * 权限验证：发送者必须在数据库中标记为 is_admin
+   * @returns true 表示已处理该指令，调用方应直接 return
+   */
+  private async handleAdminCommand(message: FeishuIncomingMessage): Promise<boolean> {
+    const text = (message.content.text || '').trim();
+
+    // 匹配 pairing approve 指令，格式：deepbot pairing approve feishu <code>
+    const approveMatch = text.match(/^deepbot\s+pairing\s+approve\s+feishu\s+(\S+)$/i);
+    if (!approveMatch) {
+      return false;
+    }
+
+    const code = approveMatch[1].toUpperCase();
+    const senderId = message.sender.id;
+
+    console.log('[FeishuConnector] 🔑 收到 pairing approve 指令:', { senderId, code });
+
+    // 验证发送者是否是管理员（通过数据库中的 is_admin 标记）
+    const store = SystemConfigStore.getInstance();
+    const isAdmin = store.isAdminUser('feishu', senderId);
+    if (!isAdmin) {
+      await this.outbound.sendMessage({
+        conversationId: message.conversation.id,
+        content: '❌ 无权限：只有管理员才能执行此操作。',
+      });
+      return true;
+    }
+
+    // 执行 approve
+    try {
+      const record = store.getPairingRecordByCode(code);
+
+      if (!record) {
+        await this.outbound.sendMessage({
+          conversationId: message.conversation.id,
+          content: `❌ 配对码 ${code} 不存在或已过期。`,
+        });
+        return true;
+      }
+
+      if (record.approved) {
+        await this.outbound.sendMessage({
+          conversationId: message.conversation.id,
+          content: `ℹ️ 配对码 ${code} 已经批准过了。`,
+        });
+        return true;
+      }
+
+      store.approvePairingRecord(code);
+      console.log('[FeishuConnector] ✅ 配对已批准:', { code, userId: record.userId });
+      await this.outbound.sendMessage({
+        conversationId: message.conversation.id,
+        content: `✅ 配对码 ${code} 已批准，用户现在可以使用 DeepBot 了。`,
+      });
+    } catch (error) {
+      console.error('[FeishuConnector] ❌ 处理 pairing approve 失败:', getErrorMessage(error));
+      await this.outbound.sendMessage({
+        conversationId: message.conversation.id,
+        content: `❌ 操作失败：${getErrorMessage(error)}`,
+      });
+    }
+
+    return true;
+  }
+
   private checkSecurity(message: FeishuIncomingMessage): boolean {
     // 1. 检查 DM 策略
     if (message.conversation.type === 'private') {
@@ -906,11 +993,24 @@ export class FeishuConnector implements Connector {
       // 生成 6 位配对码
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       
-      // 存储到数据库
       const store = SystemConfigStore.getInstance();
+
+      // 检查是否是第一个用户（数据库中还没有任何配对记录）
+      const existingRecords = store.getAllPairingRecords('feishu');
+      const isFirstUser = existingRecords.length === 0;
+
+      // 存储到数据库
       store.savePairingRecord('feishu', userId, code);
-      
-      console.log('[FeishuConnector] 生成配对码:', { userId, code });
+
+      // 第一个用户自动批准并设为管理员
+      if (isFirstUser) {
+        store.approvePairingRecord(code);
+        store.setAdminPairing('feishu', userId, true);
+        console.log('[FeishuConnector] 👑 首位用户自动批准并设为管理员:', userId);
+      } else {
+        console.log('[FeishuConnector] 生成配对码:', { userId, code });
+      }
+
       return code;
     },
     
