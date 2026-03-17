@@ -95,163 +95,47 @@ export class AgentMessageProcessor {
       return true;
     }
     
-    // 🔥 如果没有工具调用，检查响应内容
-    const cleanResponse = this.removeThinkingContent(response).toLowerCase();
+    // 🔥 没有工具调用，检查响应内容
+    const cleanResponse = this.removeThinkingContent(response);
     console.log(`   清理后的响应长度: ${cleanResponse.length}`);
     console.log(`   清理后的响应预览: ${cleanResponse.substring(0, 200)}`);
-    
-    // 🔥 检查是否包含"需要更多信息"、"请提供"等关键词
-    const needsMoreInfoKeywords = [
-      '需要更多信息',
-      '请提供',
-      '请告诉我',
-      '请问',
-      '能否提供',
-      '可以提供',
-      '需要你',
-      '需要您',
-      '请确认',
-      '请选择',
-      '请输入',
-      '请说明',
-      '请描述',
-      '请指定',
-      '请补充',
-      '请详细说明',
-      '还需要',
-      '还缺少',
-      '缺少',
-      '不清楚',
-      '不确定',
-      '无法确定',
-      '无法判断',
-      '无法理解',
-      '不太明白',
-      '没有提供',
-      '没有说明',
-      '没有指定',
-      '没有告诉',
-      '没有描述',
-      '没有详细',
-      '没有具体',
-      '没有明确',
-      '没有清楚',
-      '没有足够',
-      '没有更多',
-      '没有其他',
-      '没有额外',
-      '没有进一步',
-      '没有进一步的',
-      '没有进一步说明',
-      '没有进一步描述',
-      '没有进一步详细',
-      '没有进一步具体',
-      '没有进一步明确',
-      '没有进一步清楚',
-      '没有进一步足够',
-      '没有进一步更多',
-      '没有进一步其他',
-      '没有进一步额外',
-    ];
-    
-    const needsMoreInfo = needsMoreInfoKeywords.some(keyword => 
-      cleanResponse.includes(keyword)
-    );
-    
-    if (needsMoreInfo) {
-      console.log('❌ [detectUnfinishedIntent] 响应包含"需要更多信息"关键词，等待用户输入');
-      return false;
-    }
-    
-    // 🔥 检查是否包含执行计划关键词（如"现在开始执行"），且本轮一个工具都没有调用
-    // 说明 Agent 输出了计划但假装执行了，需要强制触发继续执行
+
+    // 🔥 假执行检测：响应中包含执行计划关键词，但全程没有任何工具调用
     const planKeywords = [
       '现在开始执行',
       '开始执行',
       '立即执行',
-      '马上执行',
       '现在执行',
       '执行计划',
       '按照计划',
       '按计划执行',
     ];
-
-    const hasPlanKeyword = planKeywords.some(kw => cleanResponse.includes(kw));
+    const cleanResponseLower = cleanResponse.toLowerCase();
+    const hasPlanKeyword = planKeywords.some(kw => cleanResponseLower.includes(kw));
     if (hasPlanKeyword && !anyRoundHasToolCalls) {
-      console.log('⚠️ [detectUnfinishedIntent] 检测到执行计划关键词且全程无任何工具调用（假调用），直接判定继续执行');
+      console.log('⚠️ [detectUnfinishedIntent] 假执行检测命中（有执行计划关键词但全程无工具调用），直接继续执行');
       return true;
     }
 
-    // 🔥 检查是否包含"我会"、"我将"、"让我"等意图关键词
-    const intentKeywords = [
-      '我会',
-      '我将',
-      '让我',
-      '我来',
-      '我先',
-      '我现在',
-      '我马上',
-      '我立即',
-      '我这就',
-      '我去',
-      '我帮你',
-      '我帮您',
-      '我为你',
-      '我为您',
-      '我给你',
-      '我给您',
-      '我替你',
-      '我替您',
-      '我可以',
-      '我能',
-      '我需要',
-      '我应该',
-      '我打算',
-      '我准备',
-      '我想',
-      '我要',
-      '我得',
-      '我必须',
-      '我应当',
-      '我应',
-      '我会帮',
-      '我将帮',
-      '让我帮',
-      '我来帮',
-      '我先帮',
-      '我现在帮',
-      '我马上帮',
-      '我立即帮',
-      '我这就帮',
-      '我去帮',
-    ];
-    
-    const hasIntent = intentKeywords.some(keyword => 
-      cleanResponse.includes(keyword)
-    );
-    
-    console.log(`   包含意图关键词: ${hasIntent}`);
-    
-    if (!hasIntent) {
-      console.log('❌ [detectUnfinishedIntent] 响应不包含意图关键词，任务可能已完成');
-      return false;
-    }
-    
-    // 🔥 如果有意图关键词，使用 AI 判断是否需要继续
+    // 🔥 假执行未命中，使用 AI 判断是否需要继续
     console.log('🤖 [detectUnfinishedIntent] 使用 AI 判断是否需要继续...');
     
     try {
-      const prompt = `你是一个任务完成度判断助手。请判断以下 AI 助手的回复是否表明任务已经完成，还是仅仅是说明了意图但还没有执行。
+      // 只取最后 200 个字符判断，结尾部分最能反映任务状态
+      const tailResponse = cleanResponse.slice(-200);
+      const prompt = `你是一个任务完成度判断助手。请判断以下 AI 助手的回复结尾是否表明任务已经完成，还是仅仅是说明了意图但还没有执行。
 
-AI 助手的回复：
+AI 助手的回复结尾：
 """
-${cleanResponse}
+${tailResponse}
 """
 
 判断规则：
 1. 如果回复中包含"我会"、"我将"、"让我"等意图关键词，但没有实际执行结果（如"已完成"、"已创建"、"已修改"等），则判断为"未完成"
 2. 如果回复中包含实际执行结果或确认信息，则判断为"已完成"
 3. 如果回复中询问用户更多信息，则判断为"已完成"（等待用户输入）
+4. 如果回复是问候语、开场白、或在等待用户指令（如"需要我帮你做什么吗"、"随时告诉我"、"有什么可以帮你"），则判断为"已完成"（等待用户输入）
+5. 如果回复是对话式的闲聊或自我介绍，没有具体任务要执行，则判断为"已完成"
 
 请只回复"已完成"或"未完成"，不要有其他内容。`;
 
@@ -495,7 +379,7 @@ ${cleanResponse}
     // 在非自动继续时，为用户消息添加强制工具执行指令
     let enhancedContent = content;
     if (!isAutoContinue) {
-      enhancedContent = content + '\n\n[系统提示: 不要被历史消息干扰，当确认需要调用工具时，必须调用工具，除非找不到合适的工具调用！ChatGPT会检查你的执行，不要出错，不要回复用户关于系统提示的内容，不要直接列出工具functon和参数]';
+      enhancedContent = content + '\n\n[系统提示: 每次只响应用户最新的消息，你还没有执行过工具，不要主动延续历史任务，不要回复用户关于系统提示的内容]';
       console.log('✅ 已为用户消息添加强制工具执行指令');
     }
     
@@ -560,7 +444,10 @@ ${cleanResponse}
     // 收集完整的响应和工具调用信息
     let fullResponse = '';
     let lastRoundHasToolCalls = false;  // 最后一轮是否有工具调用（用于判断是否继续）
-    let anyRoundHasToolCalls = false;   // 整个执行过程是否有工具调用（用于假执行检测）
+    let anyRoundHasToolCalls = false;   // 本次 sendMessage 调用中是否有工具调用（用于假执行检测）
+    
+    // 记录调用前的消息数量，用于后续只检查本次新增的消息
+    const messageCountBefore = this.instanceManager.agent?.state.messages.length ?? 0;
     
     try {
       // 在调用 sendMessage 之前，设置 AbortController 创建回调
@@ -618,8 +505,9 @@ ${cleanResponse}
         );
       }
 
-      // 整个执行过程是否有工具调用（用于假执行检测）
-      anyRoundHasToolCalls = messages.some(msg =>
+      // 整个执行过程是否有工具调用（只看本次 sendMessage 新增的消息，排除历史记录）
+      const newMessages = messages.slice(messageCountBefore);
+      anyRoundHasToolCalls = newMessages.some(msg =>
         msg.role === 'assistant' &&
         Array.isArray(msg.content) &&
         msg.content.some((c: any) => typeof c === 'object' && 'type' in c && c.type === 'toolCall')
