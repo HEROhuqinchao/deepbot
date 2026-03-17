@@ -180,17 +180,33 @@ export class FeishuConnector implements Connector {
         message: 'WebSocket 未连接',
       };
     }
-    
-    // 尝试调用 API 检查连接
+
+    // 尝试获取 token 验证连接是否正常
     try {
-      // 调用一个简单的 API 来验证连接
-      await this.client.auth.tenantAccessToken.internal({
+      const res = await this.client.auth.tenantAccessToken.internal({
         data: {
           app_id: this.connectorConfig.appId,
           app_secret: this.connectorConfig.appSecret,
         },
       });
-      
+
+      // 飞书 SDK 有时不抛异常，而是返回带错误码的对象，需要主动检查
+      const resAny = res as any;
+      if (resAny?.code !== undefined && resAny.code !== 0) {
+        return {
+          status: 'unhealthy',
+          message: `认证失败 (code: ${resAny.code}): ${resAny.msg || resAny.message || '未知错误'}`,
+        };
+      }
+
+      // token 存在才算真正健康
+      if (!resAny?.tenant_access_token) {
+        return {
+          status: 'unhealthy',
+          message: '未获取到 access token',
+        };
+      }
+
       return {
         status: 'healthy',
         message: '连接正常',

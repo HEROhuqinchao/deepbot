@@ -63,6 +63,8 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
   const [starting, setStarting] = useState(false);
   const [loadingPairing, setLoadingPairing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // 连接器健康状态：connectorId -> 'healthy' | 'unhealthy' | 'checking'
+  const [connectorHealthMap, setConnectorHealthMap] = useState<Record<string, 'healthy' | 'unhealthy' | 'checking'>>({});
   const hasLoadedRef = useRef(false);
 
   // 加载连接器列表
@@ -79,15 +81,30 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
       const result = await window.deepbot.connectorGetAll();
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
-      
+
       if (actualResult.success && actualResult.connectors) {
         setConnectors(actualResult.connectors);
+
         // 默认选择飞书
         if (actualResult.connectors.length > 0) {
           const feishu = actualResult.connectors.find((c: any) => c.id === 'feishu');
           if (feishu) {
             setSelectedConnector('feishu');
             await loadConnectorConfig('feishu');
+          }
+        }
+
+        // 健康检查在 loading 结束后异步执行，不阻塞页面渲染
+        for (const connector of actualResult.connectors) {
+          if (connector.enabled) {
+            setConnectorHealthMap(prev => ({ ...prev, [connector.id]: 'checking' }));
+            window.deepbot.connectorHealthCheck(connector.id).then((healthResult: any) => {
+              const actualHealth = healthResult.data || healthResult;
+              const status = actualHealth.status === 'healthy' ? 'healthy' : 'unhealthy';
+              setConnectorHealthMap(prev => ({ ...prev, [connector.id]: status }));
+            }).catch(() => {
+              setConnectorHealthMap(prev => ({ ...prev, [connector.id]: 'unhealthy' }));
+            });
           }
         }
       }
@@ -262,14 +279,6 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">加载中...</div>
-      </div>
-    );
-  }
-
   const selectedConnectorData = connectors.find(c => c.id === selectedConnector);
 
   return (
@@ -295,7 +304,9 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
       {/* 连接器列表 */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-1">
-          {connectors.map((connector) => (
+          {loading ? (
+            <div className="py-3 px-4 text-sm text-gray-400">加载中...</div>
+          ) : connectors.map((connector) => (
             <button
               key={connector.id}
               onClick={() => {
@@ -310,9 +321,23 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
             >
               {connector.name}
               {connector.enabled && (
-                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                  运行中
-                </span>
+                <>
+                  {connectorHealthMap[connector.id] === 'checking' && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                      检查中
+                    </span>
+                  )}
+                  {connectorHealthMap[connector.id] === 'healthy' && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                      运行中
+                    </span>
+                  )}
+                  {connectorHealthMap[connector.id] === 'unhealthy' && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                      连接失败
+                    </span>
+                  )}
+                </>
               )}
             </button>
           ))}
@@ -397,20 +422,6 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
             />
           </div>
 
-          {/* Verification Token */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Verification Token
-            </label>
-            <input
-              type="text"
-              value={feishuConfig.verificationToken}
-              onChange={(e) => setFeishuConfig({ ...feishuConfig, verificationToken: e.target.value })}
-              placeholder="可选"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
           {/* 机器人名称 */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
@@ -423,55 +434,6 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
               placeholder="DeepBot"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
-
-          {/* DM 策略 */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              私聊策略
-            </label>
-            <select
-              value={feishuConfig.dmPolicy}
-              onChange={(e) => setFeishuConfig({ ...feishuConfig, dmPolicy: e.target.value as any })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="open">开放（所有人可用）</option>
-              <option value="pairing">配对模式（需要配对码）</option>
-              <option value="allowlist">白名单模式</option>
-            </select>
-            <p className="text-xs text-gray-500">
-              配对模式：用户首次私聊时会收到配对码，管理员批准后才能使用
-            </p>
-          </div>
-
-          {/* 群组策略 */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              群组策略
-            </label>
-            <select
-              value={feishuConfig.groupPolicy}
-              onChange={(e) => setFeishuConfig({ ...feishuConfig, groupPolicy: e.target.value as any })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="open">开放（所有群可用）</option>
-              <option value="allowlist">白名单模式</option>
-              <option value="disabled">禁用群消息</option>
-            </select>
-          </div>
-
-          {/* 需要 @提及 */}
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="requireMention"
-              checked={feishuConfig.requireMention}
-              onChange={(e) => setFeishuConfig({ ...feishuConfig, requireMention: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="requireMention" className="text-sm text-gray-700">
-              群消息需要 @机器人
-            </label>
           </div>
 
           {/* 操作按钮 */}

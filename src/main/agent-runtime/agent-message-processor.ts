@@ -84,14 +84,14 @@ export class AgentMessageProcessor {
   /**
    * 检测是否有未完成的意图
    */
-  private async detectUnfinishedIntent(response: string, hasToolCalls: boolean): Promise<boolean> {
+  private async detectUnfinishedIntent(response: string, lastRoundHasToolCalls: boolean, anyRoundHasToolCalls: boolean): Promise<boolean> {
     console.log('🔍 [detectUnfinishedIntent] 开始检测...');
     console.log(`   响应长度: ${response.length}`);
-    console.log(`   有工具调用: ${hasToolCalls}`);
+    console.log(`   最后一轮工具调用: ${lastRoundHasToolCalls}, 全程工具调用: ${anyRoundHasToolCalls}`);
     
-    // 🔥 如果本轮有工具调用，说明 Agent 正在执行操作，应该继续
-    if (hasToolCalls) {
-      console.log('✅ [detectUnfinishedIntent] 本轮有工具调用，继续执行');
+    // 🔥 如果最后一轮有工具调用，说明 Agent 正在执行操作，应该继续
+    if (lastRoundHasToolCalls) {
+      console.log('✅ [detectUnfinishedIntent] 最后一轮有工具调用，继续执行');
       return true;
     }
     
@@ -177,8 +177,8 @@ export class AgentMessageProcessor {
     ];
 
     const hasPlanKeyword = planKeywords.some(kw => cleanResponse.includes(kw));
-    if (hasPlanKeyword && !hasToolCalls) {
-      console.log('⚠️ [detectUnfinishedIntent] 检测到执行计划关键词且本轮无任何工具调用（假调用），直接判定继续执行');
+    if (hasPlanKeyword && !anyRoundHasToolCalls) {
+      console.log('⚠️ [detectUnfinishedIntent] 检测到执行计划关键词且全程无任何工具调用（假调用），直接判定继续执行');
       return true;
     }
 
@@ -559,7 +559,8 @@ ${cleanResponse}
     
     // 收集完整的响应和工具调用信息
     let fullResponse = '';
-    let hasToolCalls = false;
+    let lastRoundHasToolCalls = false;  // 最后一轮是否有工具调用（用于判断是否继续）
+    let anyRoundHasToolCalls = false;   // 整个执行过程是否有工具调用（用于假执行检测）
     
     try {
       // 在调用 sendMessage 之前，设置 AbortController 创建回调
@@ -605,22 +606,26 @@ ${cleanResponse}
       throw error;
     }
     
-    // 检查本轮是否有工具调用
-    console.log('🔍 检查最后一条消息是否有工具调用...');
+    // 检查工具调用情况
     if (this.instanceManager.agent) {
       const messages = this.instanceManager.agent.state.messages;
+
+      // 最后一轮是否有工具调用
       const lastMessage = messages[messages.length - 1];
-      
-      if (lastMessage?.role === 'assistant' && lastMessage.content) {
-        const content = lastMessage.content;
-        if (Array.isArray(content)) {
-          hasToolCalls = content.some(c => 
-            typeof c === 'object' && 'type' in c && c.type === 'toolCall'
-          );
-        }
+      if (lastMessage?.role === 'assistant' && Array.isArray(lastMessage.content)) {
+        lastRoundHasToolCalls = lastMessage.content.some((c: any) =>
+          typeof c === 'object' && 'type' in c && c.type === 'toolCall'
+        );
       }
-      
-      console.log(hasToolCalls ? '✅ 最后一条消息有工具调用' : '❌ 最后一条消息没有工具调用');
+
+      // 整个执行过程是否有工具调用（用于假执行检测）
+      anyRoundHasToolCalls = messages.some(msg =>
+        msg.role === 'assistant' &&
+        Array.isArray(msg.content) &&
+        msg.content.some((c: any) => typeof c === 'object' && 'type' in c && c.type === 'toolCall')
+      );
+
+      console.log(`   最后一轮工具调用: ${lastRoundHasToolCalls}, 全程工具调用: ${anyRoundHasToolCalls}`);
     }
     
     // 检测未完成的意图并自动继续
@@ -633,7 +638,7 @@ ${cleanResponse}
         return;
       }
       
-      const hasUnfinishedIntent = await this.detectUnfinishedIntent(fullResponse, hasToolCalls);
+      const hasUnfinishedIntent = await this.detectUnfinishedIntent(fullResponse, lastRoundHasToolCalls, anyRoundHasToolCalls);
       
       if (hasUnfinishedIntent) {
         if (abortController?.signal.aborted) {
