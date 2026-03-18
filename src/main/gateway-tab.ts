@@ -15,6 +15,7 @@ import { getErrorMessage } from '../shared/utils/error-handler';
 import { sleep } from '../shared/utils/async-utils';
 import { generateTabId, generateExecutionId } from '../shared/utils/id-generator';
 import { sendToWindow } from '../shared/utils/webcontents-utils';
+import { MAX_TABS } from '../shared/constants/version';
 import type { SessionManager } from './session/session-manager';
 
 /**
@@ -25,7 +26,6 @@ export class GatewayTabManager {
   private tabs: Map<string, AgentTab> = new Map();
   private tabCounter: number = 1;
   private tabIdCounter: number = 0;
-  private readonly MAX_TABS: number = 10;
   private taskTabMap: Map<string, string> = new Map();
   private sessionManager: SessionManager | null = null;
   
@@ -96,6 +96,30 @@ export class GatewayTabManager {
     this.loadDefaultTabHistory().catch(error => {
       console.error('[TabManager] ❌ 加载默认 Tab 历史消息失败:', error);
     });
+  }
+  
+  /**
+   * 生成唯一的 Tab 名称
+   * 确保名称不与现有 Tab 重复
+   */
+  private generateUniqueTabName(baseName: string): string {
+    // 获取所有现有的 Tab 名称
+    const existingNames = new Set<string>();
+    for (const tab of this.tabs.values()) {
+      existingNames.add(tab.title);
+    }
+    
+    // 从 tabCounter + 1 开始尝试
+    let counter = this.tabCounter + 1;
+    let candidateName = `${baseName} ${counter}`;
+    
+    // 如果名称已存在，继续递增直到找到不重复的名称
+    while (existingNames.has(candidateName)) {
+      counter++;
+      candidateName = `${baseName} ${counter}`;
+    }
+    
+    return candidateName;
   }
   
   /**
@@ -430,8 +454,8 @@ ${welcomeContent}
     isPersistent?: boolean;
   }): Promise<AgentTab> {
     // 检查 Tab 数量限制
-    if (this.tabs.size >= this.MAX_TABS) {
-      throw new Error(`最多只能创建 ${this.MAX_TABS} 个窗口`);
+    if (this.tabs.size >= MAX_TABS) {
+      throw new Error(`最多只能创建 ${MAX_TABS} 个窗口`);
     }
     
     // 生成唯一的 Tab ID
@@ -446,12 +470,13 @@ ${welcomeContent}
       tabType = 'connector';
     }
     
-    // 生成默认标题
+    // 生成默认标题（确保不重复）
     let tabTitle: string;
     if (options.title) {
       tabTitle = options.title;
     } else if (tabType === 'task' || tabType === 'connector') {
-      tabTitle = `Agent ${this.tabCounter + 1}`;
+      // 生成不重复的 Agent 名称
+      tabTitle = this.generateUniqueTabName('Agent');
     } else {
       if (options.agentName) {
         tabTitle = options.agentName;
@@ -459,7 +484,8 @@ ${welcomeContent}
         const { SystemConfigStore } = await import('./database/system-config-store');
         const configStore = SystemConfigStore.getInstance();
         const nameConfig = configStore.getNameConfig();
-        tabTitle = `${nameConfig.agentName} ${this.tabCounter + 1}`;
+        // 生成不重复的名称
+        tabTitle = this.generateUniqueTabName(nameConfig.agentName);
       }
     }
     

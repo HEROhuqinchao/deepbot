@@ -7,6 +7,7 @@ import { Message } from '../../types/message';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput, MessageInputRef } from './MessageInput'; // 🔥 导入 MessageInputRef
 import type { AgentTab } from '../../types/agent-tab';
+import { MAX_TABS } from '../../shared/constants/version';
 
 interface ChatWindowProps {
   messages: Message[];
@@ -398,7 +399,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               </div>
             ))}
             
-            {tabs.length < 10 && (
+            {tabs.length < MAX_TABS && (
               <button
                 className="agent-tab-create"
                 onClick={onTabCreate}

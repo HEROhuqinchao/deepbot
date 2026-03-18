@@ -8,9 +8,14 @@ export const APP_VERSION = '0.2.0';
 /**
  * 应用名称
  */
-export const APP_NAME = 'DeepBot Terminal';
+export const APP_NAME = 'DeepBot';
 
 /**
  * 应用描述
  */
-export const APP_DESCRIPTION = '通用桌系统级 AI 助手';
+export const APP_DESCRIPTION = 'DeepBot - 系统级 AI 助手，专注企业生产提效';
+
+/**
+ * 最大 Tab 数量限制
+ */
+export const MAX_TABS = 25;

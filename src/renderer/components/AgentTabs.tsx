@@ -6,6 +6,7 @@
 
 import React from 'react';
 import type { AgentTab } from '../../types/agent-tab';
+import { MAX_TABS } from '../../shared/constants/version';
 
 interface AgentTabsProps {
   tabs: AgentTab[];
@@ -48,7 +49,7 @@ export const AgentTabs: React.FC<AgentTabsProps> = ({
           </div>
         ))}
         
-        {tabs.length < 10 && (
+        {tabs.length < MAX_TABS && (
           <button
             className="tab-create"
             onClick={onTabCreate}
