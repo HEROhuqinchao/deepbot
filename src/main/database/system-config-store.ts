@@ -267,7 +267,14 @@ export class SystemConfigStore {
       if (!hasIsAdminColumn) {
         console.log('[SystemConfigStore] 🔄 迁移数据库：添加 is_admin 字段到 connector_pairing 表');
         this.db.exec(`ALTER TABLE connector_pairing ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0`);
-        console.log('[SystemConfigStore] ✅ connector_pairing 迁移完成');
+        console.log('[SystemConfigStore] ✅ connector_pairing is_admin 迁移完成');
+      }
+      // 迁移：添加 user_name 字段
+      const hasUserNameColumn = pairingTableInfo.some((col: any) => col.name === 'user_name');
+      if (!hasUserNameColumn) {
+        console.log('[SystemConfigStore] 🔄 迁移数据库：添加 user_name 字段到 connector_pairing 表');
+        this.db.exec(`ALTER TABLE connector_pairing ADD COLUMN user_name TEXT`);
+        console.log('[SystemConfigStore] ✅ connector_pairing user_name 迁移完成');
       }
     } catch (error) {
       console.warn('[SystemConfigStore] ⚠️ connector_pairing 迁移检查失败:', error);
@@ -456,8 +463,8 @@ export class SystemConfigStore {
 
   // ========== Pairing 记录管理 ==========
 
-  savePairingRecord(connectorId: string, userId: string, pairingCode: string): void {
-    return ConnectorConfigModule.savePairingRecord(this.db, connectorId, userId, pairingCode);
+  savePairingRecord(connectorId: string, userId: string, pairingCode: string, userName?: string): void {
+    return ConnectorConfigModule.savePairingRecord(this.db, connectorId, userId, pairingCode, userName);
   }
 
   getPairingRecordByCode(pairingCode: string): { connectorId: string; userId: string; approved: boolean } | null {

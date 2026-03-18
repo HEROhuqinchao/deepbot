@@ -34,6 +34,7 @@ interface FeishuConfig {
 interface PairingRecord {
   connectorId: string;
   userId: string;
+  userName?: string;
   pairingCode: string;
   approved: boolean;
   isAdmin: boolean;
@@ -506,8 +507,11 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium text-gray-900 break-all">
-                              用户 ID: {record.userId}
+                            <span className="text-sm font-medium text-gray-900">
+                              {record.userName || `用户_${record.userId.slice(-8)}`}
+                            </span>
+                            <span className="text-xs text-gray-400 font-mono break-all">
+                              {record.userId}
                             </span>
                             {record.approved ? (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">

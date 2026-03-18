@@ -416,6 +416,7 @@ export interface GetPairingRecordsResponse {
   records?: Array<{
     connectorId: string;
     userId: string;
+    userName?: string;
     pairingCode: string;
     approved: boolean;
     isAdmin: boolean;

@@ -298,12 +298,48 @@ export class FeishuConnector implements Connector {
   }
   
   /**
+   * 通过飞书通讯录 API 获取用户真实名字
+   * 使用 open_id 查询，支持企业内外部用户
+   * 结果会缓存，避免重复请求
+   */
+  private userNameCache: Map<string, string> = new Map();
+
+  private async fetchUserName(openId: string): Promise<string> {
+    // 先查缓存
+    const cached = this.userNameCache.get(openId);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const res = await this.client.contact.user.get({
+        path: { user_id: openId },
+        params: { user_id_type: 'open_id' },
+      });
+
+      // 飞书 SDK 响应：res.data?.user?.name
+      const name = (res as any)?.data?.user?.name || (res as any)?.user?.name;
+      if (name) {
+        console.log(`[FeishuConnector] ✅ 获取用户名字: ${openId} → ${name}`);
+        this.userNameCache.set(openId, name);
+        return name;
+      }
+    } catch (error) {
+      console.warn('[FeishuConnector] ⚠️ 获取用户名字失败，使用 ID 后缀:', getErrorMessage(error));
+    }
+
+    // 降级：使用 ID 后缀
+    const fallback = `用户_${openId.slice(-8)}`;
+    return fallback;
+  }
+
+  /**
    * 立即回复表情，让用户知道已收到消息
    */
   private async replyWithReaction(messageId: string): Promise<void> {
     try {
       // 从预设表情中随机选择一个
-      const emojis = ['OK', 'THUMBSUP', 'STRIVE', 'STRONG','Typing','HIGHFIVE'];
+      const emojis = ['OK', 'STRIVE','Typing','Get','OneSecond','OnIt','EatingFood'];
       const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
       
       console.log('[FeishuConnector] 回复表情:', randomEmoji);
@@ -341,9 +377,9 @@ export class FeishuConnector implements Connector {
       // 飞书事件结构：event.sender.sender_id 包含 open_id, user_id, union_id
       // 优先使用 user_id（企业内部用户），fallback 到 open_id（外部用户/机器人）
       const senderId = event.sender.sender_id.user_id || event.sender.sender_id.open_id;
-      
-      // 使用 ID 的后 8 位作为显示名
-      const senderName = `用户_${senderId.slice(-8)}`;
+      // 使用 open_id 查询通讯录获取真实名字（open_id 更通用，user_id 可能为空）
+      const openId = event.sender.sender_id.open_id || senderId;
+      const senderName = await this.fetchUserName(openId);
       
       // 解析消息类型和内容
       const msgType = event.message.message_type || event.message.msg_type; // 飞书使用 message_type
@@ -534,7 +570,7 @@ export class FeishuConnector implements Connector {
       if (!this.checkSecurity(feishuMessage)) {
         // 私聊未配对：发送配对码
         if (feishuMessage.conversation.type === 'private') {
-          const code = this.pairing!.generatePairingCode(feishuMessage.sender.id);
+          const code = this.pairing!.generatePairingCode(feishuMessage.sender.id, feishuMessage.sender.name);
 
           // 检查是否被自动批准（首位用户）
           const store = SystemConfigStore.getInstance();
@@ -957,7 +993,7 @@ export class FeishuConnector implements Connector {
   // ========== Pairing 机制 ==========
   
   pairing = {
-    generatePairingCode: (userId: string): string => {
+    generatePairingCode: (userId: string, userName?: string): string => {
       // 生成 6 位配对码
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       
@@ -967,8 +1003,8 @@ export class FeishuConnector implements Connector {
       const existingRecords = store.getAllPairingRecords('feishu');
       const isFirstUser = existingRecords.length === 0;
 
-      // 存储到数据库
-      store.savePairingRecord('feishu', userId, code);
+      // 存储到数据库（同时保存用户名字）
+      store.savePairingRecord('feishu', userId, code, userName);
 
       // 第一个用户自动批准并设为管理员
       if (isFirstUser) {
@@ -976,7 +1012,7 @@ export class FeishuConnector implements Connector {
         store.setAdminPairing('feishu', userId, true);
         console.log('[FeishuConnector] 👑 首位用户自动批准并设为管理员:', userId);
       } else {
-        console.log('[FeishuConnector] 生成配对码:', { userId, code });
+        console.log('[FeishuConnector] 生成配对码:', { userId, code, userName });
       }
 
       return code;

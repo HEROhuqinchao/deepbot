@@ -117,16 +117,17 @@ export function savePairingRecord(
   db: Database.Database,
   connectorId: string,
   userId: string,
-  pairingCode: string
+  pairingCode: string,
+  userName?: string
 ): void {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO connector_pairing 
-    (connector_id, user_id, pairing_code, approved, created_at)
-    VALUES (?, ?, ?, 0, ?)
+    (connector_id, user_id, pairing_code, approved, created_at, user_name)
+    VALUES (?, ?, ?, 0, ?, ?)
   `);
 
-  stmt.run(connectorId, userId, pairingCode, Date.now());
-  console.info('[SystemConfigStore] ✅ Pairing 记录已保存:', { connectorId, userId, pairingCode });
+  stmt.run(connectorId, userId, pairingCode, Date.now(), userName ?? null);
+  console.info('[SystemConfigStore] ✅ Pairing 记录已保存:', { connectorId, userId, pairingCode, userName });
 }
 
 /**
@@ -235,6 +236,7 @@ export function deletePairingRecord(db: Database.Database, connectorId: string, 
 export function getAllPairingRecords(db: Database.Database, connectorId?: string): Array<{
   connectorId: string;
   userId: string;
+  userName?: string;
   pairingCode: string;
   approved: boolean;
   isAdmin: boolean;
@@ -260,6 +262,7 @@ export function getAllPairingRecords(db: Database.Database, connectorId?: string
     return rows.map((row) => ({
       connectorId: row.connector_id,
       userId: row.user_id,
+      userName: row.user_name ?? undefined,
       pairingCode: row.pairing_code,
       approved: row.approved === 1,
       isAdmin: row.is_admin === 1,
