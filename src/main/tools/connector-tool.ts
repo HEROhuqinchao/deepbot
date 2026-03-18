@@ -26,14 +26,9 @@ import { createLogger } from '../../shared/utils/logger';
 const logger = createLogger('ConnectorTool');
 
 let gatewayInstance: Gateway | null = null;
-let currentSessionId: string | null = null;
 
 export function setGatewayForConnectorTool(gateway: Gateway): void {
   gatewayInstance = gateway;
-}
-
-export function setConnectorToolSessionId(sessionId: string): void {
-  currentSessionId = sessionId;
 }
 
 // ── 类型定义 ──────────────────────────────────────────────────────────────────
@@ -207,6 +202,9 @@ export const connectorToolPlugin: ToolPlugin = {
   },
 
   create: (_options: ToolCreateOptions) => {
+    // 从 create 时的 options 闭包 sessionId，避免多 Tab 并发时全局变量被覆盖
+    const sessionId = (_options as any).sessionId as string | undefined;
+
     return [
 
       // ── feishu_send_message ───────────────────────────────────────────────
@@ -226,12 +224,10 @@ export const connectorToolPlugin: ToolPlugin = {
           })),
         }),
 
-        execute: async (_toolCallId: string, args: any, signal?: AbortSignal, context?: any) => {
+        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
           try {
             if (!gatewayInstance) throw new Error('Gateway 未初始化');
             if (signal?.aborted) throw Object.assign(new Error('操作被取消'), { name: 'AbortError' });
-
-            const sessionId = context?.sessionId || currentSessionId;
             if (!sessionId) throw new Error('无法获取会话 ID');
 
             const target = resolveTarget(sessionId, args.userId);
@@ -272,12 +268,10 @@ export const connectorToolPlugin: ToolPlugin = {
           })),
         }),
 
-        execute: async (_toolCallId: string, args: any, signal?: AbortSignal, context?: any) => {
+        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
           try {
             if (!gatewayInstance) throw new Error('Gateway 未初始化');
             if (signal?.aborted) throw Object.assign(new Error('操作被取消'), { name: 'AbortError' });
-
-            const sessionId = context?.sessionId || currentSessionId;
             if (!sessionId) throw new Error('无法获取会话 ID');
 
             const expandedPath = expandUserPath(args.imagePath);
@@ -325,12 +319,10 @@ export const connectorToolPlugin: ToolPlugin = {
           })),
         }),
 
-        execute: async (_toolCallId: string, args: any, signal?: AbortSignal, context?: any) => {
+        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
           try {
             if (!gatewayInstance) throw new Error('Gateway 未初始化');
             if (signal?.aborted) throw Object.assign(new Error('操作被取消'), { name: 'AbortError' });
-
-            const sessionId = context?.sessionId || currentSessionId;
             if (!sessionId) throw new Error('无法获取会话 ID');
 
             const expandedPath = expandUserPath(args.filePath);

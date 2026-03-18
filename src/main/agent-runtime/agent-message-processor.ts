@@ -361,10 +361,7 @@ ${tailResponse}
     // 检查并修复 Agent 状态
     await ensureAgentReadyFn();
     
-    // 设置当前 sessionId 供工具使用
-    const { setConnectorToolSessionId } = await import('../tools/connector-tool');
-    setConnectorToolSessionId(this.runtimeConfig.sessionId);
-    
+    // 设置当前 sessionId 供工具使用（cross-tab-call 工具仍需全局 sessionId）
     const { setCrossTabCallSessionId } = await import('../tools/cross-tab-call-tool');
     setCrossTabCallSessionId(this.runtimeConfig.sessionId);
     
