@@ -446,6 +446,13 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
             />
           </div>
 
+          {/* 群组使用说明 */}
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+            <p className="text-sm text-blue-800">
+              <strong>群组使用规则：</strong>在群组中必须 @ 机器人才会触发回复
+            </p>
+          </div>
+
           {/* 操作按钮 */}
           <div className="flex space-x-3 pt-4">
             <button

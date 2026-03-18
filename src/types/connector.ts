@@ -179,9 +179,13 @@ export interface FeishuIncomingMessage {
     type: 'private' | 'group';
     name?: string;
   };
+  mentions?: {
+    isBotMentioned: boolean;
+    mentionList: any[];
+  };
   content: {
     type: 'text' | 'image' | 'file';
-    text?: string;
+    text: string;
     fileUrl?: string;
     fileName?: string;
     // 图片相关

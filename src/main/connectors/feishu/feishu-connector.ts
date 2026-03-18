@@ -94,6 +94,10 @@ export class FeishuConnector implements Connector {
     
     // 初始化文档处理器
     this.documentHandler = new FeishuDocumentHandler(this.client);
+    
+    // 更新 security 配置（群组默认必须 @ 机器人）
+    this.security.requireMention = true;
+    this.security.groupPolicy = config.groupPolicy || 'open';
   }
   
   async start(): Promise<void> {
@@ -294,13 +298,9 @@ export class FeishuConnector implements Connector {
   
   private async handleIncomingMessage(event: any): Promise<void> {
     try {
-      // 1. 立即回复表情，让用户知道已收到
-      const messageId = event.message.message_id;
-      this.replyWithReaction(messageId).catch(err => {
-        console.error('[FeishuConnector] 表情回复异步失败:', err);
-      });
+      console.log('[FeishuConnector] 📨 收到消息事件');
       
-      // 2. 解析飞书消息
+      // 1. 解析基础信息
       const senderId = event.sender.sender_id.user_id || event.sender.sender_id.open_id;
       const openId = event.sender.sender_id.open_id || senderId;
       const senderName = await this.fetchUserName(openId);
@@ -322,6 +322,63 @@ export class FeishuConnector implements Connector {
         extractedText = messageContent.text || '';
       }
 
+      // 2. 提取 mentions 信息（用于判断是否 @ 了机器人）
+      const mentions = event.message.mentions || [];
+      
+      // 获取机器人的 bot_id（从 SDK 获取）
+      let botOpenId: string | undefined;
+      try {
+        // 尝试获取机器人信息
+        const botInfo = await this.client.auth.tenantAccessToken.internal({
+          data: {
+            app_id: this.connectorConfig.appId,
+            app_secret: this.connectorConfig.appSecret,
+          },
+        });
+        // 注意：这里可能需要调用其他 API 获取 bot 的 open_id
+        // 暂时使用 name 匹配作为备选方案
+      } catch (error) {
+        console.warn('[FeishuConnector] 无法获取机器人信息:', error);
+      }
+      
+      // 判断是否 @ 了机器人（通过 name 匹配）
+      const botName = this.connectorConfig.botName;
+      const isBotMentioned = mentions.some((mention: any) => 
+        mention.name === botName || 
+        mention.id?.open_id === botOpenId
+      );
+      
+      console.log('[FeishuConnector] 📋 Mentions 信息:', {
+        chatType: event.message.chat_type,
+        mentionsCount: mentions.length,
+        botName,
+        mentionNames: mentions.map((m: any) => m.name),
+        isBotMentioned,
+      });
+      
+      // 3. 群组消息：先判断是否 @ 了机器人，再回复表情
+      const isGroup = event.message.chat_type !== 'p2p';
+      console.log('[FeishuConnector] 🔍 消息类型检查:', {
+        chatType: event.message.chat_type,
+        isGroup,
+        requireMention: this.security.requireMention,
+        isBotMentioned,
+      });
+      
+      if (isGroup && this.security.requireMention && !isBotMentioned) {
+        // 未 @ 机器人，直接忽略，不回复表情
+        console.log('[FeishuConnector] 🚫 群组消息未 @ 机器人，忽略');
+        return;
+      }
+      
+      console.log('[FeishuConnector] ✅ 消息通过初步检查，继续处理');
+      
+      // 4. 回复表情，让用户知道已收到
+      const messageId = event.message.message_id;
+      this.replyWithReaction(messageId).catch(err => {
+        console.error('[FeishuConnector] 表情回复异步失败:', err);
+      });
+
       const feishuMessage: FeishuIncomingMessage = {
         messageId: event.message.message_id,
         timestamp: Date.now(),
@@ -336,6 +393,10 @@ export class FeishuConnector implements Connector {
         content: {
           type: msgType === 'image' ? 'image' : msgType === 'file' ? 'file' : 'text',
           text: extractedText,
+        },
+        mentions: {
+          isBotMentioned,
+          mentionList: mentions,
         },
         raw: event,
       };
@@ -693,9 +754,13 @@ export class FeishuConnector implements Connector {
     },
   };
   
-  security = {
-    dmPolicy: 'pairing' as const,
-    groupPolicy: 'open' as const,
+  security: {
+    dmPolicy: 'pairing';
+    groupPolicy: 'open' | 'allowlist' | 'disabled';
+    requireMention: boolean;
+  } = {
+    dmPolicy: 'pairing',
+    groupPolicy: 'open',
     requireMention: true,
   };
   
@@ -787,8 +852,38 @@ export class FeishuConnector implements Connector {
       return this.pairing!.verifyPairingCode(message.sender.id);
     }
     
-    // 2. 群组消息：暂时允许所有群消息
+    // 2. 群组消息：检查群组策略和 @ 机器人要求
     if (message.conversation.type === 'group') {
+      // 2.1 检查群组策略
+      if (this.security.groupPolicy === 'disabled') {
+        console.log('[FeishuConnector] 🚫 群组策略：禁用');
+        return false;
+      }
+      
+      // 2.2 检查白名单（如果是 allowlist 模式）
+      if (this.security.groupPolicy === 'allowlist') {
+        const groupAllowFrom = this.connectorConfig.groupAllowFrom || [];
+        if (!groupAllowFrom.includes(message.conversation.id)) {
+          console.log('[FeishuConnector] 🚫 群组不在白名单中');
+          return false;
+        }
+      }
+      
+      // 2.3 检查是否需要 @ 机器人
+      console.log('[FeishuConnector] 🔍 安全检查:', {
+        requireMention: this.security.requireMention,
+        isBotMentioned: message.mentions?.isBotMentioned,
+      });
+      
+      if (this.security.requireMention) {
+        if (!message.mentions?.isBotMentioned) {
+          // 未 @ 机器人，拒绝处理
+          console.log('[FeishuConnector] 🚫 群组消息未 @ 机器人，忽略');
+          return false;
+        }
+      }
+      
+      console.log('[FeishuConnector] ✅ 群组消息安全检查通过');
       return true;
     }
     
