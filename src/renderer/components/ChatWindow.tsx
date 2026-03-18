@@ -16,7 +16,8 @@ interface ChatWindowProps {
   onOpenSkillManager?: () => void;
   onOpenScheduledTaskManager?: () => void;
   onOpenSystemSettings?: () => void;
-  isLocked?: boolean; // 是否锁定（只读）
+  isLocked?: boolean;
+  pendingPairingCount?: number; // 待授权用户数量
   // Tab 相关
   tabs?: AgentTab[];
   activeTabId?: string;
@@ -34,6 +35,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   onOpenScheduledTaskManager,
   onOpenSystemSettings,
   isLocked = false,
+  pendingPairingCount = 0,
   tabs,
   activeTabId,
   onTabClick,
@@ -340,8 +342,31 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               onClick={onOpenSystemSettings}
               className="terminal-control-button"
               title="系统设置"
+              style={{ position: 'relative' }}
             >
               [CONFIG]
+              {pendingPairingCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  background: '#ff3b30',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  minWidth: '16px',
+                  height: '16px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  lineHeight: 1,
+                  padding: '0 3px',
+                  pointerEvents: 'none',
+                }}>
+                  {pendingPairingCount > 99 ? '99+' : pendingPairingCount}
+                </span>
+              )}
             </button>
           )}
         </div>

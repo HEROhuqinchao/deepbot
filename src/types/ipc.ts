@@ -93,6 +93,7 @@ export const IPC_CHANNELS = {
   CONNECTOR_APPROVE_PAIRING: 'connector:approve-pairing',
   CONNECTOR_SET_ADMIN_PAIRING: 'connector:set-admin-pairing',
   CONNECTOR_DELETE_PAIRING: 'connector:delete-pairing',
+  CONNECTOR_PENDING_COUNT_UPDATED: 'connector:pending-count-updated', // 待授权用户数量变化推送
   
   // 应用信息
 } as const;

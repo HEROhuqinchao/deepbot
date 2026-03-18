@@ -12,6 +12,7 @@ import {
   createErrorResponse,
   getGatewayInstance,
 } from './handler-utils';
+import { broadcastPendingCount } from '../../ipc/connector-handler';
 import { createLogger } from '../../../shared/utils/logger';
 
 // ==================== 日志记录器 ====================
@@ -227,6 +228,9 @@ export async function handleApprovePairing(
       logger.error('发送欢迎消息失败:', err);
     }
 
+    // 推送待授权数量更新
+    broadcastPendingCount();
+
     return createSuccessResponse(
       formatters.formatApprovePairingResult(params.pairingCode, record),
       { pairingCode: params.pairingCode, connectorId: record.connectorId, userId: record.userId }
@@ -261,7 +265,10 @@ export async function handleRejectPairing(
     
     // 删除配对记录（拒绝）
     store.deletePairingRecord(params.connectorId, params.userId);
-    
+
+    // 推送待授权数量更新
+    broadcastPendingCount();
+
     return createSuccessResponse(
       formatters.formatRejectPairingResult(params.connectorId, params.userId),
       { connectorId: params.connectorId, userId: params.userId }

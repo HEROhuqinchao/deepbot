@@ -145,8 +145,6 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
       
-      console.log('[Pairing] 原始返回:', JSON.stringify(result));
-      console.log('[Pairing] 解析后:', JSON.stringify(actualResult));
       
       // records 可能是空数组，也要正常设置
       if (actualResult.success) {

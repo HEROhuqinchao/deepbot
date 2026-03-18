@@ -2,6 +2,7 @@
  * 连接器 IPC 处理器
  */
 
+import { BrowserWindow } from 'electron';
 import { IPC_CHANNELS } from '../../types/ipc';
 import type {
   GetAllConnectorsResponse,
@@ -36,6 +37,26 @@ let gateway: Gateway | null = null;
  */
 export function setGatewayForConnectorHandler(gatewayInstance: Gateway): void {
   gateway = gatewayInstance;
+}
+
+/**
+ * 推送待授权用户数量到渲染进程（导出供其他模块使用）
+ */
+export function broadcastPendingCount(): void {
+  try {
+    const store = SystemConfigStore.getInstance();
+    const records = store.getAllPairingRecords();
+    const pendingCount = records.filter(r => !r.approved).length;
+    
+    // 推送给所有窗口
+    BrowserWindow.getAllWindows().forEach(win => {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.CONNECTOR_PENDING_COUNT_UPDATED, { pendingCount });
+      }
+    });
+  } catch (error) {
+    console.error('[IPC] 推送待授权数量失败:', error);
+  }
 }
 
 /**
@@ -315,6 +336,9 @@ export function registerConnectorHandlers(): void {
           );
         }
         
+        // 推送待授权数量更新
+        broadcastPendingCount();
+        
         return {
           success: true,
         };
@@ -354,6 +378,9 @@ export function registerConnectorHandlers(): void {
         store.deletePairingRecord(request.connectorId, request.userId);
         
         console.log('[IPC] ✅ Pairing 记录已删除');
+        
+        // 推送待授权数量更新
+        broadcastPendingCount();
         
         return {
           success: true,

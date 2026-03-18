@@ -23,6 +23,7 @@ import { ensureDirectoryExists } from '../../../shared/utils/fs-utils';
 import type { ConnectorManager } from '../connector-manager';
 import { SystemConfigStore } from '../../database/system-config-store';
 import { FeishuDocumentHandler } from './document-handler';
+import { broadcastPendingCount } from '../../ipc/connector-handler';
 
 export class FeishuConnector implements Connector {
   readonly id = 'feishu' as const;
@@ -816,6 +817,9 @@ export class FeishuConnector implements Connector {
         store.setAdminPairing('feishu', userId, true);
         // 发送欢迎消息
         this.connectorManager.notifyPairingApproved('feishu', userId, openId);
+      } else {
+        // 非首个用户，推送待授权数量更新
+        broadcastPendingCount();
       }
 
       return code;

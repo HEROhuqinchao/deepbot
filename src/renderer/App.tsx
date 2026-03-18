@@ -24,6 +24,7 @@ function App() {
   const [isScheduledTaskManagerOpen, setIsScheduledTaskManagerOpen] = useState(false);
   const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
   const [hasModelConfig, setHasModelConfig] = useState(true);
+  const [pendingPairingCount, setPendingPairingCount] = useState(0);
 
   // 加载所有 Tab
   useEffect(() => {
@@ -223,21 +224,27 @@ function App() {
   // 检查模型配置
   useEffect(() => {
     checkModelConfig();
+    loadPendingPairingCount();
     
     // 监听模型配置更新事件
-    const unsubscribe = window.deepbot.onModelConfigUpdate(() => {
+    const unsubscribeModel = window.deepbot.onModelConfigUpdate(() => {
       setHasModelConfig(true);
     });
     
+    // 监听待授权数量变化
+    const unsubscribePending = window.deepbot.onPendingCountUpdate?.((data: { pendingCount: number }) => {
+      setPendingPairingCount(data.pendingCount);
+    });
+    
     return () => {
-      unsubscribe();
+      unsubscribeModel();
+      unsubscribePending?.();
     };
   }, []);
 
   const checkModelConfig = async () => {
     try {
-      const result = await window.electron.ipcRenderer.invoke('model-config:get');
-      
+      const result = await window.electron.ipcRenderer.invoke('model-config:get');      
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
       
@@ -260,6 +267,19 @@ function App() {
     } catch (error) {
       setHasModelConfig(false);
       setIsSystemSettingsOpen(true);
+    }
+  };
+
+  // 加载初始待授权用户数量
+  const loadPendingPairingCount = async () => {
+    try {
+      const result = await window.deepbot.connectorGetPairingRecords();
+      if (result.success && result.records) {
+        const pending = result.records.filter((r: { approved: boolean }) => !r.approved).length;
+        setPendingPairingCount(pending);
+      }
+    } catch (error) {
+      // 忽略错误，不影响主流程
     }
   };
 
@@ -664,6 +684,7 @@ function App() {
         onTabClick={handleSwitchTab}
         onTabClose={handleCloseTab}
         onTabCreate={handleCreateTab}
+        pendingPairingCount={pendingPairingCount}
       />
       
       {/* Skill 管理器 */}

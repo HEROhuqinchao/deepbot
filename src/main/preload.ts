@@ -63,6 +63,7 @@ const IPC_CHANNELS = {
   CONNECTOR_APPROVE_PAIRING: 'connector:approve-pairing',
   CONNECTOR_SET_ADMIN_PAIRING: 'connector:set-admin-pairing',
   CONNECTOR_DELETE_PAIRING: 'connector:delete-pairing',
+  CONNECTOR_PENDING_COUNT_UPDATED: 'connector:pending-count-updated',
 } as const;
 
 /**
@@ -294,6 +295,15 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   connectorDeletePairing: (connectorId: string, userId: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_DELETE_PAIRING, { connectorId, userId });
+  },
+
+  // 监听待授权用户数量变化
+  onPendingCountUpdate: (callback: (data: { pendingCount: number }) => void) => {
+    const listener = (_event: any, data: any) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.CONNECTOR_PENDING_COUNT_UPDATED, listener);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.CONNECTOR_PENDING_COUNT_UPDATED, listener);
+    };
   },
 
   // 监听流式消息
