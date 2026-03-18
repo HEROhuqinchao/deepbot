@@ -22,6 +22,21 @@ import { setCurrentSenderIdForFeishuDocTool } from './tools/feishu-doc-tool';
 
 const logger = createLogger('ConnectorHandler');
 
+// 执行超时提醒节点（毫秒）
+const PROGRESS_CHECKPOINTS = [30000, 60000, 90000, 120000, 180000, 240000, 300000, 360000];
+
+// 各节点对应的提醒文案
+const PROGRESS_MESSAGES: Record<number, string> = {
+  30000:  '⏳ 任务正在执行中，需要一点时间，请耐心等待～ 如需停止可发送 /stop',
+  60000:  '⏳ 任务还在进行中，复杂的工作需要多一些时间，请继续等待～ ',
+  90000:  '⏳ 仍在努力执行中，请不要着急，马上就好～',
+  120000: '⏳ 已经执行 2 分钟了，任务还没完成，请耐心等待～',
+  180000: '⏳ 执行时间较长，这是一个复杂的任务，请继续等待，不要着急～',
+  240000: '⏳ 已执行 4 分钟，任务仍在运行中，请耐心等待结果～',
+  300000: '⏳ 已执行 5 分钟，还在继续处理，感谢你的耐心等待～',
+  360000: '⏳ 已执行 6 分钟，任务仍在进行，请继续等待～ 如需停止可发送 /stop',
+};
+
 /**
  * Connector Handler 类
  */
@@ -30,6 +45,9 @@ export class GatewayConnectorHandler {
   private connectorManager: ConnectorManager | null = null;
   private tabManager: GatewayTabManager | null = null;
   private sessionManager: SessionManager | null = null;
+
+  // 每个 tabId 对应的进度提醒定时器列表
+  private progressTimers: Map<string, ReturnType<typeof setTimeout>[]> = new Map();
 
   // 回调函数
   private handleSendMessageFn: ((content: string, sessionId?: string, displayContent?: string, clearHistory?: boolean, skipHistory?: boolean) => Promise<void>) | null = null;
@@ -161,6 +179,9 @@ export class GatewayConnectorHandler {
         tabId: tab.id,
       });
 
+      // 先启动进度提醒定时器，再发送给 agent（发送是异步阻塞的，定时器需要提前注册）
+      this.startProgressTimers(tab.id);
+
       await this.handleSendMessageFn(contentForAgent, tab.id, displayContent);
       logger.info('✅ 连接器消息已处理');
     } catch (error) {
@@ -228,8 +249,9 @@ export class GatewayConnectorHandler {
 
   /**
    * 发送响应到连接器
+   * @param isProgressNotice 是否是进度提醒消息（进度提醒不清除定时器）
    */
-  async sendResponseToConnector(tabId: string, response: string): Promise<void> {
+  async sendResponseToConnector(tabId: string, response: string, isProgressNotice = false): Promise<void> {
     if (!this.tabManager || !this.connectorManager) {
       logger.error('依赖未设置');
       return;
@@ -265,6 +287,11 @@ export class GatewayConnectorHandler {
         replyToMessageId
       );
       logger.info('✅ 响应已发送到连接器');
+
+      // 只有真实 agent 回复才清除定时器，进度提醒本身不触发清除
+      if (!isProgressNotice) {
+        this.clearProgressTimers(tabId);
+      }
     } catch (error) {
       logger.error('❌ 发送响应到连接器失败:', error);
       throw error;
@@ -411,6 +438,9 @@ export class GatewayConnectorHandler {
       recreate: false,
     });
 
+    // 清除进度提醒定时器
+    this.clearProgressTimers(sessionId);
+
     logger.info('✅ /stop 指令已执行');
     return wasGenerating ? '⏹️ 任务已停止' : '⏹️ 当前没有正在执行的任务';
   }
@@ -457,5 +487,49 @@ export class GatewayConnectorHandler {
     }, 100);
 
     return '✅ 正在分析对话历史...';
+  }
+
+  /**
+   * 启动进度提醒定时器
+   * 在 agent 开始执行后，按预设时间节点向用户发送"还在执行中"的提醒
+   */
+  private startProgressTimers(tabId: string): void {
+    // 先清除该 tab 已有的定时器，避免重复
+    this.clearProgressTimers(tabId);
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    logger.info(`🚀 开始注册进度提醒定时器: ${tabId}, 节点数: ${PROGRESS_CHECKPOINTS.length}`);
+
+    for (const ms of PROGRESS_CHECKPOINTS) {
+      const timer = setTimeout(async () => {
+        const msg = PROGRESS_MESSAGES[ms];
+        logger.info(`⏳ 进度提醒触发 [${ms / 1000}s]: ${tabId}`);
+        try {
+          await this.sendResponseToConnector(tabId, msg, true);
+          logger.info(`✅ 进度提醒已发送 [${ms / 1000}s]: ${tabId}`);
+        } catch (error) {
+          logger.error(`❌ 发送进度提醒失败 [${ms / 1000}s]:`, error);
+        }
+      }, ms);
+
+      timers.push(timer);
+    }
+
+    this.progressTimers.set(tabId, timers);
+    logger.info(`✅ 已启动 ${timers.length} 个进度提醒定时器: ${tabId}`);
+  }
+
+  /**
+   * 清除进度提醒定时器
+   * 在 agent 回复完成或任务停止时调用
+   */
+  private clearProgressTimers(tabId: string): void {
+    const timers = this.progressTimers.get(tabId);
+    if (timers && timers.length > 0) {
+      timers.forEach(t => clearTimeout(t));
+      this.progressTimers.delete(tabId);
+      logger.info(`🗑️ 已清除进度提醒定时器: ${tabId}`);
+    }
   }
 }
