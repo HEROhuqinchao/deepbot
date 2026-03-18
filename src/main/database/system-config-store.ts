@@ -276,6 +276,13 @@ export class SystemConfigStore {
         this.db.exec(`ALTER TABLE connector_pairing ADD COLUMN user_name TEXT`);
         console.log('[SystemConfigStore] ✅ connector_pairing user_name 迁移完成');
       }
+      // 迁移：添加 open_id 字段
+      const hasOpenIdColumn = pairingTableInfo.some((col: any) => col.name === 'open_id');
+      if (!hasOpenIdColumn) {
+        console.log('[SystemConfigStore] 🔄 迁移数据库：添加 open_id 字段到 connector_pairing 表');
+        this.db.exec(`ALTER TABLE connector_pairing ADD COLUMN open_id TEXT`);
+        console.log('[SystemConfigStore] ✅ connector_pairing open_id 迁移完成');
+      }
     } catch (error) {
       console.warn('[SystemConfigStore] ⚠️ connector_pairing 迁移检查失败:', error);
     }
@@ -463,8 +470,8 @@ export class SystemConfigStore {
 
   // ========== Pairing 记录管理 ==========
 
-  savePairingRecord(connectorId: string, userId: string, pairingCode: string, userName?: string): void {
-    return ConnectorConfigModule.savePairingRecord(this.db, connectorId, userId, pairingCode, userName);
+  savePairingRecord(connectorId: string, userId: string, pairingCode: string, userName?: string, openId?: string): void {
+    return ConnectorConfigModule.savePairingRecord(this.db, connectorId, userId, pairingCode, userName, openId);
   }
 
   getPairingRecordByCode(pairingCode: string): { connectorId: string; userId: string; approved: boolean } | null {
@@ -494,6 +501,8 @@ export class SystemConfigStore {
   getAllPairingRecords(connectorId?: string): Array<{
     connectorId: string;
     userId: string;
+    openId?: string;
+    userName?: string;
     pairingCode: string;
     approved: boolean;
     isAdmin: boolean;

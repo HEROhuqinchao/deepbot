@@ -340,6 +340,9 @@ export function formatGetPairingRecordsResult(
     connectorId: string;
     connectorName: string;
     userId: string;
+    openId?: string;
+    userName?: string;
+    isAdmin?: boolean;
     pairingCode: string;
     approved: boolean;
     createdAt: string;
@@ -376,9 +379,14 @@ export function formatGetPairingRecordsResult(
     
     for (const record of connectorRecords) {
       const status = record.approved ? '✅ 已审核' : '⏳ 待审核';
+      const adminTag = record.isAdmin ? ' 👑 管理员' : '';
       const createdTime = new Date(record.createdAt).toLocaleString('zh-CN');
       
-      message += `  • 用户: ${record.userId}\n`;
+      message += `  • 用户: ${record.userName || '未知'}${adminTag}\n`;
+      message += `    - userId (user_id): ${record.userId}\n`;
+      if (record.openId) {
+        message += `    - openId (open_id): ${record.openId}\n`;
+      }
       message += `    - 配对码: ${record.pairingCode}\n`;
       message += `    - 状态: ${status}\n`;
       message += `    - 创建时间: ${createdTime}\n`;

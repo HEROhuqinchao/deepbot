@@ -19,6 +19,7 @@ import type {
 } from '../../../types/connector';
 import { getErrorMessage } from '../../../shared/utils/error-handler';
 import { safeJsonParse } from '../../../shared/utils/json-utils';
+import { ensureDirectoryExists } from '../../../shared/utils/fs-utils';
 import type { ConnectorManager } from '../connector-manager';
 import { SystemConfigStore } from '../../database/system-config-store';
 import { FeishuDocumentHandler } from './document-handler';
@@ -190,6 +191,17 @@ export class FeishuConnector implements Connector {
   // ========== 消息处理 ==========
   
   /**
+   * 获取临时上传目录路径，目录不存在时自动创建
+   */
+  private getTempUploadDir(): string {
+    const store = SystemConfigStore.getInstance();
+    const settings = store.getWorkspaceSettings();
+    const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+    ensureDirectoryExists(tempDir);
+    return tempDir;
+  }
+
+  /**
    * 下载飞书图片到本地临时目录
    * 注意：用户发送的图片需要使用 message-resource API，不能使用 image.get API
    */
@@ -197,45 +209,22 @@ export class FeishuConnector implements Connector {
     try {
       console.log('[FeishuConnector] 开始下载图片:', { messageId, fileKey });
       
-      // 1. 调用飞书 API 下载图片（使用获取消息中的资源文件接口）
       const response = await this.client.im.messageResource.get({
-        path: {
-          message_id: messageId,
-          file_key: fileKey,
-        },
-        params: {
-          type: 'image',
-        },
+        path: { message_id: messageId, file_key: fileKey },
+        params: { type: 'image' },
       });
       
       console.log('[FeishuConnector] 图片下载响应:', response);
       
-      // 2. 保存到临时目录
       const crypto = await import('crypto');
-      const { SystemConfigStore } = await import('../../database/system-config-store');
-      const store = SystemConfigStore.getInstance();
-      const settings = store.getWorkspaceSettings();
-      
-      // 创建临时目录（与上传图片使用相同的目录）
-      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-      
-      // 生成唯一文件名（使用 file_key 的一部分作为文件名）
       const id = crypto.randomBytes(8).toString('hex');
       const fileName = `feishu_image_${id}.png`; // 飞书图片通常是 PNG 格式
-      const filePath = path.join(tempDir, fileName);
+      const filePath = path.join(this.getTempUploadDir(), fileName);
       
-      // 使用 SDK 的 writeFile 方法保存文件
       await response.writeFile(filePath);
       
       console.log('[FeishuConnector] ✅ 图片已保存:', filePath);
-      
-      return {
-        path: filePath,
-        name: fileName,
-      };
+      return { path: filePath, name: fileName };
     } catch (error) {
       console.error('[FeishuConnector] ❌ 下载图片失败:', error);
       return null;
@@ -250,47 +239,24 @@ export class FeishuConnector implements Connector {
     try {
       console.log('[FeishuConnector] 开始下载文件:', { messageId, fileKey, fileName });
       
-      // 1. 调用飞书 API 下载文件（使用获取消息中的资源文件接口）
       const response = await this.client.im.messageResource.get({
-        path: {
-          message_id: messageId,
-          file_key: fileKey,
-        },
-        params: {
-          type: 'file',
-        },
+        path: { message_id: messageId, file_key: fileKey },
+        params: { type: 'file' },
       });
       
       console.log('[FeishuConnector] 文件下载响应:', response);
       
-      // 2. 保存到临时目录
       const crypto = await import('crypto');
-      const { SystemConfigStore } = await import('../../database/system-config-store');
-      const store = SystemConfigStore.getInstance();
-      const settings = store.getWorkspaceSettings();
-      
-      // 创建临时目录（与上传文件使用相同的目录）
-      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-      
-      // 生成唯一文件名（保留原始扩展名）
       const id = crypto.randomBytes(8).toString('hex');
       const ext = path.extname(fileName);
       const baseName = path.basename(fileName, ext);
       const uniqueFileName = `${baseName}_${id}${ext}`;
-      const filePath = path.join(tempDir, uniqueFileName);
+      const filePath = path.join(this.getTempUploadDir(), uniqueFileName);
       
-      // 使用 SDK 的 writeFile 方法保存文件
       await response.writeFile(filePath);
       
       console.log('[FeishuConnector] ✅ 文件已保存:', filePath);
-      
-      return {
-        path: filePath,
-        name: uniqueFileName,
-      };
+      return { path: filePath, name: uniqueFileName };
     } catch (error) {
       console.error('[FeishuConnector] ❌ 下载文件失败:', error);
       return null;
@@ -585,7 +551,7 @@ export class FeishuConnector implements Connector {
       if (!this.checkSecurity(feishuMessage)) {
         // 私聊未配对：发送配对码
         if (feishuMessage.conversation.type === 'private') {
-          const code = this.pairing!.generatePairingCode(feishuMessage.sender.id, feishuMessage.sender.name);
+          const code = this.pairing!.generatePairingCode(feishuMessage.sender.id, feishuMessage.sender.name, openId);
 
           // 检查是否被自动批准（首位用户）
           const store = SystemConfigStore.getInstance();
@@ -626,16 +592,20 @@ export class FeishuConnector implements Connector {
       content: string;
       replyTo?: string;
       replyToMessageId?: string;
+      /** 接收者 ID 类型，默认 chat_id，指定 open_id 时直接发给用户 */
+      _receiveIdType?: 'chat_id' | 'open_id';
     }): Promise<void> => {
+      const receiveIdType = params._receiveIdType ?? 'chat_id';
       console.log('[FeishuConnector] 发送消息:', {
         conversationId: params.conversationId,
         contentLength: params.content.length,
         replyToMessageId: params.replyToMessageId,
+        receiveIdType,
       });
       
       try {
-        // 如果有 replyToMessageId，使用 reply API
-        if (params.replyToMessageId) {
+        // 如果有 replyToMessageId，使用 reply API（仅 chat_id 模式支持）
+        if (params.replyToMessageId && receiveIdType === 'chat_id') {
           console.log('[FeishuConnector] 使用 reply API 回复消息');
           const res = await this.client.im.message.reply({
             path: {
@@ -646,11 +616,10 @@ export class FeishuConnector implements Connector {
                 text: params.content,
               }),
               msg_type: 'text',
-              reply_in_thread: false,  // 普通回复，不使用话题
+              reply_in_thread: false,
             },
           });
           
-          // 飞书 SDK 的响应格式检查
           if (res && typeof res === 'object' && 'code' in res) {
             if (res.code !== 0) {
               const errorMsg = (res as any).msg || (res as any).message || '未知错误';
@@ -660,11 +629,11 @@ export class FeishuConnector implements Connector {
           
           console.log('[FeishuConnector] ✅ 消息已通过 reply API 发送');
         } else {
-          // 没有 replyToMessageId，使用普通 create API
-          console.log('[FeishuConnector] 使用 create API 发送消息');
+          // 使用 create API（支持 chat_id 和 open_id）
+          console.log(`[FeishuConnector] 使用 create API 发送消息 (${receiveIdType})`);
           const res = await this.client.im.message.create({
             params: {
-              receive_id_type: 'chat_id',
+              receive_id_type: receiveIdType,
             },
             data: {
               receive_id: params.conversationId,
@@ -675,7 +644,6 @@ export class FeishuConnector implements Connector {
             },
           });
           
-          // 飞书 SDK 的响应格式检查
           if (res && typeof res === 'object' && 'code' in res) {
             if (res.code !== 0) {
               const errorMsg = (res as any).msg || (res as any).message || '未知错误';
@@ -696,11 +664,15 @@ export class FeishuConnector implements Connector {
       imagePath: string;
       caption?: string;
       replyToMessageId?: string;
+      /** 接收者 ID 类型，默认 chat_id，指定 open_id 时直接发给用户 */
+      _receiveIdType?: 'chat_id' | 'open_id';
     }): Promise<void> => {
+      const receiveIdType = params._receiveIdType ?? 'chat_id';
       console.log('[FeishuConnector] 发送图片:', {
         conversationId: params.conversationId,
         imagePath: params.imagePath,
         replyToMessageId: params.replyToMessageId,
+        receiveIdType,
       });
       
       try {
@@ -768,10 +740,10 @@ export class FeishuConnector implements Connector {
             }
           }
         } else {
-          console.log('[FeishuConnector] 使用 create API 发送图片');
+          console.log(`[FeishuConnector] 使用 create API 发送图片 (${receiveIdType})`);
           const sendRes = await this.client.im.message.create({
             params: {
-              receive_id_type: 'chat_id',
+              receive_id_type: receiveIdType,
             },
             data: {
               receive_id: params.conversationId,
@@ -796,6 +768,7 @@ export class FeishuConnector implements Connector {
             conversationId: params.conversationId,
             content: params.caption,
             replyToMessageId: params.replyToMessageId,
+            _receiveIdType: receiveIdType,
           });
         }
         
@@ -811,11 +784,15 @@ export class FeishuConnector implements Connector {
       filePath: string;
       fileName?: string;
       replyToMessageId?: string;
+      /** 接收者 ID 类型，默认 chat_id，指定 open_id 时直接发给用户 */
+      _receiveIdType?: 'chat_id' | 'open_id';
     }): Promise<void> => {
+      const receiveIdType = params._receiveIdType ?? 'chat_id';
       console.log('[FeishuConnector] 发送文件:', {
         conversationId: params.conversationId,
         filePath: params.filePath,
         replyToMessageId: params.replyToMessageId,
+        receiveIdType,
       });
       
       try {
@@ -887,7 +864,7 @@ export class FeishuConnector implements Connector {
           console.log('[FeishuConnector] 使用 create API 发送文件');
           const sendRes = await this.client.im.message.create({
             params: {
-              receive_id_type: 'chat_id',
+              receive_id_type: receiveIdType,
             },
             data: {
               receive_id: params.conversationId,
@@ -1008,7 +985,7 @@ export class FeishuConnector implements Connector {
   // ========== Pairing 机制 ==========
   
   pairing = {
-    generatePairingCode: (userId: string, userName?: string): string => {
+    generatePairingCode: (userId: string, userName?: string, openId?: string): string => {
       // 生成 6 位配对码
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       
@@ -1018,8 +995,8 @@ export class FeishuConnector implements Connector {
       const existingRecords = store.getAllPairingRecords('feishu');
       const isFirstUser = existingRecords.length === 0;
 
-      // 存储到数据库（同时保存用户名字）
-      store.savePairingRecord('feishu', userId, code, userName);
+      // 存储到数据库（同时保存用户名字和 open_id）
+      store.savePairingRecord('feishu', userId, code, userName, openId);
 
       // 第一个用户自动批准并设为管理员
       if (isFirstUser) {

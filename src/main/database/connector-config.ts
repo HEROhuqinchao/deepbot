@@ -118,16 +118,17 @@ export function savePairingRecord(
   connectorId: string,
   userId: string,
   pairingCode: string,
-  userName?: string
+  userName?: string,
+  openId?: string
 ): void {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO connector_pairing 
-    (connector_id, user_id, pairing_code, approved, created_at, user_name)
-    VALUES (?, ?, ?, 0, ?, ?)
+    (connector_id, user_id, pairing_code, approved, created_at, user_name, open_id)
+    VALUES (?, ?, ?, 0, ?, ?, ?)
   `);
 
-  stmt.run(connectorId, userId, pairingCode, Date.now(), userName ?? null);
-  console.info('[SystemConfigStore] ✅ Pairing 记录已保存:', { connectorId, userId, pairingCode, userName });
+  stmt.run(connectorId, userId, pairingCode, Date.now(), userName ?? null, openId ?? null);
+  console.info('[SystemConfigStore] ✅ Pairing 记录已保存:', { connectorId, userId, pairingCode, userName, openId });
 }
 
 /**
@@ -236,6 +237,7 @@ export function deletePairingRecord(db: Database.Database, connectorId: string, 
 export function getAllPairingRecords(db: Database.Database, connectorId?: string): Array<{
   connectorId: string;
   userId: string;
+  openId?: string;
   userName?: string;
   pairingCode: string;
   approved: boolean;
@@ -262,6 +264,7 @@ export function getAllPairingRecords(db: Database.Database, connectorId?: string
     return rows.map((row) => ({
       connectorId: row.connector_id,
       userId: row.user_id,
+      openId: row.open_id ?? undefined,
       userName: row.user_name ?? undefined,
       pairingCode: row.pairing_code,
       approved: row.approved === 1,

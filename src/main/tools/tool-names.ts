@@ -61,6 +61,7 @@ export const TOOL_NAMES = {
   // 连接器工具
   CONNECTOR_SEND_IMAGE: 'connector_send_image',
   CONNECTOR_SEND_FILE: 'connector_send_file',
+  FEISHU_SEND_MESSAGE: 'feishu_send_message',
   
   // 飞书云文档工具
   FEISHU_DOC_CREATE: 'feishu_doc_create',

@@ -1257,6 +1257,27 @@ node script.js
 - ❌ 禁止：`rm -rf /`、`mkfs`、`shutdown`
 - ✅ 允许：`ls`、`cat`、`python`、`cp`、`mkdir`
 
+### 文件名处理规则
+
+**含空格的文件名必须加引号**，否则命令会解析错误：
+
+```bash
+# ❌ 错误：文件名有空格但没有引号
+cp ~/Desktop/my file.txt ~/Documents/
+
+# ✅ 正确：用双引号或单引号包裹
+cp ~/Desktop/"my file.txt" ~/Documents/
+cp '~/Desktop/my file.txt' ~/Documents/
+
+# ✅ 正确：用反斜杠转义空格
+cp ~/Desktop/my\ file.txt ~/Documents/
+```
+
+常见场景：
+- macOS 应用名（如 `"DeepBot Terminal.app"`）
+- 用户下载的文件（如 `"report 2026.pdf"`）
+- 带版本号的路径（如 `"My Project v2"`）
+
 
 **如果用户未安装 Python**：
 - 引导用户查看「环境配置建议」章节
@@ -1577,5 +1598,108 @@ node script.js
 3. 项目经理可以继续处理其他任务
 4. 稍后收到两个 Agent 的回复时，汇总结果并给出建议
 ```
+
+---
+
+## 飞书消息发送（Feishu Send）
+
+### 工具列表
+- `feishu_send_message` - 向已配对的飞书用户发送文本消息
+- `connector_send_image` - 向飞书用户发送图片
+- `connector_send_file` - 向飞书用户发送文件
+
+### 核心原则
+
+这三个工具的发送逻辑完全一致：
+- **在飞书会话中**：不需要填 `userId`，默认发给当前会话用户
+- **在普通 Tab / 定时任务 Tab 中**：必须填 `userId`，指定目标用户
+
+### 获取已配对用户列表
+
+在普通 Tab 中使用时，先调用 `api_get_pairing_records` 获取已配对用户的 `openId`：
+
+```json
+{
+  "tool": "api_get_pairing_records",
+  "connectorId": "feishu"
+}
+```
+
+返回结果中每条记录包含：
+- `userId`：飞书 user_id（如 `445a7d67`，纯数字格式）
+- `openId`：飞书 open_id（如 `ou_xxxxxxxx`，推荐用于发消息）
+- `userName`：用户名
+
+**发消息时请使用 `openId`（open_id），不要使用 `userId`（user_id）。**
+
+### 使用场景
+- ✅ 定时任务执行完成后，通知指定用户结果
+- ✅ 普通 Tab 完成某项工作后，主动推送消息给飞书用户
+- ✅ 在飞书会话中，向当前用户发送图片或文件
+- ✅ 多步骤任务中，每个阶段完成后发送进度通知
+
+### 示例
+
+**1. 定时任务完成后通知用户（普通 Tab）**
+```json
+// 先获取用户列表
+{ "tool": "api_get_pairing_records", "connectorId": "feishu" }
+
+// 再发送消息
+{
+  "tool": "feishu_send_message",
+  "message": "✅ 每日报告已生成，请查收！",
+  "userId": "ou_xxxxxxxx"
+}
+```
+
+**2. 发送图片给指定用户（普通 Tab）**
+```json
+{
+  "tool": "connector_send_image",
+  "imagePath": "~/Desktop/report.png",
+  "caption": "本周数据报告",
+  "userId": "ou_xxxxxxxx"
+}
+```
+
+**3. 发送文件给指定用户（普通 Tab）**
+```json
+{
+  "tool": "connector_send_file",
+  "filePath": "~/Documents/report.xlsx",
+  "userId": "ou_xxxxxxxx"
+}
+```
+
+**4. 在飞书会话中直接发送（无需 userId）**
+```json
+{
+  "tool": "connector_send_image",
+  "imagePath": "~/Desktop/result.png",
+  "caption": "生成结果"
+}
+```
+
+### 参数说明
+
+**feishu_send_message**
+- `message`（必填）：要发送的文本内容
+- `userId`（非飞书会话时必填）：目标用户的飞书 openId（open_id，`ou_` 开头），可通过 `api_get_pairing_records` 查询
+
+**connector_send_image**
+- `imagePath`（必填）：图片路径，支持 `~` 符号
+- `caption`（可选）：图片说明文字
+- `userId`（非飞书会话时必填）：目标用户的飞书 openId（open_id，`ou_` 开头）
+
+**connector_send_file**
+- `filePath`（必填）：文件路径，支持 `~` 符号
+- `fileName`（可选）：自定义文件名
+- `userId`（非飞书会话时必填）：目标用户的飞书 openId（open_id，`ou_` 开头）
+
+### 注意事项
+- ⚠️ 飞书连接器必须已启动且配置正确，否则发送会失败
+- ⚠️ `userId` 必须是已完成配对（approved）的用户，未配对用户无法接收消息
+- ⚠️ 发送失败时，工具会自动列出当前已配对的用户供参考
 
 ---
