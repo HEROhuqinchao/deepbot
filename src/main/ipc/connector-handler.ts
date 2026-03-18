@@ -301,9 +301,20 @@ export function registerConnectorHandlers(): void {
         console.log('[IPC] 批准 Pairing:', request.pairingCode);
         
         const store = SystemConfigStore.getInstance();
+        
+        // 批准前先查出用户信息（含 openId）
+        const record = store.getPairingRecordByCode(request.pairingCode);
         store.approvePairingRecord(request.pairingCode);
         
-        console.log('[IPC] ✅ Pairing 已批准');
+        // 通过连接器给被批准用户发送欢迎消息
+        if (record && gateway && record.connectorId === 'feishu') {
+          try {
+            const connector = gateway.getConnectorManager().getConnector(record.connectorId as any) as any;
+            connector?.sendApprovalWelcome?.(record.openId, record.userId);
+          } catch (err) {
+            console.error('[IPC] 发送欢迎消息失败:', err);
+          }
+        }
         
         return {
           success: true,

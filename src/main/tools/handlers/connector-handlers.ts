@@ -215,6 +215,17 @@ export async function handleApprovePairing(
     // 批准配对
     store.approvePairingRecord(params.pairingCode);
     
+    // 通过飞书连接器给被批准用户发送欢迎消息
+    if (record.connectorId === 'feishu') {
+      try {
+        const gateway = await getGatewayInstance();
+        const connector = gateway?.getConnectorManager().getConnector('feishu') as any;
+        connector?.sendApprovalWelcome?.(record.openId, record.userId);
+      } catch (err) {
+        logger.error('发送欢迎消息失败:', err);
+      }
+    }
+
     return createSuccessResponse(
       formatters.formatApprovePairingResult(params.pairingCode, record),
       { pairingCode: params.pairingCode, connectorId: record.connectorId, userId: record.userId }

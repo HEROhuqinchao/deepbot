@@ -137,10 +137,10 @@ export function savePairingRecord(
 export function getPairingRecordByCode(
   db: Database.Database,
   pairingCode: string
-): { connectorId: string; userId: string; approved: boolean } | null {
+): { connectorId: string; userId: string; approved: boolean; openId?: string } | null {
   try {
     const stmt = db.prepare(`
-      SELECT connector_id, user_id, approved FROM connector_pairing WHERE pairing_code = ?
+      SELECT connector_id, user_id, approved, open_id FROM connector_pairing WHERE pairing_code = ?
     `);
     const row = stmt.get(pairingCode) as any;
     
@@ -150,6 +150,7 @@ export function getPairingRecordByCode(
       connectorId: row.connector_id,
       userId: row.user_id,
       approved: row.approved === 1,
+      openId: row.open_id ?? undefined,
     };
   } catch (error) {
     console.error('[SystemConfigStore] 获取 Pairing 记录失败:', error);

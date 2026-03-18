@@ -474,7 +474,7 @@ export class SystemConfigStore {
     return ConnectorConfigModule.savePairingRecord(this.db, connectorId, userId, pairingCode, userName, openId);
   }
 
-  getPairingRecordByCode(pairingCode: string): { connectorId: string; userId: string; approved: boolean } | null {
+  getPairingRecordByCode(pairingCode: string): { connectorId: string; userId: string; approved: boolean; openId?: string } | null {
     return ConnectorConfigModule.getPairingRecordByCode(this.db, pairingCode);
   }
 
