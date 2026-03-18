@@ -389,6 +389,21 @@ export class FeishuConnector implements Connector {
       const messageContent = safeJsonParse(event.message.content, {}) as any;
       console.log('[FeishuConnector] 📋 解析后的内容:', messageContent);
       
+      // 提取消息文本：兼容 text 类型（messageContent.text）和 post 富文本类型（content[][].text）
+      let extractedText = '';
+      if (msgType === 'post' && messageContent.content) {
+        // post 类型：content 是二维数组，每行是一个数组，每个元素有 tag 和 text
+        const lines: string[] = (messageContent.content as any[][]).map((line: any[]) =>
+          line
+            .filter((node: any) => node.tag === 'text' && node.text)
+            .map((node: any) => node.text)
+            .join('')
+        );
+        extractedText = lines.filter((l: string) => l.trim()).join('\n');
+      } else {
+        extractedText = messageContent.text || '';
+      }
+
       const feishuMessage: FeishuIncomingMessage = {
         messageId: event.message.message_id,
         timestamp: Date.now(),
@@ -402,7 +417,7 @@ export class FeishuConnector implements Connector {
         },
         content: {
           type: msgType === 'image' ? 'image' : msgType === 'file' ? 'file' : 'text',
-          text: messageContent.text || '',
+          text: extractedText,
         },
         raw: event,
       };
