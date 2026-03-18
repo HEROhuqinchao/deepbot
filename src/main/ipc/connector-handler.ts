@@ -306,14 +306,13 @@ export function registerConnectorHandlers(): void {
         const record = store.getPairingRecordByCode(request.pairingCode);
         store.approvePairingRecord(request.pairingCode);
         
-        // 通过连接器给被批准用户发送欢迎消息
-        if (record && gateway && record.connectorId === 'feishu') {
-          try {
-            const connector = gateway.getConnectorManager().getConnector(record.connectorId as any) as any;
-            connector?.sendApprovalWelcome?.(record.openId, record.userId);
-          } catch (err) {
-            console.error('[IPC] 发送欢迎消息失败:', err);
-          }
+        // 通知连接器向用户发送欢迎消息
+        if (record && gateway) {
+          gateway.getConnectorManager().notifyPairingApproved(
+            record.connectorId as any,
+            record.userId,
+            record.openId,
+          );
         }
         
         return {

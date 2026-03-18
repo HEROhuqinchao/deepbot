@@ -290,8 +290,27 @@ export class ConnectorManager {
   }
   
   /**
+   * 通知连接器某个用户的配对已被批准
+   * 统一入口，避免各调用方重复实现相同逻辑
+   *
+   * @param connectorId - 连接器 ID
+   * @param userId - 用户 ID
+   * @param openId - 用户 open_id（可选）
+   */
+  notifyPairingApproved(connectorId: ConnectorId, userId: string, openId?: string): void {
+    const connector = this.connectors.get(connectorId);
+    if (connector?.onPairingApproved) {
+      try {
+        connector.onPairingApproved(userId, openId);
+      } catch (error) {
+        console.error(`[ConnectorManager] ❌ 通知配对批准失败: ${connectorId}`, error);
+      }
+    }
+  }
+
+  /**
    * 健康检查
-   * 
+   *
    * @param connectorId - 连接器 ID
    * @returns 健康状态
    */

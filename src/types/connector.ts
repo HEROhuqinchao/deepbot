@@ -133,6 +133,12 @@ export interface Connector {
     verifyPairingCode(userId: string): boolean;
     approvePairing(code: string): Promise<void>;
   };
+
+  /**
+   * 配对批准后的回调，由 ConnectorManager 统一调用
+   * 连接器可实现此方法向用户发送欢迎消息等
+   */
+  onPairingApproved?(userId: string, openId?: string): void;
 }
 
 // ========== 飞书特定类型 ==========

@@ -702,7 +702,7 @@ export class FeishuConnector implements Connector {
    * 配对批准后发送欢迎消息给用户
    * 使用 open_id 直发，避免依赖 chat_id
    */
-  sendApprovalWelcome(openId: string | undefined, userId: string): void {
+  onPairingApproved(userId: string, openId?: string): void {
     const target = openId || userId;
     const receiveIdType = openId ? 'open_id' : 'chat_id';
     this.outbound.sendMessage({
@@ -767,7 +767,7 @@ export class FeishuConnector implements Connector {
         content: `✅ 配对码 ${code} 已批准，用户现在可以使用 DeepBot 了。`,
       });
       // 给被批准用户发送欢迎消息
-      this.sendApprovalWelcome(record.openId, record.userId);
+      this.connectorManager.notifyPairingApproved('feishu', record.userId, record.openId);
     } catch (error) {
       console.error('[FeishuConnector] ❌ 处理 pairing approve 失败:', getErrorMessage(error));
       await this.outbound.sendMessage({
@@ -815,7 +815,7 @@ export class FeishuConnector implements Connector {
         store.approvePairingRecord(code);
         store.setAdminPairing('feishu', userId, true);
         // 发送欢迎消息
-        this.sendApprovalWelcome(openId, userId);
+        this.connectorManager.notifyPairingApproved('feishu', userId, openId);
       }
 
       return code;
