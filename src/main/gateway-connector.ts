@@ -119,7 +119,11 @@ export class GatewayConnectorHandler {
       let tab = this.tabManager.findTabByConversationKey(conversationKey);
 
       if (!tab) {
-        const title = message.source.connectorId;
+        // 飞书 Tab 显示为 "FS-用户名"，其他连接器用 connectorId
+        const senderName = message.source.senderName || '';
+        const title = message.source.connectorId === 'feishu' && senderName
+          ? `FS-${senderName}`
+          : message.source.connectorId;
         tab = await this.tabManager.createTab({
           type: 'connector',
           title,
