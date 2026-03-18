@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { APP_VERSION } from '../../shared/constants/version';
 import { QuickStart } from './settings/QuickStart';
 import { ModelConfig } from './settings/ModelConfig';
@@ -37,9 +38,7 @@ export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsP
         <div className="settings-header">
           <h2 className="settings-title">系统设置</h2>
           <button onClick={onClose} className="settings-close-button">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X size={20} />
           </button>
         </div>
 
