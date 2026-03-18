@@ -112,7 +112,7 @@ async function getLarkClient(): Promise<any> {
 
 /** 生成飞书文档链接 */
 function docUrl(documentId: string): string {
-  return `https://open.feishu.cn/docx/${documentId}`;
+  return `https://bytedance.feishu.cn/docx/${documentId}`;
 }
 
 /** 统一错误返回 */
