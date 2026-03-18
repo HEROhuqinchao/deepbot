@@ -194,6 +194,174 @@ export function QuickStart(_props: QuickStartProps) {
         </div>
       </div>
 
+      {/* 外部通讯 */}
+      <div style={{ marginBottom: '20px' }}>
+        <h4 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--settings-text)', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
+          <span style={{ marginRight: '8px' }}>💬</span>
+          外部通讯
+        </h4>
+        <div style={{ 
+          padding: '12px',
+          background: 'var(--settings-input-bg)',
+          borderRadius: '8px',
+          fontSize: '13px',
+          color: 'var(--settings-text-dim)',
+          lineHeight: '1.6'
+        }}>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ marginRight: '8px', fontSize: '16px' }}>🚀</span>
+              <span style={{ fontWeight: '600', color: 'var(--settings-text)', fontSize: '14px' }}>飞书机器人</span>
+            </div>
+            <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
+              将 DeepBot 接入飞书，在飞书中直接与 AI 对话，支持私聊和群组
+            </div>
+          </div>
+
+          <div style={{ marginLeft: '28px', marginBottom: '12px' }}>
+            <strong style={{ color: 'var(--settings-text)' }}>配置步骤：</strong>
+            <div style={{ marginTop: '6px', lineHeight: '1.8' }}>
+              1. 前往「系统管理 → 飞书」配置 App ID 和 App Secret<br/>
+              2. 点击「启动连接器」按钮<br/>
+              3. 在飞书中私聊或群组 @ 机器人即可使用
+            </div>
+          </div>
+
+          <div style={{ marginLeft: '28px', marginBottom: '12px' }}>
+            <strong style={{ color: 'var(--settings-text)' }}>使用规则：</strong>
+            <div style={{ marginTop: '6px', lineHeight: '1.8' }}>
+              • <strong>私聊</strong>：首位用户自动成为管理员，后续用户需管理员审批配对码<br/>
+              • <strong>群组</strong>：必须 @ 机器人才会回复，无需配对<br/>
+              • <strong>管理员审批</strong>：发送 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>deepbot pairing approve feishu &lt;配对码&gt;</code>
+            </div>
+          </div>
+
+          <div style={{ marginLeft: '28px', marginBottom: '12px' }}>
+            <strong style={{ color: 'var(--settings-text)' }}>支持功能：</strong>
+            <div style={{ marginTop: '6px', lineHeight: '1.8' }}>
+              • 发送文字、图片、文件，AI 自动处理<br/>
+              • 发送飞书文档链接，AI 自动读取内容<br/>
+              • 使用 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>/stop</code> 指令停止任务
+            </div>
+          </div>
+
+          <div style={{ marginLeft: '28px' }}>
+            <strong style={{ color: 'var(--settings-text)' }}>飞书文档操作：</strong>
+            <div style={{ marginTop: '6px', lineHeight: '1.8' }}>
+              • 新建文档（可指定文件夹）<br/>
+              • 读取文档内容<br/>
+              • 追加内容到文档末尾<br/>
+              • 更新指定段落<br/>
+              • 删除指定内容<br/>
+              • 添加评论<br/>
+              • 删除整篇文档
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Skill 使用指南 */}
+      <div style={{ marginBottom: '20px' }}>
+        <h4 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--settings-text)', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
+          <span style={{ marginRight: '8px' }}>🎯</span>
+          Skill 使用指南
+        </h4>
+        <div style={{ 
+          padding: '12px',
+          background: 'var(--settings-input-bg)',
+          borderRadius: '8px',
+          fontSize: '13px',
+          color: 'var(--settings-text-dim)',
+          lineHeight: '1.6'
+        }}>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ marginRight: '8px', fontSize: '16px' }}>📦</span>
+              <span style={{ fontWeight: '600', color: 'var(--settings-text)', fontSize: '14px' }}>什么是 Skill？</span>
+            </div>
+            <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
+              Skill 是可以扩展 DeepBot 能力的技能包，类似于插件系统。通过安装不同的 Skill，可以让 AI 获得更多专业能力。
+            </div>
+          </div>
+
+          <div style={{ marginLeft: '28px', marginBottom: '12px' }}>
+            <strong style={{ color: 'var(--settings-text)' }}>搜索 Skill：</strong>
+            <div style={{ marginTop: '6px', lineHeight: '1.8' }}>
+              • 点击聊天界面的 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>[skill]</code> 按钮进入 Skill 管理，在搜索框中搜索关键词<br/>
+              • 或直接告诉 DeepBot 你的需求：<code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>"搜索能做 [某件事] 的 Skill"</code>
+            </div>
+          </div>
+
+          <div style={{ marginLeft: '28px', marginBottom: '12px' }}>
+            <strong style={{ color: 'var(--settings-text)' }}>安装 Skill：</strong>
+            <div style={{ 
+              marginTop: '6px',
+              padding: '10px',
+              background: 'rgba(0,0,0,0.1)',
+              borderRadius: '6px',
+              lineHeight: '1.8'
+            }}>
+              <div style={{ marginBottom: '8px', color: 'var(--settings-text)', fontWeight: '600' }}>
+                方式一：自然语言安装（推荐）
+              </div>
+              <div style={{ 
+                padding: '8px',
+                background: 'rgba(0,0,0,0.1)',
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                marginBottom: '8px'
+              }}>
+                💬 "帮我搜索并安装 [Skill 名称] Skill"<br/>
+                💬 "安装这个 Skill：[GitHub URL]"
+              </div>
+              
+              <div style={{ marginTop: '12px', marginBottom: '8px', color: 'var(--settings-text)', fontWeight: '600' }}>
+                方式二：手动安装
+              </div>
+              <div style={{ 
+                padding: '8px',
+                background: 'rgba(0,0,0,0.1)',
+                borderRadius: '4px',
+                fontSize: '12px'
+              }}>
+                点击 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>[skill]</code> 按钮 → 搜索 Skill → 点击「安装」按钮
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginLeft: '28px', marginBottom: '12px' }}>
+            <strong style={{ color: 'var(--settings-text)' }}>使用 Skill：</strong>
+            <div style={{ marginTop: '6px', lineHeight: '1.8' }}>
+              安装后，直接告诉 AI 你的需求，它会自动调用相应的 Skill。例如：<br/>
+              • "使用[skill名称]帮我分析这个 PDF 文件"<br/>
+              • "使用[skill名称]获取 Twitter 上的最新动态"<br/>
+              • "使用[skill名称]连接 Linear 查看我的任务"
+            </div>
+          </div>
+
+          <div style={{ marginLeft: '28px', marginBottom: '12px' }}>
+            <strong style={{ color: 'var(--settings-text)' }}>管理 Skill：</strong>
+            <div style={{ marginTop: '6px', lineHeight: '1.8' }}>
+              • 查看已安装：<code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>"列出所有已安装的 Skill"</code><br/>
+              • 更新 Skill：<code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>"更新 [Skill 名称]"</code><br/>
+              • 卸载 Skill：<code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>"卸载 [Skill 名称]"</code>
+            </div>
+          </div>
+
+          <div style={{ 
+            marginTop: '12px',
+            padding: '10px',
+            background: 'rgba(var(--settings-accent-rgb), 0.1)',
+            borderLeft: '3px solid var(--settings-accent)',
+            borderRadius: '4px',
+            fontSize: '12px'
+          }}>
+            💡 提示：Skill 安装在 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>~/.agents/skills</code> 目录，可以手动管理
+          </div>
+        </div>
+      </div>
+
       {/* 指令系统 */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--settings-text)', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
@@ -342,39 +510,6 @@ export function QuickStart(_props: QuickStartProps) {
             fontFamily: 'monospace',
             color: 'var(--settings-accent)'
           }}>/</code> 会自动显示可用指令列表
-        </div>
-
-        <div style={{ 
-          marginTop: '10px',
-          padding: '10px 12px',
-          background: 'rgba(var(--settings-accent-rgb), 0.1)',
-          borderLeft: '3px solid var(--settings-accent)',
-          borderRadius: '4px',
-          fontSize: '12px',
-          color: 'var(--settings-text-dim)'
-        }}>
-          <div style={{ fontWeight: '600', color: 'var(--settings-text)', marginBottom: '6px' }}>
-            💬 飞书使用说明
-          </div>
-          <div style={{ lineHeight: '1.7' }}>
-            <div>• 前往「系统管理 → 飞书」配置 App ID 和 App Secret 后启用</div>
-            <div>• 首位私聊用户自动成为管理员，后续用户需管理员审批配对码</div>
-            <div>• 管理员审批：发送 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>deepbot pairing approve feishu &lt;配对码&gt;</code></div>
-            <div>• 群组消息无需配对，私聊消息需完成配对才能使用</div>
-            <div>• 支持发送图片、文件，AI 会自动下载并处理</div>
-            <div>• <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>/stop</code> 指令仅在飞书等外部通讯中有效，桌面端请点击停止按钮</div>
-            <div style={{ marginTop: '8px', fontWeight: '600', color: 'var(--settings-text)' }}>📄 还能帮你搞定飞书文档：</div>
-            <div>• 帮你新建一篇文档，想放哪个文件夹都行</div>
-            <div>• 把文档内容读出来，帮你分析、总结或回答问题</div>
-            <div>• 在文档后面继续写内容</div>
-            <div>• 帮你改文档里某一段话</div>
-            <div>• 删掉文档里不要的内容</div>
-            <div>• 在文档上加评论</div>
-            <div>• 把整篇文档删掉</div>
-            <div style={{ marginTop: '4px', color: 'var(--settings-text-dim)', fontSize: '11px' }}>
-              💡 把飞书文档链接直接发给 AI，它会自动读取里面的内容一起处理
-            </div>
-          </div>
         </div>
       </div>
 
