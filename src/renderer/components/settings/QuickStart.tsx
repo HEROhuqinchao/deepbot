@@ -27,7 +27,7 @@ export function QuickStart(_props: QuickStartProps) {
           👋 欢迎使用 DeepBot
         </h2>
         <p style={{ fontSize: '13px', lineHeight: '1.5', opacity: 0.95 }}>
-          系统级 AI 助手，帮你完成文件操作、命令执行、浏览器控制、定时任务等各种工作
+          全能 AI 助手，帮你完成文件操作、命令执行、浏览器控制、定时任务等各种工作
         </p>
       </div>
 
@@ -208,7 +208,7 @@ export function QuickStart(_props: QuickStartProps) {
             fontSize: '11px',
             fontWeight: '600'
           }}>
-            3
+            4
           </span>
         </h4>
         <div style={{ 
@@ -291,6 +291,39 @@ export function QuickStart(_props: QuickStartProps) {
               让 AI 分析当前会话的历史记录文件
             </div>
           </div>
+
+          <div style={{ 
+            padding: '10px 12px',
+            background: 'var(--settings-input-bg)',
+            borderRadius: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              <code style={{ 
+                padding: '2px 8px', 
+                background: 'rgba(0,0,0,0.2)', 
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--settings-accent)',
+                marginRight: '8px'
+              }}>
+                /stop
+              </code>
+              <span style={{ color: 'var(--settings-text)', fontWeight: '600' }}>停止任务</span>
+              <span style={{ 
+                marginLeft: '8px',
+                padding: '1px 6px',
+                background: 'rgba(var(--settings-accent-rgb), 0.15)',
+                color: 'var(--settings-accent)',
+                borderRadius: '4px',
+                fontSize: '11px'
+              }}>仅飞书等外部通讯</span>
+            </div>
+            <div style={{ marginLeft: '12px', fontSize: '12px' }}>
+              停止当前正在执行的任务。仅支持通过飞书等外部通讯渠道发送，桌面端请点击停止按钮
+            </div>
+          </div>
         </div>
         
         <div style={{ 
@@ -309,6 +342,39 @@ export function QuickStart(_props: QuickStartProps) {
             fontFamily: 'monospace',
             color: 'var(--settings-accent)'
           }}>/</code> 会自动显示可用指令列表
+        </div>
+
+        <div style={{ 
+          marginTop: '10px',
+          padding: '10px 12px',
+          background: 'rgba(var(--settings-accent-rgb), 0.1)',
+          borderLeft: '3px solid var(--settings-accent)',
+          borderRadius: '4px',
+          fontSize: '12px',
+          color: 'var(--settings-text-dim)'
+        }}>
+          <div style={{ fontWeight: '600', color: 'var(--settings-text)', marginBottom: '6px' }}>
+            💬 飞书使用说明
+          </div>
+          <div style={{ lineHeight: '1.7' }}>
+            <div>• 前往「系统管理 → 飞书」配置 App ID 和 App Secret 后启用</div>
+            <div>• 首位私聊用户自动成为管理员，后续用户需管理员审批配对码</div>
+            <div>• 管理员审批：发送 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>deepbot pairing approve feishu &lt;配对码&gt;</code></div>
+            <div>• 群组消息无需配对，私聊消息需完成配对才能使用</div>
+            <div>• 支持发送图片、文件，AI 会自动下载并处理</div>
+            <div>• <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>/stop</code> 指令仅在飞书等外部通讯中有效，桌面端请点击停止按钮</div>
+            <div style={{ marginTop: '8px', fontWeight: '600', color: 'var(--settings-text)' }}>📄 还能帮你搞定飞书文档：</div>
+            <div>• 帮你新建一篇文档，想放哪个文件夹都行</div>
+            <div>• 把文档内容读出来，帮你分析、总结或回答问题</div>
+            <div>• 在文档后面继续写内容</div>
+            <div>• 帮你改文档里某一段话</div>
+            <div>• 删掉文档里不要的内容</div>
+            <div>• 在文档上加评论</div>
+            <div>• 把整篇文档删掉</div>
+            <div style={{ marginTop: '4px', color: 'var(--settings-text-dim)', fontSize: '11px' }}>
+              💡 把飞书文档链接直接发给 AI，它会自动读取里面的内容一起处理
+            </div>
+          </div>
         </div>
       </div>
 
