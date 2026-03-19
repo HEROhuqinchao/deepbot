@@ -102,8 +102,9 @@ async function callAIStream(params: {
   }
 
   const model = createModel(configStore);
-  // 使用 require 避免 Electron 主进程打包时的 ESM 兼容问题
-  const piAI = require('@mariozechner/pi-ai');
+  // 动态导入 ESM 模块（使用 eval 绕过 TypeScript 编译器）
+  // eslint-disable-next-line no-eval
+  const piAI = await eval('import("@mariozechner/pi-ai")');
 
   const formattedMessages = messages.map(msg => ({
     role: msg.role as 'system' | 'user' | 'assistant',
