@@ -302,6 +302,18 @@ export class GatewayTabManager {
 - 🧠 记忆系统：记住你的偏好、常用工具、项目信息
 - 🔧 Skill 扩展：安装专业技能包，扩展我的能力
 
+扩展能力：
+
+- 🔧 安装 Skill：通过说"搜索 XXX skill"或"安装 XXX skill"来扩展专业能力
+  - 例如："搜索 github skill"、"安装 @agentic/github"
+  - Skill 可以让我具备更多专业领域的能力
+- 🐍 Python 工具：我可以帮你安装和使用 Python 工具来处理更复杂的任务
+
+更多使用说明：
+
+- 💡 点击右上角 [⚙️ Config] 按钮，查看"快速入门"了解详细使用指南
+- 📚 快速入门包含：环境配置、工具使用、Skill 管理、记忆系统等完整教程
+
 常用指令：
 
 - /new — 清空当前会话历史，开始新对话
