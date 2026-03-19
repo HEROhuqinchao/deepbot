@@ -114,12 +114,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
       }
     };
     
-    window.deepbot.onNameConfigUpdate(handleNameConfigUpdate);
+    const unsubscribeNameUpdate = window.deepbot.onNameConfigUpdate(handleNameConfigUpdate);
     
     // 清理监听器
     return () => {
-      // Electron IPC 监听器清理（如果有提供 removeListener 方法）
-      // 注意：需要在 preload.ts 中实现 removeListener
+      unsubscribeNameUpdate();
     };
   }, [activeTabId]); // 🔥 当 activeTabId 变化时重新加载
   
