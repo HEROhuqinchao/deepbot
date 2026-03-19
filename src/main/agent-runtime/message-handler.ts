@@ -26,6 +26,9 @@ export class MessageHandler {
   // Thinking 状态管理
   private isInThinking: boolean = false; // 是否正在 thinking 状态
   private thinkingBuffer: string = ''; // thinking 内容缓冲区
+  
+  // 当前正在流式输出的内容
+  private currentStreamingContent = '';
 
   constructor(agent: Agent | null) {
     this.agent = agent;
@@ -140,6 +143,9 @@ export class MessageHandler {
     }
 
     console.log('📤 AI 调用:', content.substring(0, 50) + (content.length > 50 ? '...' : ''));
+    
+    // 重置当前流式输出内容
+    this.currentStreamingContent = '';
     
     try {
       // 订阅 Agent 事件，并实现真正的流式输出
@@ -262,6 +268,7 @@ export class MessageHandler {
             // 输出过滤后的内容到主消息流
             if (filteredDelta) {
               fullResponse += filteredDelta;
+              this.currentStreamingContent = fullResponse; // 更新当前流式输出内容
             }
           }
           return;
@@ -527,6 +534,9 @@ export class MessageHandler {
         
         console.log(`✅ 流式输出完成，总长度: ${fullResponse.length} 字符`);
         
+        // 流式输出完成后，清空当前流式输出内容
+        this.currentStreamingContent = '';
+        
         // console.log(`✅ AI 响应完成，总长度: ${fullResponse.length} 字符`);
         // console.log(`📝 AI 响应内容: ${fullResponse.substring(0, 200)}...`);
       } catch (error) {
@@ -733,5 +743,12 @@ export class MessageHandler {
     ];
     
     return errorPatterns.some(pattern => pattern.test(resultText));
+  }
+
+  /**
+   * 获取当前正在流式输出的内容
+   */
+  getCurrentStreamingContent(): string {
+    return this.currentStreamingContent;
   }
 }

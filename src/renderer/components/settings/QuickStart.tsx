@@ -563,7 +563,7 @@ export function QuickStart(_props: QuickStartProps) {
             fontSize: '11px',
             fontWeight: '600'
           }}>
-            4
+            5
           </span>
         </h4>
         <div style={{ 
@@ -677,6 +677,39 @@ export function QuickStart(_props: QuickStartProps) {
             </div>
             <div style={{ marginLeft: '12px', fontSize: '12px' }}>
               停止当前正在执行的任务。仅支持通过飞书等外部通讯渠道发送，桌面端请点击停止按钮
+            </div>
+          </div>
+
+          <div style={{ 
+            padding: '10px 12px',
+            background: 'var(--settings-input-bg)',
+            borderRadius: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              <code style={{ 
+                padding: '2px 8px', 
+                background: 'rgba(0,0,0,0.2)', 
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--settings-accent)',
+                marginRight: '8px'
+              }}>
+                /status
+              </code>
+              <span style={{ color: 'var(--settings-text)', fontWeight: '600' }}>查看状态</span>
+              <span style={{ 
+                marginLeft: '8px',
+                padding: '1px 6px',
+                background: 'rgba(var(--settings-accent-rgb), 0.15)',
+                color: 'var(--settings-accent)',
+                borderRadius: '4px',
+                fontSize: '11px'
+              }}>仅飞书等外部通讯</span>
+            </div>
+            <div style={{ marginLeft: '12px', fontSize: '12px' }}>
+              查看当前任务执行状态和正在输出的内容。仅支持通过飞书等外部通讯渠道发送
             </div>
           </div>
         </div>

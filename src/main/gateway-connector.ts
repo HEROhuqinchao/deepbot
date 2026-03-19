@@ -145,6 +145,20 @@ export class GatewayConnectorHandler {
         logger.info('🔧 检测到系统指令:', { command: commandName, args: commandArgs, tabId: tab.id });
 
         if (this.executeSystemCommandFn) {
+          // 🔥 特殊处理：/status 指令直接返回内容，不需要中间提示
+          if (commandName.toLowerCase() === 'status') {
+            const statusResult = await this.handleStatusCommand(tab.id);
+            if (tab.type === 'connector') {
+              try {
+                await this.sendResponseToConnector(tab.id, statusResult);
+              } catch (replyError) {
+                logger.error('❌ 回复 status 指令结果失败:', replyError);
+              }
+            }
+            return;
+          }
+
+          // 其他系统指令正常处理
           await this.executeSystemCommandFn(commandName, commandArgs, tab.id);
           logger.info('✅ 系统指令已执行');
 
@@ -416,8 +430,12 @@ export class GatewayConnectorHandler {
           resultText = await this.handleStopCommand(sessionId);
           break;
 
+        case 'status':
+          resultText = await this.handleStatusCommand(sessionId);
+          break;
+
         default:
-          resultText = `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /history - 查看对话历史统计`;
+          resultText = `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /history - 查看对话历史统计\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
       }
 
       sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
@@ -502,6 +520,7 @@ export class GatewayConnectorHandler {
       case 'new': return '✅ 已清空会话历史，开始新对话';
       case 'memory': return '✅ 正在查询记忆系统...';
       case 'history': return '✅ 正在分析对话历史...';
+      case 'status': return '📊 正在获取当前状态...';
       default: return `❌ 未知指令: /${commandName}`;
     }
   }
@@ -530,6 +549,55 @@ export class GatewayConnectorHandler {
 
     logger.info('✅ /stop 指令已执行');
     return wasGenerating ? '⏹️ 任务已停止' : '⏹️ 当前没有正在执行的任务';
+  }
+
+  /**
+   * 处理 /status 命令（查看当前任务执行状态）
+   */
+  private async handleStatusCommand(sessionId: string): Promise<string> {
+    if (!this.tabManager) {
+      throw new Error('依赖未设置');
+    }
+
+    logger.info(`执行 /status 指令: ${sessionId}`);
+
+    try {
+      const tab = this.tabManager.getTab(sessionId);
+
+      if (!tab) {
+        return '❌ 未找到当前会话';
+      }
+
+      // 🔥 优先获取当前正在流式输出的内容
+      if (this.getOrCreateRuntimeFn) {
+        const runtime = this.getOrCreateRuntimeFn(sessionId);
+        if (runtime) {
+          const streamingContent = runtime.getCurrentStreamingContent();
+          if (streamingContent && streamingContent.trim()) {
+            return `📊 当前正在输出的内容\n\n${streamingContent}`;
+          }
+        }
+      }
+
+      // 如果没有正在流式输出的内容，获取最近的 AI 回复消息
+      const messages = tab.messages || [];
+      const lastAssistantMessage = messages
+        .slice()
+        .reverse()
+        .find(msg => msg.role === 'assistant');
+
+      if (!lastAssistantMessage || !lastAssistantMessage.content) {
+        return '📊 当前状态\n\n暂无输出内容';
+      }
+
+      // 直接返回最后一条 AI 回复的完整内容
+      const content = lastAssistantMessage.content.trim();
+      
+      return `📊 最近的输出内容\n\n${content}`;
+    } catch (error) {
+      logger.error('❌ 执行 /status 指令失败:', error);
+      return `❌ 获取状态失败: ${getErrorMessage(error)}`;
+    }
   }
 
   /**

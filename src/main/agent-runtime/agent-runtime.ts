@@ -804,7 +804,12 @@ export class AgentRuntime {
     };
   }
 
-
+  /**
+   * 获取当前正在流式输出的内容
+   */
+  getCurrentStreamingContent(): string {
+    return this.messageHandler.getCurrentStreamingContent();
+  }
 
   /**
    * 处理 Skill Manager 请求
