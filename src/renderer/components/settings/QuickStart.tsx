@@ -503,116 +503,58 @@ export function QuickStart(_props: QuickStartProps) {
           lineHeight: '1.6'
         }}>
           <div style={{ marginBottom: '12px' }}>
+            <div style={{ marginBottom: '8px' }}>
+              DeepBot 可以通过命令行调用任何已安装的外部工具（Python 包、Node.js 工具、命令行程序等）。
+            </div>
+          </div>
+
+          {/* 两种使用方式 */}
+          <div style={{ marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ marginRight: '8px', fontSize: '16px' }}>🐍</span>
-              <span style={{ fontWeight: '600', color: 'var(--settings-text)', fontSize: '14px' }}>使用 Python 应用库</span>
+              <span style={{ marginRight: '8px', fontSize: '15px' }}>1️⃣</span>
+              <span style={{ fontWeight: '600', color: 'var(--settings-text)', fontSize: '13px' }}>直接使用</span>
             </div>
-            <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
-              DeepBot 可以通过命令行调用任何已安装的 Python 工具，无需额外集成。只需安装工具，然后告诉 DeepBot 如何使用即可。
+            <div style={{ marginLeft: '28px', marginBottom: '6px', fontSize: '12px' }}>
+              安装完成后，直接告诉 DeepBot 使用该工具即可：
+            </div>
+            <div style={{ 
+              marginLeft: '28px',
+              padding: '8px',
+              background: 'rgba(0,0,0,0.1)',
+              borderRadius: '4px',
+              fontFamily: 'monospace',
+              fontSize: '12px',
+              lineHeight: '1.8'
+            }}>
+              💬 "读取 github.com/microsoft/markitdown 说明，帮我安装 markitdown"<br/>
+              💬 "使用 markitdown 转换这个 PDF 文件"
             </div>
           </div>
 
-          <div style={{ marginLeft: '28px', marginBottom: '12px' }}>
-            <strong style={{ color: 'var(--settings-text)' }}>示例 1：MarkItDown（文档转换）</strong>
-            <div style={{ 
-              marginTop: '6px',
-              padding: '10px',
-              background: 'rgba(0,0,0,0.1)',
-              borderRadius: '6px',
-              lineHeight: '1.8'
-            }}>
-              <div style={{ marginBottom: '8px' }}>
-                <strong style={{ color: 'var(--settings-text)' }}>安装：</strong>
-                <div style={{ 
-                  marginTop: '4px',
-                  padding: '8px',
-                  background: 'rgba(0,0,0,0.1)',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}>
-                  💬 "读取 github.com/microsoft/markitdown 说明，帮我安装 markitdown"
-                </div>
-              </div>
-              <div style={{ marginBottom: '8px' }}>
-                <strong style={{ color: 'var(--settings-text)' }}>使用：</strong>
-                <div style={{ 
-                  marginTop: '4px',
-                  padding: '8px',
-                  background: 'rgba(0,0,0,0.1)',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}>
-                  💬 "使用 markitdown 转换这个 PDF 文件"<br/>
-                  💬 "用命令 markitdown document.pdf 读取文档内容"
-                </div>
-              </div>
-              <div>
-                <strong style={{ color: 'var(--settings-text)' }}>让 AI 记住：</strong>
-                <div style={{ 
-                  marginTop: '4px',
-                  padding: '8px',
-                  background: 'rgba(0,0,0,0.1)',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}>
-                  💬 "记住：当我要读取 PDF、Word、Excel 等文档时，使用 markitdown 命令转换为文本"
-                </div>
-              </div>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ marginRight: '8px', fontSize: '15px' }}>2️⃣</span>
+              <span style={{ fontWeight: '600', color: 'var(--settings-text)', fontSize: '13px' }}>推荐：创建 Skill 后通过 Skill 调用</span>
             </div>
-          </div>
-
-          <div style={{ marginLeft: '28px', marginBottom: '12px' }}>
-            <strong style={{ color: 'var(--settings-text)' }}>示例 2：Agent Reach（互联网工具）</strong>
+            <div style={{ marginLeft: '28px', marginBottom: '6px', fontSize: '12px' }}>
+              将工具的使用方法封装成 Skill，AI 可以更智能、更稳定地调用，并在合适时机自动选择：
+            </div>
             <div style={{ 
-              marginTop: '6px',
-              padding: '10px',
+              marginLeft: '28px',
+              padding: '8px',
               background: 'rgba(0,0,0,0.1)',
-              borderRadius: '6px',
+              borderRadius: '4px',
+              fontFamily: 'monospace',
+              fontSize: '12px',
               lineHeight: '1.8'
             }}>
-              <div style={{ marginBottom: '8px' }}>
-                <strong style={{ color: 'var(--settings-text)' }}>安装：</strong>
-                <div style={{ 
-                  marginTop: '4px',
-                  padding: '8px',
-                  background: 'rgba(0,0,0,0.1)',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}>
-                  💬 "帮我安装 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md"
-                </div>
-              </div>
-              <div style={{ marginBottom: '8px' }}>
-                <strong style={{ color: 'var(--settings-text)' }}>使用：</strong>
-                <div style={{ 
-                  marginTop: '4px',
-                  padding: '8px',
-                  background: 'rgba(0,0,0,0.1)',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}>
-                  💬 "用 agent-reach 获取 Twitter 上关于 AI 的最新推文"<br/>
-                  💬 "使用命令 agent-reach twitter search 'AI' 搜索内容"
-                </div>
-              </div>
-              <div>
-                <strong style={{ color: 'var(--settings-text)' }}>让 AI 记住：</strong>
-                <div style={{ 
-                  marginTop: '4px',
-                  padding: '8px',
-                  background: 'rgba(0,0,0,0.1)',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}>
-                  💬 "记住：当我需要获取 Twitter、小红书、B站等平台内容时，使用 agent-reach 命令"
-                </div>
-              </div>
+              💬 "帮我安装 markitdown"<br/>
+              <span style={{ color: 'var(--settings-text-dim)' }}>→ 安装完成后，AI 会询问是否创建 Skill</span><br/>
+              💬 "是，读取markitdown使用说明，帮我创建 Skill"<br/>
+              <span style={{ color: 'var(--settings-text-dim)' }}>→ 之后直接说需求，AI 自动调用 Skill</span><br/>
+              💬 "使用markitdown skill把这个 PDF 转成 Markdown"<br/>
+               <span style={{ color: 'var(--settings-text-dim)' }}>→ 可以让deepbot记住只要是文档处理，都使用这个skill</span><br/>
+              💬 "记住所有文档的读取，都使用markitdown skill"
             </div>
           </div>
 
@@ -624,7 +566,7 @@ export function QuickStart(_props: QuickStartProps) {
             borderRadius: '4px',
             fontSize: '12px'
           }}>
-            💡 提示：通过 "记住：..." 指令，DeepBot 会将工具使用方式存入长期记忆，之后会自动选择合适的工具处理任务
+            💡 推荐使用 Skill 方式：Skill 包含完整的使用规范，AI 调用更准确，也方便复用和分享
           </div>
         </div>
       </div>
