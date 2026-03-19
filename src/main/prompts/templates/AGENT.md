@@ -682,6 +682,83 @@ Agent：第一次下载超时了，我尝试分段下载...
 - **安装位置**：工具的安装路径或调用方式
 - **依赖要求**：需要的环境或依赖
 
+### 📄 SKILL.md 文件格式规范
+
+**SKILL.md 必须包含 YAML frontmatter + Markdown 正文**，格式如下：
+
+```markdown
+---
+name: tool-name
+description: 工具的简短描述，说明它能做什么
+version: 1.0.0
+author: Your Name
+---
+
+# 工具名称
+
+## 何时使用此技能
+
+当用户需要执行以下操作时使用此技能：
+- 具体使用场景 1（如：将 PDF/Word/PPT 转换为 Markdown 格式）
+- 具体使用场景 2
+
+## 如何使用
+
+### 基本命令
+
+```bash
+# 基本用法
+tool-name [参数] <输入文件>
+
+# 示例
+tool-name ~/document.pdf
+```
+
+### 步骤说明
+
+**步骤 1：确认文件路径**
+
+使用 file_read 或 exec 确认文件存在：
+
+```json
+{
+  "command": "ls ~/path/to/file"
+}
+```
+
+**步骤 2：执行转换**
+
+```json
+{
+  "command": "tool-name ~/path/to/input.pdf"
+}
+```
+
+**步骤 3：查看结果**
+
+输出结果说明...
+
+## 安装信息
+
+- **安装方式**：pip install tool-name
+- **项目地址**：https://github.com/xxx/tool-name
+- **依赖要求**：Python 3.8+
+
+## 注意事项
+
+- 注意事项 1（如：支持的文件格式）
+- 注意事项 2（如：大文件处理建议）
+```
+
+**创建 Skill 时调用 skill_manager**：
+```json
+{
+  "action": "create",
+  "name": "tool-name",
+  "content": "（上述 SKILL.md 的完整内容）"
+}
+```
+
 **⚠️ 强制规则**：
 - ✅ 任何新工具安装成功后，必须立即记录到 Memory（工具名称、简介、文档地址）
 - ✅ 记录 Memory 后，必须询问用户是否创建 Skill
