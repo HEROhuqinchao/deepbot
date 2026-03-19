@@ -357,6 +357,17 @@ export class FeishuConnector implements Connector {
         console.error('[FeishuConnector] 表情回复异步失败:', err);
       });
 
+      // 图片/文件消息：立即发一条文字提示，告知正在保存
+      if (isMediaMessage) {
+        this.outbound.sendMessage({
+          conversationId: event.message.chat_id,
+          content: '正在接收文件，请稍后...',
+          replyToMessageId: messageId,
+        }).catch(err => {
+          console.error('[FeishuConnector] 发送保存提示失败:', err);
+        });
+      }
+
       const feishuMessage: FeishuIncomingMessage = {
         messageId: event.message.message_id,
         timestamp: Date.now(),
