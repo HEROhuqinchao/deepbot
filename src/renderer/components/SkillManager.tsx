@@ -326,10 +326,11 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
               </div>
             ) : (
               <div className="space-y-3">
-                {installedSkills.map((skill) => (
+                {installedSkills.map((skill, index) => (
                   <SkillCard
                     key={skill.name}
                     skill={skill}
+                    index={index + 1}
                     isInstalled={true}
                     onInstall={() => {}}
                     onUninstall={handleUninstall}
@@ -409,6 +410,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
 // Skill 卡片组件
 interface SkillCardProps {
   skill: Skill;
+  index?: number;
   isInstalled: boolean;
   onInstall: (name: string, repository: string) => void;
   onUninstall: (name: string) => void;
@@ -419,6 +421,7 @@ interface SkillCardProps {
 
 const SkillCard: React.FC<SkillCardProps> = ({
   skill,
+  index,
   isInstalled,
   onInstall,
   onUninstall,
@@ -432,8 +435,11 @@ const SkillCard: React.FC<SkillCardProps> = ({
     <div className="bg-bg-secondary border border-border-medium rounded-lg p-4 hover:border-border-dark transition-colors">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Package size={16} className="text-brand-500" />
+          <div className="flex items-center gap-0.5 mb-2">
+            {index !== undefined && (
+              <span className="text-xs text-text-tertiary w-3 shrink-0">{index}.</span>
+            )}
+            <Package size={16} className="text-brand-500 mr-1" />
             <h3 className="text-base font-semibold text-text-primary">{skill.name}</h3>
           </div>
           <p className="text-sm text-text-secondary mb-2">{skill.description}</p>
