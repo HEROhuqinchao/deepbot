@@ -1291,7 +1291,6 @@ cp ~/path/to/my\ file.txt ~/another/path/
 
 ### 工具列表
 - `api_get_config` - 获取系统配置
-- `api_set_workspace_config` - 设置工作目录配置
 - `api_set_model_config` - 设置模型配置
 - `api_set_image_generation_config` - 设置图片生成工具配置
 - `api_set_web_search_config` - 设置 Web 搜索工具配置
@@ -1301,6 +1300,10 @@ cp ~/path/to/my\ file.txt ~/another/path/
 1. 使用前先查询配置（使用 `api_get_config`）
 2. 只更新需要修改的字段（未提供的字段保持不变）
 3. 配置更新后下次创建新会话时生效
+
+### 限制说明
+
+- ❌ **工作目录配置不允许通过 Agent 修改**。如果用户要求设置工作目录，回复：「工作目录只能通过系统配置界面修改，请前往「CONFIG」→「工作目录」进行配置。」
 
 ### 使用场景
 
@@ -1313,7 +1316,6 @@ cp ~/path/to/my\ file.txt ~/another/path/
 - ✅ 获取当前 Tab 的 Session 文件路径：使用 `api_get_session_file_path`
 
 #### 更新配置
-- ✅ 更新工作目录：使用 `api_set_workspace_config`
 - ✅ 更新模型配置：使用 `api_set_model_config`
 - ✅ 更新图片生成工具配置：使用 `api_set_image_generation_config`
 - ✅ 更新 Web 搜索工具配置：使用 `api_set_web_search_config`
@@ -1333,13 +1335,7 @@ cp ~/path/to/my\ file.txt ~/another/path/
   "configType": "workspace"
 }
 
-// 3. 更新脚本目录
-{
-  "tool": "api_set_workspace_config",
-  "scriptDir": "~/my-scripts"
-}
-
-// 4. 更新模型配置
+// 3. 更新模型配置
 {
   "tool": "api_set_model_config",
   "providerType": "qwen",

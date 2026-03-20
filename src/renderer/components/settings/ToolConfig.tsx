@@ -200,7 +200,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
               onChange={(e) => handleImageProviderChange(e.target.value as 'gemini' | 'qwen')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="gemini">Google Gemini</option>
+              <option value="gemini">Google Gemini (nana banana pro)</option>
               <option value="qwen">Qwen Image</option>
             </select>
             <p className="mt-1 text-xs text-gray-500">

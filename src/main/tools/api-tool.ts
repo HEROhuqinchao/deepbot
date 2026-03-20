@@ -50,16 +50,16 @@ export const apiToolPlugin: ToolPlugin = {
         },
       },
       
-      // 设置工作目录配置
-      {
-        name: TOOL_NAMES.API_SET_WORKSPACE_CONFIG,
-        label: '设置工作目录配置',
-        description: '更新 DeepBot 的工作目录配置。可以设置工作目录、脚本目录、Skill 目录、图片目录、记忆目录',
-        parameters: schemas.SetWorkspaceConfigSchema,
-        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
-          return handlers.handleSetWorkspaceConfig(args, signal);
-        },
-      },
+      // 设置工作目录配置（已禁用：工作目录只能通过系统设置界面修改，不允许 Agent 调用）
+      // {
+      //   name: TOOL_NAMES.API_SET_WORKSPACE_CONFIG,
+      //   label: '设置工作目录配置',
+      //   description: '更新 DeepBot 的工作目录配置。可以设置工作目录、脚本目录、Skill 目录、图片目录、记忆目录',
+      //   parameters: schemas.SetWorkspaceConfigSchema,
+      //   execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
+      //     return handlers.handleSetWorkspaceConfig(args, signal);
+      //   },
+      // },
       
       // 设置模型配置
       {
