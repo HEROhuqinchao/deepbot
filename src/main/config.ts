@@ -57,7 +57,7 @@ export function getConfig(): DeepBotConfig {
   }
   
   // 从环境变量读取配置
-  const apiKey = process.env.AI_API_KEY || process.env.QWEN_API_KEY || '';
+  const apiKey = process.env.AI_API_KEY || '';
   const baseUrl = process.env.AI_BASE_URL || '';
   const modelId = process.env.AI_MODEL_ID || '';
   const modelName = process.env.AI_MODEL_NAME || '';
@@ -99,7 +99,7 @@ export function hasConfig(): boolean {
   }
   
   // 检查环境变量
-  const apiKey = process.env.AI_API_KEY || process.env.QWEN_API_KEY || '';
+  const apiKey = process.env.AI_API_KEY || '';
   const baseUrl = process.env.AI_BASE_URL || '';
   const modelId = process.env.AI_MODEL_ID || '';
   

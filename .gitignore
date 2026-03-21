@@ -47,4 +47,3 @@ temp/
 .migration-notes/
 /node.exe
 /DeveloperIDG2CA.cer
-/.env.example
