@@ -21,17 +21,17 @@
     "postinstall": "electron-builder install-app-deps && electron-rebuild",
     "pack": "pnpm run build && electron-builder --dir",
     "dist": "pnpm run build && electron-builder",
-    "dist:mac": "pnpm run build && electron-builder --mac",
-    "dist:win": "node scripts/download-node-win.js && pnpm run build && electron-builder --win",
+    "dist:mac": "node scripts/load-env-build.js --mac",
+    "dist:win": "node scripts/load-env-build.js --win",
     "dist:linux": "pnpm run build && electron-builder --linux",
     "reset-dev": "bash scripts/reset-dev-data.sh"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@larksuiteoapi/node-sdk": "^1.59.0",
-    "@mariozechner/pi-agent-core": "^0.58.4",
-    "@mariozechner/pi-ai": "^0.58.4",
-    "@mariozechner/pi-coding-agent": "0.58.4",
+    "@mariozechner/pi-agent-core": "^0.61.1",
+    "@mariozechner/pi-ai": "^0.61.1",
+    "@mariozechner/pi-coding-agent": "0.61.1",
     "@mozilla/readability": "^0.6.0",
     "@sinclair/typebox": "^0.34.48",
     "agent-browser": "^0.15.1",
@@ -95,6 +95,7 @@
       "cache": "~/Library/Caches/electron"
     },
     "asar": false,
+    "afterPack": "scripts/after-pack.js",
     "afterSign": "scripts/after-sign.js",
     "compression": "normal",
     "removePackageScripts": true,
@@ -114,7 +115,6 @@
       "node_modules/agent-browser/package.json",
       "node_modules/agent-browser/node_modules/**/*",
       "node_modules/playwright-core/**/*",
-      "node.exe",
       "!node_modules/**/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!node_modules/**/{test,__tests__,tests,powered-test,example,examples}",
       "!node_modules/**/*.d.ts",
@@ -144,14 +144,23 @@
           ]
         }
       ],
-      "identity": null,
-      "hardenedRuntime": false,
+      "identity": "KAI LUO (LB8Z97ZG5Y)",
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
+      "notarize": {
+        "teamId": "LB8Z97ZG5Y"
+      },
+      "signIgnore": [
+        "\\.json$"
+      ],
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
       "icon": "icon.png",
+      "files": [
+        "node.exe"
+      ],
       "target": [
         {
           "target": "nsis",
