@@ -259,15 +259,16 @@ export function createScheduledTaskTool(): AgentTool {
             
             taskScheduler.deleteTask(taskId);
             
-            // 🔥 使用统一的重置逻辑（销毁但不重新创建 Runtime）
+            // 关闭对应的任务 Tab（会同时销毁 AgentRuntime）
             try {
               const gateway = getGatewayInstance();
-              await gateway.resetSessionRuntime(gateway.getSessionIds()[0] || 'default', {
-                reason: '删除定时任务',
-                recreate: false
-              });
+              const taskTabId = `task-tab-${taskId}`;
+              const tab = gateway.getAllTabs().find(t => t.id === taskTabId);
+              if (tab) {
+                await gateway.closeTab(taskTabId);
+              }
             } catch (error) {
-              // 忽略重置失败
+              // 忽略关闭失败
             }
             
             result = {
@@ -291,13 +292,17 @@ export function createScheduledTaskTool(): AgentTool {
             
             taskScheduler.pauseTask(taskId);
             
-            // 🔥 使用统一的重置逻辑（销毁但不重新创建 Runtime）
+            // 重置对应任务 Tab 的 AgentRuntime（停止当前执行，但保留 Tab）
             try {
               const gateway = getGatewayInstance();
-              await gateway.resetSessionRuntime(gateway.getSessionIds()[0] || 'default', {
-                reason: '暂停定时任务',
-                recreate: false
-              });
+              const taskTabId = `task-tab-${taskId}`;
+              const tab = gateway.getAllTabs().find(t => t.id === taskTabId);
+              if (tab) {
+                await gateway.resetSessionRuntime(taskTabId, {
+                  reason: '暂停定时任务',
+                  recreate: false,
+                });
+              }
             } catch (error) {
               // 忽略重置失败
             }
