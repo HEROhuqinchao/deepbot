@@ -149,6 +149,17 @@ export const apiToolPlugin: ToolPlugin = {
         },
       },
       
+      // 获取 Tab 列表
+      {
+        name: TOOL_NAMES.API_GET_TABS,
+        label: '获取 Tab 列表',
+        description: '查询当前所有 Tab 的详细信息，包括名称、类型、连接器 ID、chat_id、群名称。支持按群名称模糊查询',
+        parameters: schemas.GetTabsSchema,
+        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
+          return handlers.handleGetTabs(args, signal);
+        },
+      },
+      
       // 获取名字配置
       {
         name: TOOL_NAMES.API_GET_NAME,

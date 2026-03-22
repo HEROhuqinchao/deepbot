@@ -229,3 +229,12 @@ export const RejectPairingSchema = Type.Object({
     description: '用户 ID（飞书格式：ou_xxx）',
   }),
 });
+
+/**
+ * 获取 Tab 列表 Schema
+ */
+export const GetTabsSchema = Type.Object({
+  groupNameQuery: Type.Optional(Type.String({
+    description: '群名称模糊查询关键词（仅匹配连接器类型的 Tab）。不传则返回所有 Tab',
+  })),
+});

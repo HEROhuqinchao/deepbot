@@ -36,6 +36,7 @@ export {
   handleGetPairingRecords,
   handleApprovePairing,
   handleRejectPairing,
+  handleGetTabs,
 } from './handlers/connector-handlers';
 
 // 工具状态检查相关（内部使用，不需要导出）

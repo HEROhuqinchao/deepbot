@@ -263,3 +263,65 @@ export async function handleRejectPairing(
     return createErrorResponse(error, '拒绝配对');
   }
 }
+
+// ==================== Tab 查询 ====================
+
+/**
+ * 获取 Tab 列表
+ * 支持按群名称模糊查询（仅连接器类型 Tab）
+ */
+export async function handleGetTabs(
+  params: {
+    groupNameQuery?: string;
+  },
+  signal?: AbortSignal
+): Promise<ToolResult> {
+  try {
+    logger.info('获取 Tab 列表:', params.groupNameQuery ? `群名称查询="${params.groupNameQuery}"` : '全部');
+
+    checkAbortSignal(signal, '获取 Tab 列表');
+
+    const gateway = await getGatewayInstance();
+    if (!gateway) {
+      throw new Error('Gateway 未初始化');
+    }
+
+    const allTabs = gateway.getAllTabs();
+
+    // 类型标签映射
+    const typeLabels: Record<string, string> = {
+      normal: '普通对话',
+      connector: '连接器会话',
+      scheduled_task: '定时任务',
+    };
+
+    // 构建结果列表
+    let tabs = allTabs.map(tab => ({
+      id: tab.id,
+      title: tab.title,
+      type: tab.type || 'normal',
+      typeLabel: typeLabels[tab.type || 'normal'] || tab.type || 'normal',
+      connectorId: tab.connectorId,
+      conversationId: tab.conversationId,
+      groupName: tab.groupName,
+    }));
+
+    // 按群名称模糊过滤（忽略空格影响，去掉空格后再匹配）
+    if (params.groupNameQuery) {
+      const query = params.groupNameQuery.toLowerCase().replace(/\s+/g, '');
+      tabs = tabs.filter(tab => {
+        if (tab.type !== 'connector') return false;
+        const groupName = (tab.groupName ?? '').toLowerCase().replace(/\s+/g, '');
+        const title = (tab.title ?? '').toLowerCase().replace(/\s+/g, '');
+        return groupName.includes(query) || title.includes(query);
+      });
+    }
+
+    return createSuccessResponse(
+      formatters.formatGetTabsResult(tabs, params.groupNameQuery),
+      { tabs }
+    );
+  } catch (error) {
+    return createErrorResponse(error, '获取 Tab 列表');
+  }
+}

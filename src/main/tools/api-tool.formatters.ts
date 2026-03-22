@@ -420,3 +420,32 @@ export function formatRejectPairingResult(connectorId: string, userId: string): 
     `  • 用户 ID: ${userId}\n\n` +
     `⚠️ 注意：该用户的配对记录已删除，需要重新申请配对`;
 }
+
+/**
+ * 格式化 Tab 列表查询结果
+ */
+export function formatGetTabsResult(tabs: any[], groupNameQuery?: string): string {
+  if (tabs.length === 0) {
+    return groupNameQuery
+      ? `未找到群名称包含"${groupNameQuery}"的 Tab`
+      : '当前没有任何 Tab';
+  }
+
+  const lines: string[] = [];
+  if (groupNameQuery) {
+    lines.push(`🔍 群名称包含"${groupNameQuery}"的 Tab（共 ${tabs.length} 个）：\n`);
+  } else {
+    lines.push(`📋 当前所有 Tab（共 ${tabs.length} 个）：\n`);
+  }
+
+  for (const tab of tabs) {
+    lines.push(`- 标题：${tab.title}`);
+    lines.push(`  类型：${tab.typeLabel}`);
+    if (tab.connectorId) lines.push(`  连接器：${tab.connectorId}`);
+    if (tab.conversationId) lines.push(`  chat_id：${tab.conversationId}`);
+    if (tab.groupName) lines.push(`  群名称：${tab.groupName}`);
+    lines.push('');
+  }
+
+  return lines.join('\n').trimEnd();
+}

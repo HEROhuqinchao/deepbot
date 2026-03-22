@@ -269,13 +269,6 @@ export const connectorToolPlugin: ToolPlugin = {
             if (signal?.aborted) throw Object.assign(new Error('操作被取消'), { name: 'AbortError' });
             if (!sessionId) throw new Error('无法获取会话 ID');
 
-            // 检查当前 Tab 是否是飞书连接器 Tab
-            const tabs = gatewayInstance.getAllTabs();
-            const currentTab = tabs.find(t => t.id === sessionId);
-            if (currentTab?.type === 'connector' && currentTab.connectorId === 'feishu') {
-              throw new Error('在飞书会话中禁止使用 feishu_send_message 工具！你的回复会自动发送给用户，无需手动发送。');
-            }
-
             const target = resolveTarget(sessionId, args.userId, args.chatId, args.tabName);
             logger.info('发送飞书消息:', { target, messageLength: args.message.length });
 

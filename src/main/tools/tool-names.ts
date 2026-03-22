@@ -53,6 +53,7 @@ export const TOOL_NAMES = {
   API_GET_PAIRING_RECORDS: 'api_get_pairing_records',
   API_APPROVE_PAIRING: 'api_approve_pairing',
   API_REJECT_PAIRING: 'api_reject_pairing',
+  API_GET_TABS: 'api_get_tabs',
   API_GET_NAME: 'api_get_name',
   API_SET_NAME: 'api_set_name',
   API_GET_SESSION_FILE_PATH: 'api_get_session_file_path',
