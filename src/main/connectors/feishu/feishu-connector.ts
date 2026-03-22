@@ -445,7 +445,10 @@ export class FeishuConnector implements Connector {
         },
         raw: event,
       };
-      
+
+      // 输出收到的飞书消息原始信息（调试用，可按需开启）
+      // console.log('[FeishuConnector] 📨 收到飞书消息原始数据:', JSON.stringify(event, null, 2));
+
       // 2. 消息去重检查（基于 message_id）
       if (this.processedMessages.has(feishuMessage.messageId)) {
         return;
@@ -809,6 +812,24 @@ export class FeishuConnector implements Connector {
       content: '✅ 授权完成，你可以开始和 DeepBot 对话了。\n\n发送「你能做什么」获取使用帮助。',
       _receiveIdType: receiveIdType,
     }).catch(() => {});
+  }
+
+  /**
+   * 获取飞书群组名称
+   * 调用 im.v1.chat.get API，失败时返回 null
+   */
+  async getChatName(chatId: string): Promise<string | null> {
+    try {
+      const res = await this.client.im.v1.chat.get({
+        path: { chat_id: chatId },
+        params: { user_id_type: 'open_id' },
+      });
+      const name = (res as any)?.data?.name || (res as any)?.name;
+      return name || null;
+    } catch (error) {
+      console.warn('[FeishuConnector] ⚠️ 获取群名称失败:', getErrorMessage(error));
+      return null;
+    }
   }
 
   /**

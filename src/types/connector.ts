@@ -136,6 +136,13 @@ export interface Connector {
    * 连接器可实现此方法向用户发送欢迎消息等
    */
   onPairingApproved?(userId: string, openId?: string): void;
+
+  /**
+   * 获取群组名称（可选，仅支持群组的连接器实现）
+   * @param chatId - 群组 ID
+   * @returns 群组名称，失败时返回 null
+   */
+  getChatName?(chatId: string): Promise<string | null>;
 }
 
 // ========== 飞书特定类型 ==========

@@ -119,27 +119,44 @@ export class GatewayConnectorHandler {
       const conversationKey = `${message.source.connectorId}_${message.source.conversationId}`;
       let tab = this.tabManager.findTabByConversationKey(conversationKey);
 
+      // 飞书群组消息：提前获取连接器实例，创建和更新 Tab 时都会用到
+      const isFeishuGroup =
+        message.source.connectorId === 'feishu' &&
+        message.source.chatType === 'group' &&
+        !!message.source.conversationId;
+      const feishuConnector = isFeishuGroup
+        ? (this.connectorManager!.getConnector('feishu') as any)
+        : null;
+
       if (!tab) {
         // 生成 Tab 标题
         let title: string;
-        
+        let groupName: string | undefined;
         if (message.source.connectorId === 'feishu') {
-          // 判断是否是群组消息（使用 chatType 字段）
-          const isGroup = message.source.chatType === 'group';
-          
-          if (isGroup) {
-            // 群组消息：生成 FS-GROUP-{数字} 格式
-            const existingTabs = this.tabManager.getAllTabs();
-            const groupTabNumbers = existingTabs
-              .filter(t => t.title?.startsWith('FS-GROUP-'))
-              .map(t => {
-                const match = t.title?.match(/^FS-GROUP-(\d+)$/);
-                return match ? parseInt(match[1], 10) : 0;
-              })
-              .filter(n => n > 0);
+          if (isFeishuGroup) {
+            // 群组消息：调用飞书 API 获取真实群名称，格式为 FS-{群名称}
+            let chatName: string | null = null;
+            if (feishuConnector?.getChatName) {
+              chatName = await feishuConnector.getChatName(message.source.conversationId || '');
+            }
             
-            const nextNumber = groupTabNumbers.length > 0 ? Math.max(...groupTabNumbers) + 1 : 1;
-            title = `FS-GROUP-${nextNumber}`;
+            if (chatName) {
+              groupName = chatName;
+              title = `FS-${chatName}`;
+            } else {
+              // 获取群名称失败，降级为 FS-GROUP-{数字}
+              const existingTabs = this.tabManager.getAllTabs();
+              const groupTabNumbers = existingTabs
+                .filter(t => t.title?.startsWith('FS-GROUP-'))
+                .map(t => {
+                  const match = t.title?.match(/^FS-GROUP-(\d+)$/);
+                  return match ? parseInt(match[1], 10) : 0;
+                })
+                .filter(n => n > 0);
+              
+              const nextNumber = groupTabNumbers.length > 0 ? Math.max(...groupTabNumbers) + 1 : 1;
+              title = `FS-GROUP-${nextNumber}`;
+            }
           } else {
             // 私聊消息：使用用户名
             const senderName = message.source.senderName || '';
@@ -156,8 +173,19 @@ export class GatewayConnectorHandler {
           conversationKey,
           connectorId: message.source.connectorId,
           conversationId: message.source.conversationId,
+          groupName,
         });
         logger.info('创建连接器 Tab:', { tabId: tab.id, title, conversationKey });
+      } else if (isFeishuGroup && feishuConnector?.getChatName) {
+        // Tab 已存在时，异步检查群名称是否有变化并更新
+        const existingTab = tab;
+        feishuConnector.getChatName(message.source.conversationId).then((chatName: string | null) => {
+          if (chatName) {
+            this.tabManager!.updateTabTitle(existingTab.id, `FS-${chatName}`, chatName);
+          }
+        }).catch((err: unknown) => {
+          logger.warn('⚠️ 异步更新群名称失败:', err);
+        });
       }
 
       const rawContent = message.content.text || '';
@@ -225,7 +253,10 @@ export class GatewayConnectorHandler {
       }
 
       // 构建发给 agent 的内容
-      const { contentForAgent, displayContent } = this.buildAgentContent(message, senderName, rawContent);
+      // 群组消息直接从 tab.groupName 读取群名称
+      const isGroupMessage = message.source.chatType === 'group';
+      const groupName = isGroupMessage ? tab.groupName : undefined;
+      const { contentForAgent, displayContent } = this.buildAgentContent(message, senderName, rawContent, groupName);
 
       // 🔥 新增：将消息加入队列
       const pendingMessage = {
@@ -276,7 +307,8 @@ export class GatewayConnectorHandler {
   private buildAgentContent(
     message: GatewayMessage,
     senderName: string,
-    rawContent: string
+    rawContent: string,
+    groupName?: string
   ): { contentForAgent: string; displayContent: string } {
     let content = rawContent;
     let displayContent = '';
@@ -312,15 +344,20 @@ export class GatewayConnectorHandler {
 2. 不要用markdown格式回复内容，不要使用表格回复内容，飞书只能接收无格式的的字符，注意排版优美
 3. 回复的内容超过1000个字，创建飞书文档回复
 4. 回复的时候根据回复的内容，带上用户的名字
-5. 来自信息中包含了用户名字用户发送信息给用户，和chat_id用于获取发送信息时的chat_id
-6. ⚠️ 严格禁止使用 feishu_send_message 工具！你的回复会自动发送给用户，使用该工具会导致重复发送消息]`;
+5. 来自信息中包含了发送信息的用户的姓名，群消息还包含群名称。
+6. 禁止使用 feishu_send_message 工具]`;
 
     // 额外系统通知（由连接器按需注入，如首次管理员授权提示）
     const extraNotice = message.systemContext ? `\n\n${message.systemContext}` : '';
 
-    // 构建来源标注（包含用户名和 conversationId）
-    const conversationInfo = message.source.conversationId ? `; chat_id: ${message.source.conversationId}` : '';
-    const contentForAgent = `[来自: ${senderName}${conversationInfo}]\n${content}${feishuToolsHint}${extraNotice}`;
+    // 构建来源标注：群消息显示发送者和群名称，私聊只显示发送者
+    let sourceLabel: string;
+    if (groupName) {
+      sourceLabel = `发送信息者：${senderName}、来自群：${groupName}`;
+    } else {
+      sourceLabel = `发送信息者：${senderName}`;
+    }
+    const contentForAgent = `[来自: ${sourceLabel}]\n${content}${feishuToolsHint}${extraNotice}`;
 
     return { contentForAgent, displayContent };
   }

@@ -9,6 +9,7 @@
  */
 
 import { BrowserWindow } from 'electron';
+import type Database from 'better-sqlite3';
 import type { AgentTab } from '../types/agent-tab';
 import type { Message } from '../types/message';
 import { getErrorMessage } from '../shared/utils/error-handler';
@@ -17,12 +18,14 @@ import { generateTabId, generateExecutionId } from '../shared/utils/id-generator
 import { sendToWindow } from '../shared/utils/webcontents-utils';
 import { MAX_TABS } from '../shared/constants/version';
 import type { SessionManager } from './session/session-manager';
+import { saveTabConfig, updateTabTitle as dbUpdateTabTitle, deleteTabConfig, getAllPersistentTabs } from './database/tab-config';
 
 /**
  * Tab Manager 类
  */
 export class GatewayTabManager {
   private mainWindow: BrowserWindow | null = null;
+  private db: Database.Database | null = null;
   private tabs: Map<string, AgentTab> = new Map();
   private tabCounter: number = 1;
   private tabIdCounter: number = 0;
@@ -48,6 +51,10 @@ export class GatewayTabManager {
     this.sessionManager = deps.sessionManager;
     this.handleSendMessageFn = deps.handleSendMessage;
     this.destroySessionRuntimeFn = deps.destroySessionRuntime;
+
+    // 初始化数据库引用（单例，已在主进程启动时初始化）
+    const { SystemConfigStore } = require('./database/system-config-store');
+    this.db = SystemConfigStore.getInstance().getDb();
   }
   
   /**
@@ -365,12 +372,13 @@ ${welcomeContent}
   async loadPersistentTabs(): Promise<void> {
     try {
       await sleep(500);
-      
-      const { SystemConfigStore } = await import('./database/system-config-store');
-      const { getAllPersistentTabs } = await import('./database/tab-config');
-      const store = SystemConfigStore.getInstance();
-      
-      const persistentTabs = getAllPersistentTabs(store['db']);
+
+      if (!this.db) {
+        console.warn('[TabManager] db 未初始化，跳过加载持久化 Tab');
+        return;
+      }
+
+      const persistentTabs = getAllPersistentTabs(this.db);
       
       if (persistentTabs.length === 0) {
         return;
@@ -441,6 +449,7 @@ ${welcomeContent}
     memoryFile?: string | null;
     agentName?: string | null;
     isPersistent?: boolean;
+    groupName?: string;
   }): Promise<AgentTab> {
     // 检查 Tab 数量限制
     if (this.tabs.size >= MAX_TABS) {
@@ -506,19 +515,16 @@ ${welcomeContent}
       memoryFile,
       agentName: options.agentName,
       isPersistent,
+      groupName: options.groupName,
     };
     
     this.tabs.set(tabId, tab);
     console.log('[TabManager] 创建新 Tab:', tabId, tabTitle, options.type, isPersistent ? '(持久化)' : '(临时)');
     
     // 如果是持久化 Tab，保存到数据库
-    if (isPersistent) {
+    if (isPersistent && this.db) {
       try {
-        const { SystemConfigStore } = await import('./database/system-config-store');
-        const { saveTabConfig } = await import('./database/tab-config');
-        const store = SystemConfigStore.getInstance();
-        
-        saveTabConfig(store['db'], {
+        saveTabConfig(this.db, {
           id: tabId,
           title: tabTitle,
           type: tabType,
@@ -601,6 +607,29 @@ ${welcomeContent}
   private notifyTabCreated(tab: AgentTab): void {
     sendToWindow(this.mainWindow, 'tab:created', { tab });
   }
+
+  /**
+   * 更新 Tab 标题并通知前端，同步持久化到数据库
+   * @param groupName 可选，同步更新 groupName 字段（飞书群 Tab 专用）
+   */
+  updateTabTitle(tabId: string, newTitle: string, groupName?: string): void {
+    const tab = this.tabs.get(tabId);
+    if (!tab || tab.title === newTitle) return;
+    tab.title = newTitle;
+    if (groupName !== undefined) {
+      tab.groupName = groupName;
+    }
+    sendToWindow(this.mainWindow, 'tab:updated', { tabId, title: newTitle });
+
+    // 持久化 Tab 才需要写数据库
+    if (tab.isPersistent && this.db) {
+      try {
+        dbUpdateTabTitle(this.db, tabId, newTitle);
+      } catch (err) {
+        console.error('[TabManager] ❌ 更新 Tab 标题到数据库失败:', err);
+      }
+    }
+  }
   
   /**
    * 关闭 Tab
@@ -667,13 +696,9 @@ ${welcomeContent}
     }
     
     // 如果是持久化 Tab，从数据库删除配置
-    if (tab.isPersistent) {
+    if (tab.isPersistent && this.db) {
       try {
-        const { SystemConfigStore } = await import('./database/system-config-store');
-        const { deleteTabConfig } = await import('./database/tab-config');
-        const store = SystemConfigStore.getInstance();
-        
-        deleteTabConfig(store['db'], tabId);
+        deleteTabConfig(this.db, tabId);
         console.log('[TabManager] 🗑️ 已删除 Tab 持久化配置:', tabId);
       } catch (error) {
         console.error('[TabManager] ❌ 删除 Tab 配置失败:', error);

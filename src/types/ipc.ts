@@ -79,6 +79,7 @@ export const IPC_CHANNELS = {
   GET_TABS: 'tab:get-all',
   SWITCH_TAB: 'tab:switch',
   TAB_CREATED: 'tab:created', // Tab 创建通知
+  TAB_UPDATED: 'tab:updated', // Tab 信息更新通知（如标题变更）
   TAB_HISTORY_LOADED: 'tab:history-loaded', // Tab 历史消息加载通知
   TAB_MESSAGES_CLEARED: 'tab:messages-cleared', // Tab 消息清除通知
   

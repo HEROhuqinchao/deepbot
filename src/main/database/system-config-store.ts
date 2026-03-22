@@ -65,6 +65,13 @@ export class SystemConfigStore {
   }
 
   /**
+   * 获取数据库实例（供内部模块使用）
+   */
+  getDb(): Database.Database {
+    return this.db;
+  }
+
+  /**
    * 初始化数据库表
    */
   private initTables(): void {

@@ -33,6 +33,7 @@ export interface AgentTab {
   connectorId?: string;          // 连接器 ID（如果是连接器 Tab）
   conversationId?: string;       // 外部会话 ID（如果是连接器 Tab）
   conversationKey?: string;      // 会话唯一标识（用于查找 Tab）
+  groupName?: string;            // 飞书群名称（群组 Tab 专用）
   
   // 🔥 新增：Tab 独立配置
   memoryFile?: string | null;    // Memory 文件路径（NULL 表示使用默认）

@@ -39,6 +39,13 @@ function App() {
         return [...prev, data.tab];
       });
     });
+
+    // 监听 Tab 标题更新（如飞书群名称变更）
+    const unsubscribeTabUpdated = window.deepbot.onTabUpdated((data: { tabId: string; title: string }) => {
+      setTabs(prev => prev.map(tab =>
+        tab.id === data.tabId ? { ...tab, title: data.title } : tab
+      ));
+    });
     
     // 🔥 监听 Tab 消息清除事件
     const unsubscribeMessagesCleared = window.deepbot.onTabMessagesCleared((data: { tabId: string }) => {
@@ -81,6 +88,7 @@ function App() {
     
     return () => {
       unsubscribeTabCreated();
+      unsubscribeTabUpdated();
       unsubscribeMessagesCleared();
       unsubscribeNameUpdate();
     };

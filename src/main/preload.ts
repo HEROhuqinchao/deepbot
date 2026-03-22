@@ -50,6 +50,7 @@ const IPC_CHANNELS = {
   GET_TABS: 'tab:get-all',
   SWITCH_TAB: 'tab:switch',
   TAB_CREATED: 'tab:created', // Tab 创建通知
+  TAB_UPDATED: 'tab:updated', // Tab 信息更新通知（如标题变更）
   TAB_HISTORY_LOADED: 'tab:history-loaded', // 🔥 Tab 历史消息加载通知
   TAB_MESSAGES_CLEARED: 'tab:messages-cleared', // 🔥 Tab 消息清除通知
   COMMAND_CLEAR_CHAT: 'command:clear-chat', // 🔥 清空聊天指令
@@ -223,6 +224,15 @@ contextBridge.exposeInMainWorld('deepbot', {
     
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.TAB_CREATED, listener);
+    };
+  },
+
+  // 监听 Tab 信息更新（如标题变更）
+  onTabUpdated: (callback: (data: { tabId: string; title: string }) => void) => {
+    const listener = (_event: any, data: any) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.TAB_UPDATED, listener);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.TAB_UPDATED, listener);
     };
   },
   
