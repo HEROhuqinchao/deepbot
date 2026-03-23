@@ -130,6 +130,7 @@
     "mac": {
       "icon": "icon.png",
       "category": "public.app-category.productivity",
+      "artifactName": "DeepBot-Terminal-${version}-mac-${arch}.${ext}",
       "target": [
         {
           "target": "dmg",
