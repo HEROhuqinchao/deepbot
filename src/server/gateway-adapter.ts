@@ -552,11 +552,32 @@ export class GatewayAdapter extends EventEmitter {
    */
   async skillManager(request: any): Promise<any> {
     const { createSkillManagerTool } = await import('../main/tools/skill-manager-tool');
+    const { getErrorMessage } = await import('../shared/utils/error-handler');
     
     const tool = createSkillManagerTool();
-    const result = await tool.execute('skill-manager', request);
     
-    return result.details || { success: true, data: {} };
+    try {
+      const result = await tool.execute('skill-manager', request);
+      
+      // Tool 返回格式: { content: [...], details: actualData }
+      if (result.isError) {
+        return {
+          success: false,
+          error: result.details?.error || '未知错误',
+        };
+      }
+      
+      // 统一返回格式：添加 success: true 并展开 details
+      return {
+        success: true,
+        ...result.details,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: getErrorMessage(error),
+      };
+    }
   }
   
   /**
