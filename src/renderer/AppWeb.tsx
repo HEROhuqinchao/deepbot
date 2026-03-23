@@ -177,7 +177,15 @@ export function AppWeb() {
     try {
       const result = await api.createTab();
       if (result.success && result.tab) {
-        setActiveTabId(result.tab.id);
+        // 立即添加到 Tab 列表（不等待 WebSocket 事件）
+        setTabs(prev => {
+          if (prev.some(t => t.id === result.tab!.id)) {
+            return prev;
+          }
+          return [...prev, result.tab!];
+        });
+        // 切换到新 Tab（会自动订阅 WebSocket）
+        await handleSwitchTab(result.tab.id);
       } else if (result.error) {
         alert(result.error);
       }

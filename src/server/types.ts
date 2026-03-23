@@ -4,6 +4,9 @@
 
 import type { Request } from 'express';
 
+import type { AgentTab } from '../types/agent-tab';
+import type { Message } from '../types/message';
+
 /**
  * 扩展的 Express Request，包含用户信息
  */
@@ -53,4 +56,7 @@ export type ServerMessage =
   | { type: 'execution-step:update'; sessionId: string; messageId: string; executionSteps: any[] }
   | { type: 'agent_status'; tabId: string; status: string }
   | { type: 'message:error'; sessionId: string; error: string }
-  | { type: 'tab:messages-cleared'; tabId: string };
+  | { type: 'tab:messages-cleared'; tabId: string }
+  | { type: 'tab:history-loaded'; tabId: string; messages: Message[] }
+  | { type: 'tab:created'; tab: AgentTab }
+  | { type: 'tab:updated'; tabId: string; title: string };

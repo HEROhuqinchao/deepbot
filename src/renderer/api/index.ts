@@ -351,7 +351,14 @@ export const api = {
     if (isElectron()) {
       return (window as any).deepbot.switchTab(tabId);
     }
-    // Web 模式：切换 Tab 只是前端状态变化，不需要后端操作
+    // Web 模式：切换 Tab 时需要订阅该 Tab 的 WebSocket 消息
+    if (wsInstance && wsInstance.readyState === WebSocket.OPEN) {
+      console.log(`[API] 订阅 Tab: ${tabId}`);
+      wsInstance.send(JSON.stringify({
+        type: 'subscribe',
+        tabId: tabId
+      }));
+    }
     return { success: true };
   },
   

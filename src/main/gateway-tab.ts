@@ -144,6 +144,9 @@ export class GatewayTabManager {
       // Web 模式下不自动发送欢迎消息
       if (!isWebMode) {
         await this.sendWelcomeMessage();
+      } else {
+        // Web 模式下，发送空的历史消息事件
+        this.sendEmptyHistoryLoaded('default');
       }
       return;
     }
@@ -156,6 +159,9 @@ export class GatewayTabManager {
         // Web 模式下不自动发送欢迎消息，等待 WebSocket 连接
         if (!isWebMode) {
           await this.sendWelcomeMessage();
+        } else {
+          // Web 模式下，发送空的历史消息事件
+          this.sendEmptyHistoryLoaded('default');
         }
       } else {
         const tab = this.tabs.get('default');
@@ -169,8 +175,18 @@ export class GatewayTabManager {
       // Web 模式下不自动发送欢迎消息
       if (!isWebMode) {
         await this.sendWelcomeMessage();
+      } else {
+        // Web 模式下，发送空的历史消息事件
+        this.sendEmptyHistoryLoaded('default');
       }
     }
+  }
+  
+  /**
+   * 发送空的历史消息事件（Web 模式专用）
+   */
+  private sendEmptyHistoryLoaded(tabId: string): void {
+    sendToWindow(this.mainWindow, 'tab:history-loaded', { tabId, messages: [] });
   }
   
   /**
@@ -365,15 +381,13 @@ ${welcomeContent}
       }
       
       const messages = await this.sessionManager.loadUIMessages(tabId);
-      if (messages.length === 0) {
-        return;
-      }
       
       const tab = this.tabs.get(tabId);
       if (tab) {
         tab.messages = messages;
       }
       
+      // 即使消息为空，也要发送事件，避免前端一直显示"初始化中"
       sendToWindow(this.mainWindow, 'tab:history-loaded', { tabId, messages });
     } catch (error) {
       console.error(`[TabManager] ❌ 加载 Tab 历史消息失败: ${tabId}`, getErrorMessage(error));

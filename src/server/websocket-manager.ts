@@ -248,6 +248,43 @@ export class WebSocketManager {
         tabId: event.tabId
       });
     });
+    
+    // 监听 Tab 历史消息加载完成
+    this.gatewayAdapter.on('tab_history_loaded', (event: any) => {
+      this.broadcast(event.tabId, {
+        type: 'tab:history-loaded',
+        tabId: event.tabId,
+        messages: event.messages
+      });
+    });
+    
+    // 监听 Tab 创建（广播给所有客户端）
+    this.gatewayAdapter.on('tab_created', (event: any) => {
+      this.broadcastToAll({
+        type: 'tab:created',
+        tab: event.tab
+      });
+    });
+    
+    // 监听 Tab 更新（广播给所有客户端）
+    this.gatewayAdapter.on('tab_updated', (event: any) => {
+      this.broadcastToAll({
+        type: 'tab:updated',
+        tabId: event.tabId,
+        title: event.title
+      });
+    });
+  }
+  
+  /**
+   * 广播消息到所有客户端（不限制订阅）
+   */
+  private broadcastToAll(message: ServerMessage): void {
+    for (const client of this.clients.values()) {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(JSON.stringify(message));
+      }
+    }
   }
   
   /**

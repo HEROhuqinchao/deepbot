@@ -140,6 +140,32 @@ export class GatewayAdapter extends EventEmitter {
         });
         break;
       }
+      
+      case 'tab:history-loaded': {
+        // Tab 历史消息加载完成 - 转发到 WebSocket
+        this.emit('tab_history_loaded', {
+          tabId: data.tabId,
+          messages: data.messages
+        });
+        break;
+      }
+      
+      case 'tab:created': {
+        // Tab 创建 - 转发到 WebSocket
+        this.emit('tab_created', {
+          tab: data.tab
+        });
+        break;
+      }
+      
+      case 'tab:updated': {
+        // Tab 更新 - 转发到 WebSocket
+        this.emit('tab_updated', {
+          tabId: data.tabId,
+          title: data.title
+        });
+        break;
+      }
     }
   }
   
@@ -153,8 +179,9 @@ export class GatewayAdapter extends EventEmitter {
   /**
    * 创建新 Tab
    */
-  async createTab(title: string): Promise<AgentTab> {
-    return await this.gateway.createTab({ title });
+  async createTab(title?: string): Promise<AgentTab> {
+    // 不传 title，让 Gateway 自动生成唯一名称
+    return await this.gateway.createTab(title ? { title } : {});
   }
   
   /**

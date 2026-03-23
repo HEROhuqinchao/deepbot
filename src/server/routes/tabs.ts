@@ -30,7 +30,8 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
   const createTab: RequestHandler = async (req, res) => {
     try {
       const { title } = req.body;
-      const tab = await gatewayAdapter.createTab(title || '新对话');
+      // 不传 title，让 Gateway 自动生成唯一名称
+      const tab = await gatewayAdapter.createTab(title);
       res.json({ tab });
     } catch (error) {
       res.status(500).json({ error: getErrorMessage(error) });
