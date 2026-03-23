@@ -59,4 +59,8 @@ export type ServerMessage =
   | { type: 'tab:messages-cleared'; tabId: string }
   | { type: 'tab:history-loaded'; tabId: string; messages: Message[] }
   | { type: 'tab:created'; tab: AgentTab }
-  | { type: 'tab:updated'; tabId: string; title: string };
+  | { type: 'tab:updated'; tabId: string; title: string }
+  | { type: 'clear-chat'; sessionId: string }
+  | { type: 'name-config:update'; agentName?: string; userName?: string; tabId?: string; isGlobalUpdate?: boolean }
+  | { type: 'model-config:update' }
+  | { type: 'pending-count:update'; pendingCount: number };

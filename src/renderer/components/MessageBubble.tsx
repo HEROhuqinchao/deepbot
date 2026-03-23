@@ -145,26 +145,38 @@ const arePropsEqual = (
     return false;
   }
   
-  // 执行步骤比较
+  // 🔥 执行步骤比较 - 更细致的比较
   const prevSteps = prev.executionSteps || [];
   const nextSteps = next.executionSteps || [];
   
   if (prevSteps.length !== nextSteps.length) {
-    return false;
+    return false; // 步骤数量变化，需要重新渲染
   }
   
-  // 比较每个步骤的关键属性
+  // 🔥 比较每个步骤的关键属性（包括 params 和 result 的变化）
   for (let i = 0; i < prevSteps.length; i++) {
     const prevStep = prevSteps[i];
     const nextStep = nextSteps[i];
     
+    // 基本属性比较
     if (
       prevStep.id !== nextStep.id ||
       prevStep.status !== nextStep.status ||
       prevStep.toolName !== nextStep.toolName ||
+      prevStep.toolLabel !== nextStep.toolLabel ||
       prevStep.error !== nextStep.error ||
-      prevStep.result !== nextStep.result
+      prevStep.duration !== nextStep.duration
     ) {
+      return false; // 步骤属性变化，需要重新渲染
+    }
+    
+    // result 比较：直接引用比较，避免序列化大对象
+    if (prevStep.result !== nextStep.result) {
+      return false;
+    }
+    
+    // params 比较：直接引用比较，params 在步骤创建后不会变化
+    if (prevStep.params !== nextStep.params) {
       return false;
     }
   }

@@ -696,21 +696,27 @@ export class AgentRuntime {
     return {
       ...tool,
       execute: async (toolCallId: string, args: any, signal?: AbortSignal, extensionContext?: any) => {
-        // 注入 senderTabName
+        // 注入 senderTabName：通过当前 sessionId 查找对应 Tab 的标题
         const { getGatewayInstance } = await import('../gateway');
         const gateway = getGatewayInstance();
+        const sessionId = this.runtimeConfig.sessionId;
         
         if (gateway) {
           const tabs = gateway.getAllTabs();
-          const currentTab = tabs.find(t => t.id === this.runtimeConfig.sessionId);
+          const currentTab = tabs.find(t => t.id === sessionId);
           
           if (currentTab) {
-            args = {
-              ...args,
-              senderTabName: currentTab.title,
-            };
+            args = { ...args, senderTabName: currentTab.title };
             console.log('[AgentRuntime] 🏷️ 注入 senderTabName:', currentTab.title);
+          } else {
+            // 找不到 Tab 时打印所有 Tab 便于排查
+            console.warn(
+              `[AgentRuntime] ⚠️ 找不到 sessionId="${sessionId}" 对应的 Tab，` +
+              `当前所有 Tab: [${tabs.map(t => `${t.id}(${t.title})`).join(', ')}]`
+            );
           }
+        } else {
+          console.warn('[AgentRuntime] ⚠️ Gateway 实例为 null，无法注入 senderTabName');
         }
         
         // 调用原始 execute

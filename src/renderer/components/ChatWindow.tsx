@@ -9,6 +9,7 @@ import { MessageInput, MessageInputRef } from './MessageInput'; // 🔥 导入 M
 import type { AgentTab } from '../../types/agent-tab';
 import { MAX_TABS } from '../../shared/constants/version';
 import { api } from '../api'; // 🔥 使用统一 API 适配器
+import { isElectron } from '../utils/platform'; // 🔥 平台检测
 
 interface ChatWindowProps {
   messages: Message[];
@@ -306,12 +307,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     onSendMessage(content, images, files);
   };
 
+  // 🔥 判断是否为 Electron 环境（Web 版本不需要标题栏）
+  const isElectronEnv = isElectron();
+
   return (
     <div className="terminal-container flex flex-col h-screen">
-      {/* 窗口控制栏 - 为系统原生按钮预留空间 */}
-      <div className="window-titlebar">
-        {/* 系统原生的三色按钮会显示在这里 */}
-      </div>
+      {/* 窗口控制栏 - 仅 Electron 版本需要，为系统原生按钮预留空间 */}
+      {isElectronEnv && (
+        <div className="window-titlebar">
+          {/* 系统原生的三色按钮会显示在这里 */}
+        </div>
+      )}
 
       {/* 顶部栏 */}
       <div className="terminal-header">

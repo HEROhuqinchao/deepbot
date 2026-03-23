@@ -10,7 +10,7 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import cors from 'cors';
 import path from 'path';
-import { Gateway } from '../main/gateway';
+import { Gateway, setGlobalGatewayInstance } from '../main/gateway';
 import { GatewayAdapter } from './gateway-adapter';
 import { WebSocketManager } from './websocket-manager';
 import { authMiddleware, loginHandler } from './middleware/auth';
@@ -48,6 +48,9 @@ async function main(): Promise<void> {
   // Web 模式下需要手动初始化 Gateway 的依赖（使用虚拟窗口）
   console.log('🔧 初始化 Gateway 依赖...');
   await gateway.initializeForWebMode(gatewayAdapter.getVirtualWindow());
+  
+  // 设置全局 Gateway 实例，供 cross_tab_call 等工具的 senderTabName 注入使用
+  setGlobalGatewayInstance(gateway);
   
   // 初始化 WebSocket 管理器
   console.log('🔌 初始化 WebSocket 管理器...');

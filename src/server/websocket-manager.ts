@@ -258,6 +258,40 @@ export class WebSocketManager {
       });
     });
     
+    // 监听清空聊天指令
+    this.gatewayAdapter.on('clear_chat', (event: any) => {
+      this.broadcast(event.sessionId, {
+        type: 'clear-chat',
+        sessionId: event.sessionId
+      });
+    });
+
+    // 监听名字配置更新
+    this.gatewayAdapter.on('name_config_update', (event: any) => {
+      this.broadcastToAll({
+        type: 'name-config:update',
+        agentName: event.agentName,
+        userName: event.userName,
+        tabId: event.tabId,
+        isGlobalUpdate: event.isGlobalUpdate
+      });
+    });
+
+    // 监听模型配置更新
+    this.gatewayAdapter.on('model_config_update', () => {
+      this.broadcastToAll({
+        type: 'model-config:update'
+      });
+    });
+
+    // 监听待授权数量更新
+    this.gatewayAdapter.on('pending_count_update', (event: any) => {
+      this.broadcastToAll({
+        type: 'pending-count:update',
+        pendingCount: event.pendingCount
+      });
+    });
+    
     // 监听 Tab 创建（广播给所有客户端）
     this.gatewayAdapter.on('tab_created', (event: any) => {
       this.broadcastToAll({

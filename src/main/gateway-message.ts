@@ -400,9 +400,11 @@ export class GatewayMessageHandler {
         console.log('[MessageHandler] 🚫 跳过保存用户消息到历史记录（定时任务 Tab）');
       }
       
-      // 设置执行步骤更新回调
+      // 🔥 设置执行步骤更新回调（实时更新，无节流）
       runtime.setExecutionStepCallback((steps) => {
-        console.log(`📋 [MessageHandler] 发送执行步骤更新到前端: ${steps.length} 个步骤`);
+        console.log(`📋 [MessageHandler] 🔥 实时发送执行步骤更新: ${steps.length} 个步骤`);
+        
+        // 🔥 立即发送，不节流，确保前端能实时看到执行步骤
         sendToWindow(this.mainWindow, IPC_CHANNELS.EXECUTION_STEP_UPDATE, {
           messageId,
           executionSteps: steps,

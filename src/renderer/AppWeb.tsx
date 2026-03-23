@@ -68,6 +68,8 @@ export function AppWeb() {
     
     // 🔥 Web 模式：通过 WebSocket 监听事件
     const unsubscribeTabCreated = api.onTabCreated((data) => {
+      // 新 Tab 创建时立即订阅 WebSocket，确保能收到历史记录事件
+      api.subscribeTab(data.tab.id);
       setTabs(prev => {
         if (prev.some(t => t.id === data.tab.id)) {
           return prev;

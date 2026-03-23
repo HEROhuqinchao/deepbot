@@ -108,13 +108,39 @@ export class GatewayAdapter extends EventEmitter {
         break;
       }
       
-      case 'execution-step:update': {
+      case 'message:execution-step-update': {
         // 执行步骤更新 - 转发到 WebSocket
         this.emit('execution_step_update', {
           sessionId: data.sessionId || 'default',
           messageId: data.messageId,
           executionSteps: data.executionSteps
         });
+        break;
+      }
+      
+      case 'command:clear-chat': {
+        // 清空聊天指令 - 转发到 WebSocket
+        this.emit('clear_chat', {
+          sessionId: data.sessionId || 'default'
+        });
+        break;
+      }
+      
+      case 'name-config:updated': {
+        // 名字配置更新通知 - 转发到 WebSocket
+        this.emit('name_config_update', data);
+        break;
+      }
+      
+      case 'model-config:updated': {
+        // 模型配置更新通知 - 转发到 WebSocket
+        this.emit('model_config_update', {});
+        break;
+      }
+      
+      case 'connector:pending-count-updated': {
+        // 待授权用户数量变化推送 - 转发到 WebSocket
+        this.emit('pending_count_update', data);
         break;
       }
       
