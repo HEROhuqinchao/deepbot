@@ -4,13 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- 内容安全策略 - 提高应用安全性 -->
+    <!-- 注意：Web 模式需要允许连接到后端 API (localhost:3008) 和 WebSocket -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self' 'unsafe-inline';
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: blob:;
       font-src 'self';
-      connect-src 'self';
+      connect-src 'self' http://localhost:3008 ws://localhost:3008;
       media-src 'self';
       object-src 'none';
       base-uri 'self';

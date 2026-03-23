@@ -35,6 +35,7 @@ export class GatewayTabManager {
   // 回调函数
   private handleSendMessageFn: ((content: string, sessionId?: string, displayContent?: string, clearHistory?: boolean, skipHistory?: boolean) => Promise<void>) | null = null;
   private destroySessionRuntimeFn: ((sessionId: string) => Promise<void>) | null = null;
+  private getIsWebModeFn: (() => boolean) | null = null; // 获取 Web 模式状态的回调
   
   constructor() {}
   
@@ -46,11 +47,13 @@ export class GatewayTabManager {
     sessionManager: SessionManager | null;
     handleSendMessage: (content: string, sessionId?: string, displayContent?: string, clearHistory?: boolean, skipHistory?: boolean) => Promise<void>;
     destroySessionRuntime: (sessionId: string) => Promise<void>;
+    getIsWebMode?: () => boolean; // 可选：获取 Web 模式状态
   }): void {
     this.mainWindow = deps.mainWindow;
     this.sessionManager = deps.sessionManager;
     this.handleSendMessageFn = deps.handleSendMessage;
     this.destroySessionRuntimeFn = deps.destroySessionRuntime;
+    this.getIsWebModeFn = deps.getIsWebMode || null;
 
     // 初始化数据库引用（单例，已在主进程启动时初始化）
     const { SystemConfigStore } = require('./database/system-config-store');
@@ -134,9 +137,14 @@ export class GatewayTabManager {
   private async loadDefaultTabHistory(): Promise<void> {
     await sleep(500);
     
+    const isWebMode = this.getIsWebModeFn ? this.getIsWebModeFn() : false;
+    
     if (!this.sessionManager) {
-      console.warn('[TabManager] SessionManager 未初始化，发送欢迎消息');
-      await this.sendWelcomeMessage();
+      console.warn('[TabManager] SessionManager 未初始化');
+      // Web 模式下不自动发送欢迎消息
+      if (!isWebMode) {
+        await this.sendWelcomeMessage();
+      }
       return;
     }
     
@@ -145,7 +153,10 @@ export class GatewayTabManager {
       const shouldSendWelcome = this.shouldSendWelcomeMessage(messages);
       
       if (shouldSendWelcome) {
-        await this.sendWelcomeMessage();
+        // Web 模式下不自动发送欢迎消息，等待 WebSocket 连接
+        if (!isWebMode) {
+          await this.sendWelcomeMessage();
+        }
       } else {
         const tab = this.tabs.get('default');
         if (tab) {
@@ -154,8 +165,11 @@ export class GatewayTabManager {
         sendToWindow(this.mainWindow, 'tab:history-loaded', { tabId: 'default', messages });
       }
     } catch (error) {
-      console.error('[TabManager] ❌ 检查历史消息失败，发送欢迎消息:', getErrorMessage(error));
-      await this.sendWelcomeMessage();
+      console.error('[TabManager] ❌ 检查历史消息失败:', getErrorMessage(error));
+      // Web 模式下不自动发送欢迎消息
+      if (!isWebMode) {
+        await this.sendWelcomeMessage();
+      }
     }
   }
   

@@ -507,10 +507,11 @@ export class GatewayMessageHandler {
    * 处理停止生成请求
    */
   async handleStopGeneration(sessionId: string, resetSessionRuntimeFn: (sessionId: string, options: { reason?: string; recreate?: boolean }) => Promise<AgentRuntime | null>): Promise<void> {
-    console.log('收到停止生成请求');
+    console.log(`[MessageHandler] 🛑 收到停止生成请求: ${sessionId}`);
     await resetSessionRuntimeFn(sessionId, {
-      reason: '用户点击 Stop 按钮',
+      reason: 'WebSocket 断开连接或用户点击 Stop 按钮',
       recreate: false
     });
+    console.log(`[MessageHandler] ✅ 停止生成完成: ${sessionId}`);
   }
 }

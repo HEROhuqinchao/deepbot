@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   WEB_SEARCH_PROVIDER_PRESETS 
 } from '../../../shared/config/default-configs';
+import { api } from '../../api';
 
 interface WebSearchToolConfig {
   provider: 'qwen' | 'gemini';  // 提供商类型（仅支持 Qwen 和 Gemini）
@@ -41,7 +42,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
 
   const loadConfig = async () => {
     try {
-      const result = await window.electron.ipcRenderer.invoke('tool-config:web-search:get');
+      const result = await api.getWebSearchToolConfig();
       if (result.success && result.config) {
         setConfig(result.config);
       }
@@ -83,7 +84,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
     setSaveMessage(null);
 
     try {
-      const result = await window.electron.ipcRenderer.invoke('tool-config:web-search:save', { config });
+      const result = await api.saveWebSearchToolConfig(config);
       
       if (result.success) {
         setSaveMessage({ 

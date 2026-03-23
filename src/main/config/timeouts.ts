@@ -45,6 +45,11 @@ export const TIMEOUTS = {
   SESSION_CLEANUP_TIMEOUT: 30 * 60 * 1000,     // 30 分钟
   SESSION_ARCHIVE_AFTER: 60 * 60 * 1000,       // 1 小时
   SESSION_SWEEP_INTERVAL: 60 * 1000,           // 1 分钟
+  
+  // WebSocket 和服务器相关
+  WEBSOCKET_WELCOME_DELAY: 500,                // 500 毫秒（WebSocket 欢迎消息延迟）
+  SERVER_GRACEFUL_SHUTDOWN: 10 * 1000,         // 10 秒（服务器优雅关闭超时）
+  SESSION_MANAGER_INIT_TIMEOUT: 5 * 1000,      // 5 秒（SessionManager 初始化超时）
 } as const;
 
 /**

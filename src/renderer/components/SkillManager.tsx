@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, Package, Download, Trash2, RefreshCw, Info } from 'lucide-react';
 import '../styles/settings.css';
+import { api } from '../api';
 
 interface Skill {
   name: string;
@@ -62,7 +63,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
   const loadInstalledSkills = async () => {
     setIsLoading(true);
     try {
-      const result = await (window.deepbot as any).skillManager({
+      const result = await api.skillManager({
         action: 'list',
       });
       
@@ -89,7 +90,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
     setSearchError(null); // 清除之前的错误
     
     try {
-      const result = await (window.deepbot as any).skillManager({
+      const result = await api.skillManager({
         action: 'search',
         query: searchQuery,
       });
@@ -130,7 +131,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
     }, 300);
     
     try {
-      const result = await (window.deepbot as any).skillManager({
+      const result = await api.skillManager({
         action: 'install',
         name: skillName,
         repository: repository,
@@ -167,7 +168,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
     
     setIsLoading(true);
     try {
-      const result = await (window.deepbot as any).skillManager({
+      const result = await api.skillManager({
         action: 'uninstall',
         name: skillName,
       });
@@ -199,7 +200,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
     // 如果是已安装的 Skill，从数据库获取详细信息
     setIsLoading(true);
     try {
-      const result = await (window.deepbot as any).skillManager({
+      const result = await api.skillManager({
         action: 'info',
         name: skillName,
       });

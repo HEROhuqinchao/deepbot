@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PROVIDER_PRESETS } from '../../../shared/config/default-configs';
+import { api } from '../../api';
 
 interface ModelConfig {
   providerType: 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom';
@@ -52,7 +53,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
 
   const loadConfig = async () => {
     try {
-      const result = await window.electron.ipcRenderer.invoke('model-config:get');
+      const result = await api.getModelConfig();
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
       
@@ -117,7 +118,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
     setSaveMessage(null);
 
     try {
-      const result = await window.electron.ipcRenderer.invoke('model-config:save', { config });
+      const result = await api.saveModelConfig(config);
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
       

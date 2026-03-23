@@ -30,6 +30,7 @@ export class Gateway {
   private mainWindow: BrowserWindow | null = null;
   private agentRuntimes: Map<string, AgentRuntime> = new Map(); // 每个 Tab 一个 Runtime
   private defaultSessionId: string = 'default'; // 默认会话 ID
+  private isWebMode: boolean = false; // 是否为 Web 模式
   
   // Tab 管理器
   private tabManager: GatewayTabManager;
@@ -200,9 +201,12 @@ export class Gateway {
     // AI 连接缓存已清除，将在下次调用时重新建立
     
     // 检查是否需要发送欢迎消息（首次配置模型的场景）
-    this.tabManager.checkAndSendWelcomeMessage().catch(error => {
-      console.error('[Gateway] ❌ 检查欢迎消息失败:', getErrorMessage(error));
-    });
+    // Web 模式下不自动发送，等待 WebSocket 首次连接时触发
+    if (!this.isWebMode) {
+      this.tabManager.checkAndSendWelcomeMessage().catch(error => {
+        console.error('[Gateway] ❌ 检查欢迎消息失败:', getErrorMessage(error));
+      });
+    }
   }
 
   /**
@@ -290,17 +294,19 @@ export class Gateway {
 
 
   /**
-   * 设置主窗口
+   * 设置所有处理器的依赖（统一的依赖注入逻辑）
+   * 
+   * @param window - BrowserWindow 或虚拟窗口对象
+   * @param options - 额外选项
    */
-  setMainWindow(window: BrowserWindow) {
-    this.mainWindow = window;
-    
+  private setupHandlerDependencies(window: any, options: { getIsWebMode?: () => boolean } = {}): void {
     // 设置 Tab 管理器的依赖
     this.tabManager.setDependencies({
       mainWindow: window,
       sessionManager: this.sessionManager,
       handleSendMessage: this.handleSendMessage.bind(this),
       destroySessionRuntime: this.destroySessionRuntime.bind(this),
+      getIsWebMode: options.getIsWebMode,
     });
     
     // 设置连接器处理器的依赖
@@ -330,6 +336,40 @@ export class Gateway {
       executeSystemCommand: this.executeSystemCommand.bind(this),
       sendResponseToConnector: this.sendResponseToConnector.bind(this),
     });
+  }
+
+  /**
+   * 设置主窗口
+   */
+  setMainWindow(window: BrowserWindow) {
+    this.mainWindow = window;
+    this.setupHandlerDependencies(window);
+  }
+
+  /**
+   * Web 模式初始化（无需 BrowserWindow）
+   * 
+   * 在 Web 模式下，我们不需要 BrowserWindow，但仍需要设置各个处理器的依赖
+   * 
+   * @param virtualWindow 虚拟窗口对象（由 GatewayAdapter 提供）
+   */
+  async initializeForWebMode(virtualWindow: any): Promise<void> {
+    // 标记为 Web 模式
+    this.isWebMode = true;
+    
+    // 等待 SessionManager 初始化完成
+    const { TIMEOUTS } = await import('./config/timeouts');
+    await waitUntil(() => this.sessionManager !== null, { timeout: TIMEOUTS.SESSION_MANAGER_INIT_TIMEOUT });
+    
+    // 使用虚拟窗口（而不是 null）
+    this.mainWindow = virtualWindow;
+    
+    // 设置所有处理器的依赖（传入 Web 模式状态）
+    this.setupHandlerDependencies(virtualWindow, {
+      getIsWebMode: () => this.isWebMode
+    });
+    
+    console.log('[Gateway] ✅ Web 模式初始化完成');
   }
 
   /**
@@ -632,6 +672,16 @@ export class Gateway {
   getSessionManager(): SessionManager | null {
     return this.sessionManager;
   }
+  
+  /**
+   * 获取 TabManager 实例
+   * 
+   * @returns GatewayTabManager
+   */
+  getTabManager(): GatewayTabManager {
+    return this.tabManager;
+  }
+  
   /**
    * 获取指定会话的 AgentRuntime 实例
    * @param sessionId 会话 ID，如果不提供则使用默认会话

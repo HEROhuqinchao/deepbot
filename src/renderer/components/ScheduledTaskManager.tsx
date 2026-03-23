@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { api } from '../api';
 import { X } from 'lucide-react';
 import '../styles/settings.css';
 
@@ -50,7 +51,7 @@ export function ScheduledTaskManager({ isOpen, onClose }: ScheduledTaskManagerPr
   const loadTasks = async () => {
     try {
       setIsLoading(true);
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action: 'list',
       });
       
@@ -84,7 +85,7 @@ export function ScheduledTaskManager({ isOpen, onClose }: ScheduledTaskManagerPr
     }
 
     try {
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action: 'update',
         taskId,
         description: editingDescription.trim(),
@@ -125,7 +126,7 @@ export function ScheduledTaskManager({ isOpen, onClose }: ScheduledTaskManagerPr
     }
 
     try {
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action: 'updateSchedule',
         taskId,
         scheduleText: editingScheduleText.trim(),
@@ -176,7 +177,7 @@ export function ScheduledTaskManager({ isOpen, onClose }: ScheduledTaskManagerPr
     }
 
     try {
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action: 'delete',
         taskId,
       });
@@ -196,7 +197,7 @@ export function ScheduledTaskManager({ isOpen, onClose }: ScheduledTaskManagerPr
   const handleToggleEnabled = async (taskId: string, currentEnabled: boolean) => {
     try {
       const action = currentEnabled ? 'pause' : 'resume';
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action,
         taskId,
       });
@@ -219,7 +220,7 @@ export function ScheduledTaskManager({ isOpen, onClose }: ScheduledTaskManagerPr
     }
 
     try {
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action: 'trigger',
         taskId,
       });

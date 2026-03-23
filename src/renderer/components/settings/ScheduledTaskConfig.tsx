@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { api } from '../../api';
 
 interface ScheduledTask {
   id: string;
@@ -41,7 +42,7 @@ export function ScheduledTaskConfig({ onClose }: ScheduledTaskConfigProps) {
   const loadTasks = async () => {
     try {
       setIsLoading(true);
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action: 'list',
       });
       
@@ -62,7 +63,7 @@ export function ScheduledTaskConfig({ onClose }: ScheduledTaskConfigProps) {
     }
 
     try {
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action: 'delete',
         taskId,
       });
@@ -82,7 +83,7 @@ export function ScheduledTaskConfig({ onClose }: ScheduledTaskConfigProps) {
   const handleToggleEnabled = async (taskId: string, currentEnabled: boolean) => {
     try {
       const action = currentEnabled ? 'pause' : 'resume';
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action,
         taskId,
       });
@@ -105,7 +106,7 @@ export function ScheduledTaskConfig({ onClose }: ScheduledTaskConfigProps) {
     }
 
     try {
-      const response = await window.deepbot.scheduledTask({
+      const response = await api.scheduledTask({
         action: 'trigger',
         taskId,
       });

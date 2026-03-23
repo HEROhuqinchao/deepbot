@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import { api } from '../../api';
 
 interface BrowserToolConfigProps {
   onClose?: () => void;
@@ -23,7 +24,7 @@ export function BrowserToolConfig({ onClose }: BrowserToolConfigProps) {
     setLaunching(true);
 
     try {
-      const result = await window.deepbot.launchChromeWithDebug(9222);
+      const result = await api.launchChromeWithDebug(9222);
       if (result.success) {
         showMessage('success', 'Chrome 已启动，可以开始使用浏览器工具');
       } else {

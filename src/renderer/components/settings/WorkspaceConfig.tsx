@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { api } from '../../api';
 
 interface WorkspaceConfigProps {
   onClose: () => void;
@@ -60,8 +61,8 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
     try {
       setLoading(true);
       const [settingsResult, defaultResult] = await Promise.all([
-        window.deepbot.getWorkspaceSettings(),
-        window.deepbot.getDefaultWorkspaceSettings(),
+        api.getWorkspaceSettings(),
+        api.getDefaultWorkspaceSettings(),
       ]);
       
       if (settingsResult.success && settingsResult.settings) {
@@ -87,7 +88,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
 
     try {
       setSaving(true);
-      const result = await window.deepbot.saveWorkspaceSettings(settings);
+      const result = await api.saveWorkspaceSettings(settings);
       
       if (result.success) {
         showMessage('success', '默认工作目录已保存');
@@ -105,7 +106,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleSaveScriptDir = async () => {
     try {
       setSaving(true);
-      const result = await window.deepbot.saveWorkspaceSettings(settings);
+      const result = await api.saveWorkspaceSettings(settings);
       
       if (result.success) {
         showMessage('success', 'Python 脚本目录已保存');
@@ -123,7 +124,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleSaveImageDir = async () => {
     try {
       setSaving(true);
-      const result = await window.deepbot.saveWorkspaceSettings(settings);
+      const result = await api.saveWorkspaceSettings(settings);
       
       if (result.success) {
         showMessage('success', '图片生成目录已保存');
@@ -146,7 +147,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
 
     try {
       setSaving(true);
-      const result = await window.deepbot.addSkillDir(newSkillDir.trim());
+      const result = await api.addSkillDir(newSkillDir.trim());
       
       if (result.success && result.settings) {
         setSettings(result.settings);
@@ -171,7 +172,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
 
     try {
       setSaving(true);
-      const result = await window.deepbot.removeSkillDir(dir);
+      const result = await api.removeSkillDir(dir);
       
       if (result.success && result.settings) {
         setSettings(result.settings);
@@ -190,7 +191,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleSetDefaultSkillDir = async (dir: string) => {
     try {
       setSaving(true);
-      const result = await window.deepbot.setDefaultSkillDir(dir);
+      const result = await api.setDefaultSkillDir(dir);
       
       if (result.success && result.settings) {
         setSettings(result.settings);
@@ -214,7 +215,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleResetWorkspaceDir = async () => {
     try {
       // 从后端获取真正的默认路径（绝对路径）
-      const result = await window.deepbot.getDefaultWorkspaceSettings();
+      const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
         setSettings({
           ...settings,
@@ -230,7 +231,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleResetScriptDir = async () => {
     try {
       // 从后端获取真正的默认路径（绝对路径）
-      const result = await window.deepbot.getDefaultWorkspaceSettings();
+      const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
         setSettings({
           ...settings,
@@ -246,7 +247,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleResetImageDir = async () => {
     try {
       // 从后端获取真正的默认路径（绝对路径）
-      const result = await window.deepbot.getDefaultWorkspaceSettings();
+      const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
         setSettings({
           ...settings,
@@ -262,7 +263,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleSaveMemoryDir = async () => {
     try {
       setSaving(true);
-      const result = await window.deepbot.saveWorkspaceSettings(settings);
+      const result = await api.saveWorkspaceSettings(settings);
       
       if (result.success) {
         showMessage('success', '记忆管理目录已保存');
@@ -280,7 +281,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleResetMemoryDir = async () => {
     try {
       // 从后端获取真正的默认路径（绝对路径）
-      const result = await window.deepbot.getDefaultWorkspaceSettings();
+      const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
         setSettings({
           ...settings,
@@ -296,7 +297,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleSaveSessionDir = async () => {
     try {
       setSaving(true);
-      const result = await window.deepbot.saveWorkspaceSettings(settings);
+      const result = await api.saveWorkspaceSettings(settings);
       
       if (result.success) {
         showMessage('success', '对话历史目录已保存');
@@ -314,7 +315,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const handleResetSessionDir = async () => {
     try {
       // 从后端获取真正的默认路径（绝对路径）
-      const result = await window.deepbot.getDefaultWorkspaceSettings();
+      const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
         setSettings({
           ...settings,

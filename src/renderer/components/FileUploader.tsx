@@ -8,6 +8,7 @@
  */
 
 import React, { useRef } from 'react';
+import { api } from '../api';
 import type { UploadedFile } from '../../types/message';
 import { Tooltip } from './Tooltip';
 import { readFileAsDataURL } from '../utils/file-reader';
@@ -72,7 +73,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         const dataUrl = await readFileAsDataURL(file);
 
         // 上传到主进程（保存到临时目录）
-        const result = await window.deepbot.uploadFile(file.name, dataUrl, file.size, file.type);
+        const result = await api.uploadFile(file.name, dataUrl, file.size, file.type);
 
         if (result.success && result.file) {
           newFiles.push(result.file);
@@ -101,7 +102,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
     if (fileToRemove) {
       // 删除临时文件
       try {
-        await window.deepbot.deleteTempFile(fileToRemove.path);
+        await api.deleteTempFile(fileToRemove.path);
       } catch (error) {
         console.error('删除临时文件失败:', error);
       }

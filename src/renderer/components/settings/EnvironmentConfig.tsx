@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { api } from '../../api';
 
 interface EnvironmentStatus {
   python: {
@@ -33,7 +34,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
   // 加载环境状态
   const loadStatus = async () => {
     try {
-      const result = await window.deepbot.checkEnvironment('get_status');
+      const result = await api.checkEnvironment('get_status');
       if (result.success) {
         setStatus(result.data);
       } else {
@@ -61,7 +62,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
     // 🔥 使用当前选中的 Tab ID，如果没有则使用默认 Tab
     const sessionId = activeTabId || 'default';
     
-    window.deepbot.sendMessage(prompt, sessionId).catch((err) => {
+    api.sendMessage(prompt, sessionId).catch((err) => {
       console.error('发送消息失败:', err);
     });
 

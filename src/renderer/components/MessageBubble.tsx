@@ -7,6 +7,7 @@ import { Message } from '../../types/message';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatDuration, formatTimestamp } from '../../shared/utils/time-format';
+import { api } from '../api';
 
 interface MessageBubbleProps {
   message: Message;
@@ -61,7 +62,7 @@ const ImageLoader: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
     const loadImage = async () => {
       try {
         // 通过 IPC 读取图片
-        const result = await window.deepbot.readImage(filePath);
+        const result = await api.readImage(filePath);
         
         if (result.success && result.data) {
           imageCache.set(filePath, result.data);

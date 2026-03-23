@@ -8,6 +8,7 @@ import { MessageBubble } from './MessageBubble';
 import { MessageInput, MessageInputRef } from './MessageInput'; // 🔥 导入 MessageInputRef
 import type { AgentTab } from '../../types/agent-tab';
 import { MAX_TABS } from '../../shared/constants/version';
+import { api } from '../api'; // 🔥 使用统一 API 适配器
 
 interface ChatWindowProps {
   messages: Message[];
@@ -69,7 +70,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   useEffect(() => {
     const loadTabAgentName = async () => {
       try {
-        const result = await window.deepbot.getTabAgentName(activeTabId || 'default');
+        const result = await api.getTabAgentName(activeTabId || 'default');
         if (result.success) {
           setAgentName(result.agentName);
           setUserName(result.userName);
@@ -114,7 +115,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
       }
     };
     
-    const unsubscribeNameUpdate = window.deepbot.onNameConfigUpdate(handleNameConfigUpdate);
+    const unsubscribeNameUpdate = api.onNameConfigUpdate(handleNameConfigUpdate);
     
     // 清理监听器
     return () => {
@@ -131,7 +132,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
       }
     };
     
-    const cleanup = window.deepbot.onTabHistoryLoaded(handleHistoryLoaded);
+    const cleanup = api.onTabHistoryLoaded(handleHistoryLoaded);
     
     // 清理监听器
     return cleanup;
@@ -157,7 +158,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
       }
     };
     
-    const cleanup = window.deepbot.onTabMessagesCleared(handleMessagesCleared);
+    const cleanup = api.onTabMessagesCleared(handleMessagesCleared);
     return cleanup;
   }, [activeTabId]);
 

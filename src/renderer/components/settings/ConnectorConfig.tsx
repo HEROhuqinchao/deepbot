@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { api } from '../../api';
 
 interface ConnectorConfigProps {
   onClose: () => void;
@@ -21,6 +22,7 @@ interface Connector {
 interface FeishuConfig {
   appId: string;
   appSecret: string;
+  enabled?: boolean;
 }
 
 interface PairingRecord {
@@ -43,6 +45,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
   const [feishuConfig, setFeishuConfig] = useState<FeishuConfig>({
     appId: '',
     appSecret: '',
+    enabled: false,
   });
   const [pairingRecords, setPairingRecords] = useState<PairingRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +68,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
   const loadConnectors = async () => {
     try {
       setLoading(true);
-      const result = await window.deepbot.connectorGetAll();
+      const result = await api.connectorGetAll();
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
 
@@ -88,7 +91,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
             setConnectorHealthMap(prev => {
               if (prev[connector.id]) return prev;
               // 没有缓存，发起检查
-              window.deepbot.connectorHealthCheck(connector.id).then((healthResult: any) => {
+              api.connectorHealthCheck(connector.id).then((healthResult: any) => {
                 const actualHealth = healthResult.data || healthResult;
                 const status = actualHealth.status === 'healthy' ? 'healthy' : 'unhealthy';
                 setConnectorHealthMap(p => ({ ...p, [connector.id]: status }));
@@ -109,25 +112,46 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
 
   const loadConnectorConfig = async (connectorId: string) => {
     try {
-      const result = await window.deepbot.connectorGetConfig(connectorId);
+      const result = await api.connectorGetConfig(connectorId);
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
       
+      console.log('[ConnectorConfig] 加载配置结果:', actualResult);
+      console.log('[ConnectorConfig] config 对象:', actualResult.config);
+      
       if (actualResult.success && actualResult.config) {
-        setFeishuConfig(actualResult.config);
+        // 确保所有字段都有默认值，避免 controlled/uncontrolled 警告
+        setFeishuConfig({
+          appId: actualResult.config.appId || '',
+          appSecret: actualResult.config.appSecret || '',
+          enabled: actualResult.enabled || false,
+        });
+      } else {
+        // 如果没有配置，设置默认值
+        setFeishuConfig({
+          appId: '',
+          appSecret: '',
+          enabled: false,
+        });
       }
       
       // pairing 记录始终加载（pairing 是固定功能）
       await loadPairingRecords(connectorId);
     } catch (error) {
       console.error('加载连接器配置失败:', error);
+      // 出错时也设置默认值
+      setFeishuConfig({
+        appId: '',
+        appSecret: '',
+        enabled: false,
+      });
     }
   };
 
   const loadPairingRecords = async (connectorId?: string) => {
     try {
       setLoadingPairing(true);
-      const result = await window.deepbot.connectorGetPairingRecords(connectorId);
+      const result = await api.connectorGetPairingRecords();
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
       
@@ -149,7 +173,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
 
   const handleApprovePairing = async (pairingCode: string) => {
     try {
-      const result = await window.deepbot.connectorApprovePairing(pairingCode);
+      const result = await api.connectorApprovePairing(pairingCode);
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
       
@@ -166,7 +190,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
 
   const handleSetAdmin = async (connectorId: string, userId: string, isAdmin: boolean) => {
     try {
-      const result = await window.deepbot.connectorSetAdminPairing(connectorId, userId, isAdmin);
+      const result = await api.connectorSetAdminPairing(connectorId, userId, isAdmin);
       const actualResult = result.data || result;
       if (actualResult.success) {
         showMessage('success', isAdmin ? '已设为管理员' : '已取消管理员');
@@ -185,7 +209,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
     }
     
     try {
-      const result = await window.deepbot.connectorDeletePairing(connectorId, userId);
+      const result = await api.connectorDeletePairing(connectorId, userId);
       // 🔥 registerIpcHandler 会包装返回值为 { success: true, data: ... }
       const actualResult = result.data || result;
       
@@ -220,7 +244,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
     setSaving(true);
 
     try {
-      await window.deepbot.connectorSaveConfig(selectedConnector, {
+      await api.connectorSaveConfig(selectedConnector, {
         ...feishuConfig,
         enabled: false, // 保存时不自动启用
       });
@@ -245,7 +269,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
     setStarting(true);
 
     try {
-      await window.deepbot.connectorStart(selectedConnector);
+      await api.connectorStart(selectedConnector);
       showMessage('success', '连接器已启动');
       await loadConnectors(); // 重新加载列表
     } catch (error) {
@@ -261,7 +285,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
     setStarting(true);
 
     try {
-      await window.deepbot.connectorStop(selectedConnector);
+      await api.connectorStop(selectedConnector);
       showMessage('success', '连接器已停止');
       await loadConnectors(); // 重新加载列表
     } catch (error) {

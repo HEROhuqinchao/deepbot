@@ -11,6 +11,7 @@ import {
 } from '../../../shared/config/default-configs';
 import { WebSearchToolConfig } from './WebSearchToolConfig';
 import { BrowserToolConfig } from './BrowserToolConfig';
+import { api } from '../../api';
 
 interface ToolConfigProps {
   onClose: () => void;
@@ -47,7 +48,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const config = await window.deepbot.getImageGenerationToolConfig();
+      const config = await api.getImageGenerationToolConfig();
       if (config) {
         // 兼容旧配置格式，添加默认 provider 字段
         let provider: 'gemini' | 'qwen' = 'gemini';
@@ -108,7 +109,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
     setSaving(true);
 
     try {
-      await window.deepbot.saveImageGenerationToolConfig(imageGenConfig);
+      await api.saveImageGenerationToolConfig(imageGenConfig);
       showMessage('success', '配置保存成功');
     } catch (error) {
       showMessage('error', `保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
