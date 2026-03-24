@@ -36,8 +36,15 @@ COPY . .
 # 构建 web server 和前端
 RUN pnpm run build:web
 
+# 安装生产依赖到新目录（不使用 prune，直接全新安装）
+RUN mkdir -p /tmp/prod && \
+    cp package.json pnpm-lock.yaml .npmrc .pnpmfile.cjs /tmp/prod/ && \
+    cd /tmp/prod && \
+    pnpm install --prod --ignore-scripts --prefer-offline
+
 # Docker 环境下 mock electron 包（避免运行时加载失败）
-RUN echo "module.exports = new Proxy({}, { get: () => {} });" > /app/node_modules/electron/index.js
+RUN mkdir -p /tmp/prod/node_modules/electron && \
+    echo "module.exports = new Proxy({}, { get: () => {} });" > /tmp/prod/node_modules/electron/index.js
 
 # ---- 运行阶段 ----
 FROM node:22-bookworm-slim
@@ -66,15 +73,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 pnpm
-RUN npm install -g pnpm@10.23.0 --registry=https://registry.npmmirror.com
+# 安装 pnpm（运行时不需要，可以删除这行以进一步减小镜像）
+# RUN npm install -g pnpm@10.23.0 --registry=https://registry.npmmirror.com
 
 WORKDIR /app
 
-# 从构建阶段复制产物
+# 从构建阶段复制产物（只复制生产依赖）
 COPY --from=builder /app/dist-server ./dist-server
 COPY --from=builder /app/dist-web ./dist-web
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /tmp/prod/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/src/main/prompts ./src/main/prompts
 
