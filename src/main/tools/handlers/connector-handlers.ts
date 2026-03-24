@@ -12,7 +12,6 @@ import {
   createErrorResponse,
   getGatewayInstance,
 } from './handler-utils';
-import { broadcastPendingCount } from '../../ipc/connector-handler';
 import { createLogger } from '../../../shared/utils/logger';
 
 // ==================== 日志记录器 ====================
@@ -215,7 +214,12 @@ export async function handleApprovePairing(
     }
 
     // 推送待授权数量更新
-    broadcastPendingCount();
+    try {
+      const gw = await getGatewayInstance();
+      gw?.getConnectorManager().broadcastPendingCount();
+    } catch (err) {
+      logger.error('推送待授权数量失败:', err);
+    }
 
     return createSuccessResponse(
       formatters.formatApprovePairingResult(params.pairingCode, record),
@@ -253,7 +257,12 @@ export async function handleRejectPairing(
     store.deletePairingRecord(params.connectorId, params.userId);
 
     // 推送待授权数量更新
-    broadcastPendingCount();
+    try {
+      const gw = await getGatewayInstance();
+      gw?.getConnectorManager().broadcastPendingCount();
+    } catch (err) {
+      logger.error('推送待授权数量失败:', err);
+    }
 
     return createSuccessResponse(
       formatters.formatRejectPairingResult(params.connectorId, params.userId),

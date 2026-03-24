@@ -270,7 +270,7 @@ export class GatewayAdapter extends EventEmitter {
    */
   async getConfig(): Promise<any> {
     const { SystemConfigStore } = await import('../main/database/system-config-store');
-    const { isDockerMode } = await import('../main/database/workspace-config');
+    const { isDockerMode } = await import('../shared/utils/docker-utils');
     const store = SystemConfigStore.getInstance();
     
     return {
@@ -467,7 +467,22 @@ export class GatewayAdapter extends EventEmitter {
     const { SystemConfigStore } = await import('../main/database/system-config-store');
     const store = SystemConfigStore.getInstance();
     
+    // 批准前先查出用户信息（含 openId），用于发送欢迎消息
+    const record = store.getPairingRecordByCode(pairingCode);
     store.approvePairingRecord(pairingCode);
+    
+    // 通知连接器向用户发送欢迎消息（和 Electron 模式一致）
+    if (record) {
+      this.gateway.getConnectorManager().notifyPairingApproved(
+        record.connectorId as any,
+        record.userId,
+        record.openId,
+      );
+    }
+    
+    // 推送待授权数量更新（和 Electron 模式一致）
+    this.gateway.getConnectorManager().broadcastPendingCount();
+    
     return { success: true, message: '配对已批准' };
   }
   
@@ -484,6 +499,10 @@ export class GatewayAdapter extends EventEmitter {
     const store = SystemConfigStore.getInstance();
     
     store.deletePairingRecord(connectorId, userId);
+    
+    // 推送待授权数量更新（和 Electron 模式一致）
+    this.gateway.getConnectorManager().broadcastPendingCount();
+    
     return { success: true, message: '配对已删除' };
   }
   

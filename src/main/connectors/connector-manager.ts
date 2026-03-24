@@ -310,6 +310,29 @@ export class ConnectorManager {
   }
 
   /**
+   * 推送待授权用户数量到前端
+   * 
+   * 通过 Gateway 的主窗口发送 IPC 消息，兼容 Electron 和 Docker 模式：
+   * - Electron 模式：BrowserWindow.webContents.send() → 前端直接收到
+   * - Docker 模式：VirtualWebContents.send() → GatewayAdapter → WebSocket 广播
+   */
+  broadcastPendingCount(): void {
+    try {
+      const { SystemConfigStore } = require('../database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const records = store.getAllPairingRecords();
+      const pendingCount = records.filter((r: any) => !r.approved).length;
+      
+      const mainWindow = this.gateway.getMainWindow();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('connector:pending-count-updated', { pendingCount });
+      }
+    } catch (error) {
+      console.error('[ConnectorManager] 推送待授权数量失败:', error);
+    }
+  }
+
+  /**
    * 健康检查
    *
    * @param connectorId - 连接器 ID
