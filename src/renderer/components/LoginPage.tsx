@@ -2,6 +2,7 @@
  * 登录页面
  * 
  * 仅在 Web 模式且设置了密码时显示
+ * 风格：终端科幻风，与系统设置页面一致
  */
 
 import React, { useState } from 'react';
@@ -43,34 +44,38 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       alignItems: 'center',
       justifyContent: 'center',
       height: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: '#1a1f2e',
     }}>
       <div style={{
-        background: 'white',
+        background: '#242936',
         padding: '40px',
         borderRadius: '12px',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+        border: '1px solid #2d3748',
         width: '100%',
-        maxWidth: '400px',
+        maxWidth: '380px',
       }}>
+        {/* 标题 */}
         <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          marginBottom: '8px',
+          fontSize: '22px',
+          fontWeight: 600,
+          color: '#d4dce8',
+          marginBottom: '6px',
           textAlign: 'center',
+          letterSpacing: '1px',
         }}>
           DeepBot
         </h1>
         <p style={{
-          fontSize: '14px',
-          color: '#666',
-          marginBottom: '32px',
+          fontSize: '13px',
+          color: '#8b9aaf',
+          marginBottom: '28px',
           textAlign: 'center',
         }}>
           请输入访问密码
         </p>
         
         <form onSubmit={handleSubmit}>
+          {/* 密码输入框 */}
           <div style={{ marginBottom: '16px' }}>
             <input
               type="password"
@@ -78,43 +83,49 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="密码"
               disabled={loading}
+              autoFocus
               style={{
                 width: '100%',
-                padding: '12px',
+                padding: '10px 12px',
                 fontSize: '14px',
-                border: '1px solid #ddd',
+                color: '#d4dce8',
+                background: '#1a1f2e',
+                border: '1px solid #2d3748',
                 borderRadius: '6px',
                 outline: 'none',
                 transition: 'border-color 0.2s',
               }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              onBlur={(e) => e.target.style.borderColor = '#ddd'}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2f7'}
+              onBlur={(e) => e.target.style.borderColor = '#2d3748'}
             />
           </div>
           
+          {/* 错误提示 */}
           {error && (
             <div style={{
-              padding: '12px',
+              padding: '10px 12px',
               marginBottom: '16px',
-              background: '#fee',
-              color: '#c33',
+              background: 'rgba(247, 118, 142, 0.1)',
+              color: '#f7768e',
               borderRadius: '6px',
-              fontSize: '14px',
+              fontSize: '13px',
+              border: '1px solid rgba(247, 118, 142, 0.2)',
             }}>
               {error}
             </div>
           )}
           
+          {/* 登录按钮 */}
           <button
             type="submit"
             disabled={loading}
             style={{
               width: '100%',
-              padding: '12px',
+              padding: '10px',
               fontSize: '14px',
-              fontWeight: 'bold',
-              color: 'white',
-              background: loading ? '#999' : '#667eea',
+              fontWeight: 500,
+              color: '#fff',
+              background: loading ? '#3b4252' : '#7aa2f7',
               border: 'none',
               borderRadius: '6px',
               cursor: loading ? 'not-allowed' : 'pointer',
@@ -122,12 +133,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             }}
             onMouseEnter={(e) => {
               if (!loading) {
-                (e.target as HTMLButtonElement).style.background = '#5568d3';
+                (e.target as HTMLButtonElement).style.background = '#6a92e7';
               }
             }}
             onMouseLeave={(e) => {
               if (!loading) {
-                (e.target as HTMLButtonElement).style.background = '#667eea';
+                (e.target as HTMLButtonElement).style.background = '#7aa2f7';
               }
             }}
           >
