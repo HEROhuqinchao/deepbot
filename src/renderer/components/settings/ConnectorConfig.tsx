@@ -23,6 +23,7 @@ interface FeishuConfig {
   appId: string;
   appSecret: string;
   enabled?: boolean;
+  requirePairing?: boolean;
 }
 
 interface PairingRecord {
@@ -46,6 +47,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
     appId: '',
     appSecret: '',
     enabled: false,
+    requirePairing: false,
   });
   const [pairingRecords, setPairingRecords] = useState<PairingRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +127,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
           appId: actualResult.config.appId || '',
           appSecret: actualResult.config.appSecret || '',
           enabled: actualResult.enabled || false,
+          requirePairing: actualResult.config.requirePairing === true, // 默认 false
         });
       } else {
         // 如果没有配置，设置默认值
@@ -132,6 +135,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
           appId: '',
           appSecret: '',
           enabled: false,
+          requirePairing: false,
         });
       }
       
@@ -144,6 +148,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
         appId: '',
         appSecret: '',
         enabled: false,
+        requirePairing: false,
       });
     }
   };
@@ -437,6 +442,27 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
               placeholder="请输入 App Secret"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          {/* 是否需要配对授权 */}
+          <div className="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              id="requirePairing"
+              checked={feishuConfig.requirePairing === true}
+              onChange={(e) => setFeishuConfig({ ...feishuConfig, requirePairing: e.target.checked })}
+              className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <div>
+              <label htmlFor="requirePairing" className="block text-sm font-medium text-gray-700 cursor-pointer">
+                需要配对授权
+              </label>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {feishuConfig.requirePairing === true
+                  ? '用户首次私聊需要管理员批准配对码后才能使用'
+                  : '所有飞书用户可直接对话，无需配对授权（用户会自动加入配对列表）'}
+              </p>
+            </div>
           </div>
 
           {/* 群组使用说明 */}

@@ -153,6 +153,7 @@ export interface Connector {
 export interface FeishuConnectorConfig extends ConnectorConfig {
   appId: string;              // 应用 ID（cli_xxx）
   appSecret: string;          // 应用密钥
+  requirePairing?: boolean;   // 是否需要配对授权，默认 false
 }
 
 /**

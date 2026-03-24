@@ -41,6 +41,18 @@ export async function buildSystemPrompt(params: SystemPromptParams, sessionId?: 
   lines.push(`你的名字: ${agentName}`);
   lines.push(`用户称呼: ${nameConfig.userName}`);
   lines.push('');
+  
+  // 工作目录信息（实时从数据库读取，确保配置修改后立即生效）
+  const settings = configStore.getWorkspaceSettings();
+  lines.push('## 工作目录', '');
+  lines.push(`- 工作目录: ${settings.workspaceDir}`);
+  lines.push(`- 脚本目录: ${settings.scriptDir}`);
+  lines.push(`- 图片目录: ${settings.imageDir}`);
+  lines.push(`- 记忆目录: ${settings.memoryDir}`);
+  if (settings.skillDirs && settings.skillDirs.length > 0) {
+    lines.push(`- Skill 目录: ${settings.skillDirs.join(', ')}`);
+  }
+  lines.push('');
   // lines.push('注意：如果用户要求修改你的名字或用户称呼，使用 memory 工具更新记忆，系统会自动同步到数据库和提示符。');
   lines.push('');
 

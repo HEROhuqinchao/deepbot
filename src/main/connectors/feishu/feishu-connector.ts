@@ -542,7 +542,7 @@ export class FeishuConnector implements Connector {
       }
 
       // 7. 安全检查
-      if (!this.checkSecurity(feishuMessage)) {
+      if (!this.checkSecurity(feishuMessage, openId)) {
         // 私聊未配对：发送配对码
         if (feishuMessage.conversation.type === 'p2p') {
           const code = this.pairing!.generatePairingCode(feishuMessage.sender.id, feishuMessage.sender.name, openId);
@@ -901,9 +901,14 @@ export class FeishuConnector implements Connector {
     return true;
   }
 
-  private checkSecurity(message: FeishuIncomingMessage): boolean {
-    // 私聊：检查是否已配对
+  private checkSecurity(message: FeishuIncomingMessage, openId?: string): boolean {
+    // 私聊：根据配置决定是否需要配对授权
     if (message.conversation.type === 'p2p') {
+      // 不需要配对时，自动将用户加入 pairing 列表并批准
+      if (this.connectorConfig.requirePairing !== true) {
+        this.autoApproveUser(message.sender.id, message.sender.name, openId);
+        return true;
+      }
       return this.pairing!.verifyPairingCode(message.sender.id);
     }
     
@@ -915,6 +920,27 @@ export class FeishuConnector implements Connector {
     }
     
     return true;
+  }
+
+  /**
+   * 自动批准用户（免配对模式下使用）
+   * 如果用户不在 pairing 列表中，自动创建记录并批准
+   */
+  private autoApproveUser(userId: string, userName?: string, openId?: string): void {
+    const store = SystemConfigStore.getInstance();
+    if (store.getPairingRecordByUser('feishu', userId)) return; // 已存在，跳过
+
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const isFirstUser = store.getAllPairingRecords('feishu').length === 0;
+
+    store.savePairingRecord('feishu', userId, code, userName, openId);
+    store.approvePairingRecord(code);
+
+    if (isFirstUser) {
+      store.setAdminPairing('feishu', userId, true);
+    }
+
+    console.log('[FeishuConnector] 🔓 免配对模式：用户已自动加入', { userId, userName });
   }
   
   // ========== Pairing 机制 ==========
