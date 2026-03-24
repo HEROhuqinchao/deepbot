@@ -29,13 +29,20 @@
     "rebuild:node": "node scripts/rebuild-sqlite-node.js",
     "rebuild:electron": "electron-rebuild -f -w better-sqlite3",
     "dev:web": "concurrently \"pnpm run dev:web-server\" \"pnpm run dev:web-renderer\" \"wait-on dist-server/server/index.js --delay 2000 && pnpm run start:web-dev\"",
+    "dev:web-docker": "concurrently \"pnpm run dev:web-server\" \"pnpm run dev:web-renderer\" \"wait-on dist-server/server/index.js --delay 2000 && pnpm run start:web-docker-dev\"",
     "dev:web-server": "tsc -p tsconfig.server.json --watch",
     "dev:web-renderer": "vite --mode web --port 5174",
-    "start:web-dev": "nodemon --watch dist-server --delay 2000ms --exec 'node -r dotenv/config dist-server/server/index.js dotenv_config_path=.env.web'",
+    "start:web-dev": "nodemon --watch dist-server --delay 2000ms --exec 'node -r dotenv/config dist-server/server/index.js dotenv_config_path=.env'",
+    "start:web-docker-dev": "nodemon --watch dist-server --delay 2000ms --exec 'node -r dotenv/config dist-server/server/index.js dotenv_config_path=.env.docker'",
     "build:web": "pnpm run build:web-server && pnpm run build:web-renderer",
     "build:web-server": "tsc -p tsconfig.server.json && node scripts/copy-templates-web.js",
     "build:web-renderer": "vite build --mode web --outDir dist-web",
-    "start:web": "node dist-server/index.js"
+    "start:web": "node dist-server/index.js",
+    "docker:build": "docker build -t deepbot:latest .",
+    "docker:build:multi": "docker buildx build --platform linux/amd64,linux/arm64 -t deepbot:latest --push .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",

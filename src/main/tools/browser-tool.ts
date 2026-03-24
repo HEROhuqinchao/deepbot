@@ -18,6 +18,7 @@ import type { ToolPlugin, ToolCreateOptions } from './registry/tool-interface';
 import { AgentBrowserWrapper } from '../browser/agent-browser-wrapper';
 import { getErrorMessage } from '../../shared/utils/error-handler';
 import { expandUserPath } from '../../shared/utils/path-utils';
+import { isDockerMode } from '../database/workspace-config';
 import { TOOL_NAMES } from './tool-names';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -213,9 +214,11 @@ export const browserToolPlugin: ToolPlugin = {
         
         execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
           try {
-            // 固定使用 CDP 端口 9222
+            // Docker 模式：强制使用 headless Chromium（Playwright），CDP 端口 9222
+            // 非 Docker 模式：连接用户系统 Chrome，CDP 端口 9222
             const cdpPort = 9222;
             const cdpOptions = { port: cdpPort };
+            const dockerMode = isDockerMode();
             
             const params = args as {
               action: typeof BROWSER_ACTIONS[number];
@@ -244,70 +247,104 @@ export const browserToolPlugin: ToolPlugin = {
             // 创建 wrapper（使用 sessionId 和 CDP 选项）
             const wrapper = new AgentBrowserWrapper(sessionId, cdpOptions);
             
-            // 尝试连接，如果失败则自动启动 Chrome
+            // 尝试连接，如果失败则自动启动浏览器
             try {
               // 先尝试获取当前 URL 来测试连接
               await wrapper.getUrl();
             } catch (connectError) {
-              // 尝试启动 Chrome
-              try {
-                const { spawn } = await import('child_process');
-                
-                const platform = process.platform;
-                let command: string;
-                
-                if (platform === 'darwin') {
-                  // macOS: 直接调用 Chrome 可执行文件，前台运行
-                  const userDataDir = expandUserPath('~/.deepbot/browser-profile');
-                  const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-                  command = `"${chromePath}" --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
-                } else if (platform === 'win32') {
-                  command = `start chrome --remote-debugging-port=${cdpPort} --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile --no-first-run --no-default-browser-check`;
-                } else {
-                  // Linux
-                  const userDataDir = expandUserPath('~/.deepbot/browser-profile');
-                  command = `google-chrome --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
-                }
-                
-                // 使用 spawn 启动 Chrome，不等待进程结束
-                if (platform === 'darwin' || platform === 'linux') {
-                  spawn(command, [], {
-                    shell: true,
+              // Docker 模式：启动 Playwright Chromium headless
+              if (dockerMode) {
+                try {
+                  const { spawn } = await import('child_process');
+                  // 使用 Playwright 内置 Chromium，headless 模式，暴露 CDP
+                  spawn('npx', [
+                    'playwright', 'launch-server',
+                    '--browser', 'chromium',
+                    '--port', String(cdpPort),
+                  ], {
                     detached: true,
                     stdio: 'ignore',
+                    env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: '/ms-playwright' },
                   }).unref();
-                } else {
-                  spawn('cmd', ['/c', command], {
-                    detached: true,
-                    stdio: 'ignore',
-                  }).unref();
-                }
-                
-                // 等待 Chrome 启动（最多 10 秒）
-                let connected = false;
-                for (let i = 0; i < 10; i++) {
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                  try {
-                    await wrapper.getUrl();
-                    connected = true;
-                    break;
-                  } catch {
-                    // 继续等待
+                  
+                  // 等待启动（最多 15 秒）
+                  let connected = false;
+                  for (let i = 0; i < 15; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    try {
+                      await wrapper.getUrl();
+                      connected = true;
+                      break;
+                    } catch { /* 继续等待 */ }
                   }
+                  
+                  if (!connected) {
+                    throw new Error('Playwright Chromium 启动超时，请检查容器内 Playwright 是否已安装');
+                  }
+                } catch (launchError) {
+                  throw new Error(`Docker 模式下无法启动 Headless Chromium: ${getErrorMessage(launchError)}`);
                 }
-                
-                if (!connected) {
-                  throw new Error('Chrome 启动超时，请手动启动 Chrome 后重试');
+              } else {
+                // 非 Docker 模式：尝试启动系统 Chrome
+                try {
+                  const { spawn } = await import('child_process');
+                  
+                  const platform = process.platform;
+                  let command: string;
+                  
+                  if (platform === 'darwin') {
+                    // macOS: 直接调用 Chrome 可执行文件，前台运行
+                    const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+                    const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+                    command = `"${chromePath}" --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
+                  } else if (platform === 'win32') {
+                    command = `start chrome --remote-debugging-port=${cdpPort} --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile --no-first-run --no-default-browser-check`;
+                  } else {
+                    // Linux
+                    const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+                    command = `google-chrome --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
+                  }
+                  
+                  // 使用 spawn 启动 Chrome，不等待进程结束
+                  if (platform === 'darwin' || platform === 'linux') {
+                    spawn(command, [], {
+                      shell: true,
+                      detached: true,
+                      stdio: 'ignore',
+                    }).unref();
+                  } else {
+                    spawn('cmd', ['/c', command], {
+                      detached: true,
+                      stdio: 'ignore',
+                    }).unref();
+                  }
+                  
+                  // 等待 Chrome 启动（最多 10 秒）
+                  let connected = false;
+                  for (let i = 0; i < 10; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    try {
+                      await wrapper.getUrl();
+                      connected = true;
+                      break;
+                    } catch {
+                      // 继续等待
+                    }
+                  }
+                  
+                  if (!connected) {
+                    throw new Error('Chrome 启动超时，请手动启动 Chrome 后重试');
+                  }
+              } catch (launchError) {
+                  const launchErrorMsg = getErrorMessage(launchError);
+                  const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+                  
+                  const macCommand = `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
+                  const winCommand = `chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile`;
+                  const linuxCommand = `google-chrome --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
+                  
+                  throw new Error(`无法连接到 Chrome 浏览器。\n\n请先启动 Chrome（使用独立的用户数据目录）：\n\nmacOS:\n${macCommand}\n\nWindows:\n${winCommand}\n\nLinux:\n${linuxCommand}\n\n或在系统配置 > 浏览器工具中点击"启动 Chrome"按钮。\n\n错误详情: ${launchErrorMsg}`);
                 }
-            } catch (launchError) {
-                const launchErrorMsg = getErrorMessage(launchError);
-                const userDataDir = expandUserPath('~/.deepbot/browser-profile');
-                
-                const macCommand = `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
-                const winCommand = `chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile`;
-                const linuxCommand = `google-chrome --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
-                
-                throw new Error(`无法连接到 Chrome 浏览器。\n\n请先启动 Chrome（使用独立的用户数据目录）：\n\nmacOS:\n${macCommand}\n\nWindows:\n${winCommand}\n\nLinux:\n${linuxCommand}\n\n或在系统配置 > 浏览器工具中点击"启动 Chrome"按钮。\n\n错误详情: ${launchErrorMsg}`);
               }
             }
             

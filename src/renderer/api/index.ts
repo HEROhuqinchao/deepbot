@@ -14,6 +14,9 @@ const webEventListeners = new Map<string, Set<Function>>();
 // Web 模式的 WebSocket 实例（单例）
 let wsInstance: WebSocket | null = null;
 
+// 已订阅的 Tab 集合，避免重复订阅
+const subscribedTabs = new Set<string>();
+
 export const api = {
   // ==================== 认证 ====================
 
@@ -102,8 +105,27 @@ export const api = {
 
   async getDefaultWorkspaceSettings(): Promise<any> {
     if (isElectron()) return (window as any).deepbot.getDefaultWorkspaceSettings();
+    // Web 模式：从 getConfig 获取 isDocker 标识，并返回对应的默认路径
+    const config = await webClient.getConfig();
+    const isDocker = config.isDocker === true;
+    if (isDocker) {
+      return {
+        success: true,
+        isDocker: true,
+        settings: {
+          workspaceDir: '/data/workspace',
+          scriptDir: '/data/workspace/.deepbot/scripts',
+          skillDirs: ['/data/skills'],
+          defaultSkillDir: '/data/skills',
+          imageDir: '/data/workspace/.deepbot/generated-images',
+          memoryDir: '/data/memory',
+          sessionDir: '/data/sessions',
+        }
+      };
+    }
     return {
       success: true,
+      isDocker: false,
       settings: { workspaceDir: '~/', scriptDir: '~/.deepbot/scripts', skillDirs: ['~/.agents/skills'], defaultSkillDir: '~/.agents/skills', imageDir: '~/.deepbot/generated-images', memoryDir: '~/.deepbot/memory', sessionDir: '~/.deepbot/sessions' }
     };
   },
@@ -231,13 +253,15 @@ export const api = {
 
   /**
    * 订阅指定 Tab 的 WebSocket 消息（仅 Web 模式）
-   * 连接建立时批量订阅所有 Tab，新 Tab 创建时也调用此方法
+   * 已订阅的 Tab 不会重复发送订阅消息
    */
   subscribeTab(tabId: string): void {
-    if (wsInstance && wsInstance.readyState === WebSocket.OPEN) {
-      console.log(`[API] 订阅 Tab: ${tabId}`);
-      wsInstance.send(JSON.stringify({ type: 'subscribe', tabId }));
-    }
+    if (!wsInstance || wsInstance.readyState !== WebSocket.OPEN) return;
+    // 已订阅则跳过，避免重复日志和无效消息
+    if (subscribedTabs.has(tabId)) return;
+    subscribedTabs.add(tabId);
+    console.log(`[API] 订阅 Tab: ${tabId}`);
+    wsInstance.send(JSON.stringify({ type: 'subscribe', tabId }));
   },
 
   // ==================== 消息管理 ====================
@@ -422,6 +446,8 @@ export const api = {
     ws.addEventListener('close', () => {
       console.log('[WebSocket] 连接已关闭');
       wsInstance = null;
+      // 清空已订阅集合，重连后需要重新订阅
+      subscribedTabs.clear();
     });
 
     ws.addEventListener('error', (error) => {

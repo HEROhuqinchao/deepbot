@@ -270,6 +270,7 @@ export class GatewayAdapter extends EventEmitter {
    */
   async getConfig(): Promise<any> {
     const { SystemConfigStore } = await import('../main/database/system-config-store');
+    const { isDockerMode } = await import('../main/database/workspace-config');
     const store = SystemConfigStore.getInstance();
     
     return {
@@ -279,6 +280,7 @@ export class GatewayAdapter extends EventEmitter {
       connectors: store.getAllConnectorConfigs(),
       imageGeneration: store.getImageGenerationToolConfig(),
       webSearch: store.getWebSearchToolConfig(),
+      isDocker: isDockerMode(), // Docker 模式标识，前端用于置灰目录配置
     };
   }
   

@@ -513,10 +513,7 @@ export class MessageHandler {
           // 等待一小段时间或 prompt 完成
           const raceResult = await Promise.race([
             promptPromise.then(() => 'done'),
-            new Promise<'timeout'>((resolve) => {
-              const timer = setTimeout(() => resolve('timeout'), checkInterval);
-              return () => clearTimeout(timer);
-            }),
+            new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), checkInterval)),
           ]);
           
           if (raceResult === 'done') {

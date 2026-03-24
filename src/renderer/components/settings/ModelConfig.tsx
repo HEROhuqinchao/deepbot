@@ -41,7 +41,8 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const hasLoadedRef = React.useRef(false);
-  const [isFirstTimeConfig, setIsFirstTimeConfig] = useState(false); // 🔥 是否是第一次配置
+  const [isFirstTimeConfig, setIsFirstTimeConfig] = useState(false);
+  const [isFromEnv, setIsFromEnv] = useState(false); // 当前配置是否来自环境变量
 
   // 加载当前配置（防止 Strict Mode 重复执行）
   useEffect(() => {
@@ -61,20 +62,20 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
         // 确保 providerType 和 apiType 字段存在（兼容旧数据）
         const loadedConfig = {
           ...actualResult.config,
-          providerType: actualResult.config.providerType || 'qwen', // 默认为 qwen
-          apiType: actualResult.config.apiType || 'openai-completions', // 默认为 OpenAI 兼容
+          providerType: actualResult.config.providerType || 'qwen',
+          apiType: actualResult.config.apiType || 'openai-completions',
         };
         setConfig(loadedConfig);
         
-        // 🔥 检查是否是第一次配置（没有 API Key）
+        // 标记是否来自环境变量
+        setIsFromEnv(!!actualResult.config.fromEnv);
+        // 来自环境变量也算"已配置"，不弹首次配置提示
         setIsFirstTimeConfig(!loadedConfig.apiKey);
       } else {
-        // 🔥 没有配置，标记为第一次配置
         setIsFirstTimeConfig(true);
       }
     } catch (error) {
       console.error('加载模型配置失败:', error);
-      // 🔥 加载失败也视为第一次配置
       setIsFirstTimeConfig(true);
     }
   };
@@ -128,6 +129,9 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
           text: '✅ 保存成功！配置已生效' 
         });
         
+        // 保存成功后，配置已写入数据库，不再是 env 来源
+        setIsFromEnv(false);
+        
         // 🔥 如果是第一次配置，延迟关闭窗口让用户看到初始化过程
         if (isFirstTimeConfig) {
           setTimeout(() => {
@@ -147,6 +151,27 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
 
   return (
     <div className="space-y-6">
+      {/* 环境变量配置提示 */}
+      {isFromEnv && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">
+                当前使用环境变量配置
+              </h3>
+              <div className="mt-1 text-sm text-blue-700">
+                <p>模型配置来自 <code className="bg-blue-100 px-1 rounded">.env</code> 文件。修改并保存后将优先使用此处的配置。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 顶部提示 */}
       {!config.apiKey && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
@@ -195,6 +220,26 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
           选择预设提供商或自定义配置
         </p>
       </div>
+
+      {/* API 类型（仅自定义模式显示） */}
+      {config.providerType === 'custom' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            API 类型
+          </label>
+          <select
+            value={config.apiType}
+            onChange={(e) => setConfig({ ...config, apiType: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="openai-completions">OpenAI 兼容（OpenAI、OpenRouter、Claude、Qwen、DeepSeek 等）</option>
+            <option value="google-generative-ai">Google Generative AI（Gemini 原生格式）</option>
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            大多数提供商使用 OpenAI 兼容格式，Google Gemini 原生 API 选第二项
+          </p>
+        </div>
+      )}
 
       {/* API 地址 */}
       <div>

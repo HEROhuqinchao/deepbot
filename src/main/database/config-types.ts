@@ -42,6 +42,7 @@ export interface ModelConfig {
   apiKey: string;          // API Key（加密存储）
   contextWindow?: number;  // 上下文窗口大小（tokens）
   lastFetched?: number;    // 最后获取时间（时间戳）
+  fromEnv?: boolean;       // 是否来自环境变量（true = 未在 UI 中配置，使用 .env 默认值）
 }
 
 /**

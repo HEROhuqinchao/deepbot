@@ -158,9 +158,11 @@ export class WebSocketManager {
         break;
         
       case 'subscribe':
-        // 订阅 Tab 消息
-        client.subscriptions.add(message.tabId);
-        console.log(`[WebSocket] 客户端 ${clientId} 订阅 Tab ${message.tabId}`);
+        // 已订阅则跳过，避免重复日志
+        if (!client.subscriptions.has(message.tabId)) {
+          client.subscriptions.add(message.tabId);
+          console.log(`[WebSocket] 客户端 ${clientId} 订阅 Tab ${message.tabId}`);
+        }
         break;
         
       case 'unsubscribe':

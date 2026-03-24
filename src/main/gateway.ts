@@ -681,6 +681,13 @@ export class Gateway {
   getTabManager(): GatewayTabManager {
     return this.tabManager;
   }
+
+  /**
+   * 获取主窗口（Electron 模式为 BrowserWindow，Web 模式为虚拟窗口）
+   */
+  getMainWindow(): any {
+    return this.mainWindow;
+  }
   
   /**
    * 获取指定会话的 AgentRuntime 实例

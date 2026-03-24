@@ -73,12 +73,18 @@ export async function getGatewayInstance() {
 
 /**
  * 发送事件到前端窗口
+ * 通过 Gateway 主窗口发送，兼容 Electron 和 Web 模式：
+ * - Electron 模式：mainWindow 是真实的 BrowserWindow
+ * - Web 模式：mainWindow 是虚拟窗口，会转发到 WebSocket
  */
 export async function sendToFrontend(eventName: string, data: any): Promise<void> {
-  const { BrowserWindow } = require('electron');
-  const mainWindow = BrowserWindow.getAllWindows()[0];
-  if (mainWindow) {
-    const { sendToWindow } = await import('../../../shared/utils/webcontents-utils');
-    sendToWindow(mainWindow, eventName, data);
-  }
+  const { getGatewayInstance } = await import('../../gateway');
+  const gateway = getGatewayInstance();
+  if (!gateway) return;
+
+  const mainWindow = gateway.getMainWindow();
+  if (!mainWindow) return;
+
+  const { sendToWindow } = await import('../../../shared/utils/webcontents-utils');
+  sendToWindow(mainWindow, eventName, data);
 }

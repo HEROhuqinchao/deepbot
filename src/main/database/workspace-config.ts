@@ -10,9 +10,34 @@ import { safeJsonParse, safeJsonStringify } from '../../shared/utils/json-utils'
 import type { WorkspaceSettings } from './config-types';
 
 /**
+ * 是否运行在 Docker 容器中
+ */
+export function isDockerMode(): boolean {
+  return process.env.DEEPBOT_DOCKER === 'true';
+}
+
+/**
  * 获取默认工作目录配置（绝对路径）
+ * Docker 模式下返回 /data/ 固定路径
  */
 export function getDefaultWorkspaceSettings(): WorkspaceSettings {
+  // Docker 模式：优先读环境变量（本地调试用），fallback 到 /data/* 固定路径（生产容器）
+  if (isDockerMode()) {
+    const workspaceDir = process.env.WORKSPACE_DIR || '/data/workspace';
+    const skillsDir = process.env.SKILLS_DIR || '/data/skills';
+    const memoryDir = process.env.MEMORY_DIR || '/data/memory';
+    const sessionsDir = process.env.SESSIONS_DIR || '/data/sessions';
+    return {
+      workspaceDir,
+      scriptDir: join(workspaceDir, '.deepbot', 'scripts'),
+      skillDirs: [skillsDir],
+      defaultSkillDir: skillsDir,
+      imageDir: join(workspaceDir, '.deepbot', 'generated-images'),
+      memoryDir,
+      sessionDir: sessionsDir,
+    };
+  }
+
   return {
     workspaceDir: homedir(), // 默认工作目录为用户主目录
     scriptDir: join(homedir(), '.deepbot', 'scripts'),
@@ -20,7 +45,7 @@ export function getDefaultWorkspaceSettings(): WorkspaceSettings {
     defaultSkillDir: join(homedir(), '.agents', 'skills'),
     imageDir: join(homedir(), '.deepbot', 'generated-images'),
     memoryDir: join(homedir(), '.deepbot', 'memory'),
-    sessionDir: join(homedir(), '.deepbot', 'sessions'), // 🔥 新增：session 目录
+    sessionDir: join(homedir(), '.deepbot', 'sessions'), // session 目录
   };
 }
 

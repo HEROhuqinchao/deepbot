@@ -38,12 +38,17 @@ export class SystemConfigStore {
   private static instance: SystemConfigStore | null = null;
 
   constructor(dbPath?: string) {
-    // 默认数据库路径：~/.deepbot/system-config.db
-    const defaultPath = join(homedir(), '.deepbot', 'system-config.db');
+    // Docker 模式：优先读 DB_DIR 环境变量（本地调试用），fallback 到 /data/db（生产容器）
+    // 普通模式：默认 ~/.deepbot/system-config.db
+    const isDocker = process.env.DEEPBOT_DOCKER === 'true';
+    const dockerDbDir = process.env.DB_DIR || '/data/db';
+    const defaultPath = isDocker
+      ? join(dockerDbDir, 'system-config.db')
+      : join(homedir(), '.deepbot', 'system-config.db');
     const path = dbPath || defaultPath;
 
     // 确保目录存在
-    const dir = join(homedir(), '.deepbot');
+    const dir = isDocker ? dockerDbDir : join(homedir(), '.deepbot');
     ensureDirectoryExists(dir);
 
     // 打开数据库

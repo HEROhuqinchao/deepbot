@@ -31,7 +31,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
     defaultSkillDir: '',
     imageDir: '',
     memoryDir: '',
-    sessionDir: '', // 🔥 新增
+    sessionDir: '',
   });
   const [defaultSettings, setDefaultSettings] = useState<WorkspaceSettings>({
     workspaceDir: '',
@@ -40,8 +40,9 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
     defaultSkillDir: '',
     imageDir: '',
     memoryDir: '',
-    sessionDir: '', // 🔥 新增
+    sessionDir: '',
   });
+  const [isDocker, setIsDocker] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -71,6 +72,10 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
       
       if (defaultResult.success && defaultResult.settings) {
         setDefaultSettings(defaultResult.settings);
+        // 检测 Docker 模式
+        if (defaultResult.isDocker) {
+          setIsDocker(true);
+        }
       }
     } catch (error) {
       console.error('加载工作目录配置失败:', error);
@@ -345,6 +350,21 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
         </p>
       </div>
 
+      {/* Docker 模式提示 */}
+      {isDocker && (
+        <div className="bg-blue-900/30 border border-blue-500/50 rounded-md p-3">
+          <div className="flex items-start gap-2">
+            <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <div className="text-sm text-blue-300">
+              <p className="font-medium">Docker 模式</p>
+              <p className="mt-0.5 text-blue-400">目录由 docker-compose.yml 的 volume 挂载决定，无法在此修改。如需更改，请修改 .env 文件后重启容器。</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 默认工作目录 - 放在第一个位置 */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
@@ -358,20 +378,22 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             type="text"
             value={settings.workspaceDir}
             onChange={(e) => setSettings({ ...settings, workspaceDir: e.target.value })}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isDocker}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder={defaultSettings.workspaceDir || '~/'}
             required
           />
           <button
             onClick={handleResetWorkspaceDir}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            disabled={isDocker}
+            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             重置
           </button>
           <button
             onClick={handleSaveWorkspaceDir}
-            disabled={saving || !settings.workspaceDir.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
+            disabled={saving || !settings.workspaceDir.trim() || isDocker}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
           >
             {saving ? '保存中...' : '保存'}
           </button>
@@ -405,19 +427,21 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             type="text"
             value={settings.scriptDir}
             onChange={(e) => setSettings({ ...settings, scriptDir: e.target.value })}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isDocker}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="~/.deepbot/scripts"
           />
           <button
             onClick={handleResetScriptDir}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            disabled={isDocker}
+            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             重置
           </button>
           <button
             onClick={handleSaveScriptDir}
-            disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
+            disabled={saving || isDocker}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
           >
             {saving ? '保存中...' : '保存'}
           </button>
@@ -440,19 +464,21 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             type="text"
             value={settings.imageDir}
             onChange={(e) => setSettings({ ...settings, imageDir: e.target.value })}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isDocker}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="~/.deepbot/generated-images"
           />
           <button
             onClick={handleResetImageDir}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            disabled={isDocker}
+            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             重置
           </button>
           <button
             onClick={handleSaveImageDir}
-            disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
+            disabled={saving || isDocker}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
           >
             {saving ? '保存中...' : '保存'}
           </button>
@@ -475,19 +501,21 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             type="text"
             value={settings.memoryDir}
             onChange={(e) => setSettings({ ...settings, memoryDir: e.target.value })}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isDocker}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="~/.deepbot/memory"
           />
           <button
             onClick={handleResetMemoryDir}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            disabled={isDocker}
+            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             重置
           </button>
           <button
             onClick={handleSaveMemoryDir}
-            disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
+            disabled={saving || isDocker}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
           >
             {saving ? '保存中...' : '保存'}
           </button>
@@ -510,19 +538,21 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             type="text"
             value={settings.sessionDir}
             onChange={(e) => setSettings({ ...settings, sessionDir: e.target.value })}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isDocker}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="~/.deepbot/sessions"
           />
           <button
             onClick={handleResetSessionDir}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            disabled={isDocker}
+            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             重置
           </button>
           <button
             onClick={handleSaveSessionDir}
-            disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
+            disabled={saving || isDocker}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
           >
             {saving ? '保存中...' : '保存'}
           </button>
@@ -538,12 +568,14 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           <label className="block text-sm font-medium text-gray-700">
             Skill 工作目录
           </label>
-          <button
-            onClick={() => setShowAddInput(!showAddInput)}
-            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
-          >
-            {showAddInput ? '取消' : '+ 添加路径'}
-          </button>
+          {!isDocker && (
+            <button
+              onClick={() => setShowAddInput(!showAddInput)}
+              className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              {showAddInput ? '取消' : '+ 添加路径'}
+            </button>
+          )}
         </div>
         <p className="text-xs text-gray-500 mb-2">
           Skill 将安装到这些目录，可以配置多个路径
@@ -598,7 +630,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
                 )}
               </div>
               <div className="flex gap-2">
-                {dir !== settings.defaultSkillDir && (
+                {dir !== settings.defaultSkillDir && !isDocker && (
                   <button
                     onClick={() => handleSetDefaultSkillDir(dir)}
                     disabled={saving}
@@ -607,7 +639,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
                     设为默认
                   </button>
                 )}
-                {settings.skillDirs.length > 1 && dir !== settings.defaultSkillDir && (
+                {settings.skillDirs.length > 1 && dir !== settings.defaultSkillDir && !isDocker && (
                   <button
                     onClick={() => handleRemoveSkillDir(dir)}
                     disabled={saving}

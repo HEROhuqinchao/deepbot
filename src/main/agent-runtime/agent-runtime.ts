@@ -80,7 +80,7 @@ export class AgentRuntime {
     
     // 如果数据库中没有，使用模型 ID 推断
     if (!contextWindow) {
-      const { getContextWindowFromModelId } = require('./utils/model-info-fetcher');
+      const { getContextWindowFromModelId } = require('../utils/model-info-fetcher');
       contextWindow = getContextWindowFromModelId(this.config.modelId);
       console.log('✅ 从模型 ID 推断上下文窗口:', contextWindow);
     }

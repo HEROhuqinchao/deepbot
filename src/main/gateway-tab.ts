@@ -206,9 +206,31 @@ export class GatewayTabManager {
       
       if (shouldSendWelcome) {
         await this.sendWelcomeMessage();
+      } else {
+        // 有历史消息时，推送所有 Tab 的历史（用于浏览器刷新后恢复）
+        await this.pushAllTabHistories();
       }
     } catch (error) {
       console.error('[TabManager] ❌ 检查欢迎消息失败:', getErrorMessage(error));
+    }
+  }
+
+  /**
+   * 推送所有 Tab 的历史消息（Web 模式下浏览器刷新后恢复用）
+   */
+  private async pushAllTabHistories(): Promise<void> {
+    const allTabIds = Array.from(this.tabs.keys());
+    for (const tabId of allTabIds) {
+      try {
+        const messages = await this.sessionManager!.loadUIMessages(tabId);
+        const tab = this.tabs.get(tabId);
+        if (tab) {
+          tab.messages = messages;
+        }
+        sendToWindow(this.mainWindow, 'tab:history-loaded', { tabId, messages });
+      } catch (error) {
+        console.error(`[TabManager] ❌ 推送 Tab 历史失败: ${tabId}`, getErrorMessage(error));
+      }
     }
   }
   
