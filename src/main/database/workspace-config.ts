@@ -55,6 +55,12 @@ export function getDefaultWorkspaceSettings(): WorkspaceSettings {
 export function getWorkspaceSettings(db: Database.Database): WorkspaceSettings {
   const defaultSettings = getDefaultWorkspaceSettings();
 
+  // 🔥 Docker 模式下强制使用默认路径，忽略数据库配置
+  if (isDockerMode()) {
+    console.log('[WorkspaceConfig] 🐳 Docker 模式：使用固定路径 /data/*');
+    return defaultSettings;
+  }
+
   try {
     const values = getKeyValueBatch(db, 'workspace_settings', [
       'workspaceDir',

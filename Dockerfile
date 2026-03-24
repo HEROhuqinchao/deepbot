@@ -101,7 +101,7 @@ RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
 # 启动服务\n\
-exec node -r dotenv/config dist-server/server/index.js dotenv_config_path=/app/.env\n\
+exec node dist-server/server/index.js\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
 # 启动命令
