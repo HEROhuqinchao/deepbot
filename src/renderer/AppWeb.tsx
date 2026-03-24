@@ -32,6 +32,7 @@ export function AppWeb() {
   const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
   const [hasModelConfig, setHasModelConfig] = useState(true);
   const [pendingPairingCount, setPendingPairingCount] = useState(0);
+  const [isKicked, setIsKicked] = useState(false);
 
   // 检查登录状态并建立 WebSocket 连接
   useEffect(() => {
@@ -52,6 +53,16 @@ export function AppWeb() {
       console.log('[AppWeb] 用户已登录，建立 WebSocket 连接');
       api.createWebSocket();
     }
+  }, [isAuthenticated]);
+
+  // 监听被踢出事件
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const unsubscribe = api.onSessionKicked(() => {
+      console.log('[AppWeb] 🔒 当前会话被踢出');
+      setIsKicked(true);
+    });
+    return unsubscribe;
   }, [isAuthenticated]);
 
   // 登录成功处理
@@ -718,6 +729,48 @@ export function AppWeb() {
           setIsSystemSettingsOpen(false);
         }}
       />
+
+      {/* 被踢出遮罩层 */}
+      {isKicked && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(26, 31, 46, 0.95)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 99999,
+          gap: '20px',
+        }}>
+          <div style={{ fontSize: '48px' }}>🔒</div>
+          <div style={{ color: '#f7768e', fontSize: '18px', fontWeight: 600 }}>
+            会话已断开
+          </div>
+          <div style={{ color: '#8b9aaf', fontSize: '14px', textAlign: 'center', lineHeight: 1.6 }}>
+            你的账号在其他设备登录，当前会话已被踢出
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: '12px',
+              padding: '10px 32px',
+              backgroundColor: '#7aa2f7',
+              color: '#1a1f2e',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            重新连接
+          </button>
+        </div>
+      )}
     </>
   );
 }

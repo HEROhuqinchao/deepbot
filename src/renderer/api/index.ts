@@ -374,6 +374,12 @@ export const api = {
     return this._registerWebEvent('message:error', callback);
   },
 
+  // 监听被踢出事件（仅 Web 模式）
+  onSessionKicked(callback: (data: { reason: string }) => void): () => void {
+    if (isElectron()) return () => {};
+    return this._registerWebEvent('session:kicked', callback);
+  },
+
   // ==================== WebSocket 管理 ====================
 
   /**

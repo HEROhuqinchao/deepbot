@@ -63,4 +63,5 @@ export type ServerMessage =
   | { type: 'clear-chat'; sessionId: string }
   | { type: 'name-config:update'; agentName?: string; userName?: string; tabId?: string; isGlobalUpdate?: boolean }
   | { type: 'model-config:update' }
-  | { type: 'pending-count:update'; pendingCount: number };
+  | { type: 'pending-count:update'; pendingCount: number }
+  | { type: 'session:kicked'; reason: string };

@@ -47,6 +47,27 @@ export class WebSocketManager {
   }
   
   /**
+   * 踢掉同一用户的旧连接（后来者踢掉先来者）
+   */
+  private kickExistingClients(newClientId: string, userId: string): void {
+    for (const [clientId, client] of this.clients) {
+      if (clientId !== newClientId && client.userId === userId) {
+        console.log(`[WebSocket] 🔒 踢掉旧连接 ${clientId}（用户 ${userId} 在新设备登录）`);
+        // 发送被踢消息
+        if (client.ws.readyState === WebSocket.OPEN) {
+          client.ws.send(JSON.stringify({
+            type: 'session:kicked',
+            reason: '你的账号在其他设备登录，当前会话已断开',
+          }));
+        }
+        // 关闭旧连接
+        client.ws.close(4001, '被新连接踢出');
+        this.clients.delete(clientId);
+      }
+    }
+  }
+
+  /**
    * 处理新的 WebSocket 连接
    */
   private handleConnection(ws: WebSocket, request: IncomingMessage): void {
@@ -62,6 +83,9 @@ export class WebSocketManager {
         userId: 'default',
         subscriptions: new Set()
       });
+      
+      // 踢掉同一用户的旧连接
+      this.kickExistingClients(clientId, 'default');
       
       console.log(`[WebSocket] 客户端 ${clientId} 连接成功（无密码模式）`);
       this.setupClientHandlers(clientId, ws);
@@ -86,6 +110,9 @@ export class WebSocketManager {
         userId: decoded.userId,
         subscriptions: new Set()
       });
+      
+      // 踢掉同一用户的旧连接
+      this.kickExistingClients(clientId, decoded.userId);
       
       console.log(`[WebSocket] 用户 ${decoded.userId} 连接成功`);
       this.setupClientHandlers(clientId, ws);
