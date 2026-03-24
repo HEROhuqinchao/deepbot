@@ -560,7 +560,8 @@ export class GatewayAdapter extends EventEmitter {
       const result = await tool.execute('skill-manager', request);
       
       // Tool 返回格式: { content: [...], details: actualData }
-      if (result.isError) {
+      // details.success === false 表示工具执行失败
+      if (result.details?.success === false) {
         return {
           success: false,
           error: result.details?.error || '未知错误',
