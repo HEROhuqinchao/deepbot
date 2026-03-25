@@ -428,6 +428,12 @@ export class GatewayAdapter extends EventEmitter {
   }
   
   async connectorStart(connectorId: string): Promise<any> {
+    const { SystemConfigStore } = await import('../main/database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    
+    // 先更新数据库状态（必须在 startConnector 之前，与 Electron 版本一致）
+    store.setConnectorEnabled(connectorId, true);
+    
     const connectorManager = this.gateway.getConnectorManager();
     await connectorManager.startConnector(connectorId as any);
     return { success: true, message: '连接器已启动' };
@@ -436,6 +442,12 @@ export class GatewayAdapter extends EventEmitter {
   async connectorStop(connectorId: string): Promise<any> {
     const connectorManager = this.gateway.getConnectorManager();
     await connectorManager.stopConnector(connectorId as any);
+    
+    // 更新数据库状态（与 Electron 版本一致）
+    const { SystemConfigStore } = await import('../main/database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    store.setConnectorEnabled(connectorId, false);
+    
     return { success: true, message: '连接器已停止' };
   }
   
