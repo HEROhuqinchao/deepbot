@@ -332,20 +332,21 @@ export class GatewayConnectorHandler {
 - feishu_doc_create: 创建飞书云文档（参数: title, folder_token?）
 - feishu_doc_get: 获取文档信息和纯文本内容（参数: document_id）
 - feishu_doc_get_blocks: 获取文档所有块列表，更新/删除块前先调用此工具获取 block_id（参数: document_id）
-- feishu_doc_append: 追加内容到文档末尾（参数: document_id, content）
 - feishu_doc_update_block: 更新指定块的文本内容（参数: document_id, block_id, content）
 - feishu_doc_delete_blocks: 删除文档中指定范围的块（参数: document_id, start_index, end_index，parent_block_id 可选默认同 document_id）
 - feishu_doc_delete_file: 永久删除整篇文档文件，不可恢复（参数: document_id）
 - feishu_doc_add_comment: 在文档中添加评论（参数: document_id, content）
 - feishu_drive_download: 下载飞书云空间文件到本地（参数: file_token, file_name?）
+- feishu_doc_insert_rich_blocks: 将 Markdown/HTML 内容转换为丰富格式文档块并插入文档，支持标题、表格、列表、代码块、引用、图片等（参数: document_id, content, content_type?, index?, parent_block_id?）
 
 注意：
-1. feishu_doc_append 是追加正文内容，feishu_doc_add_comment 是添加评论，客户要求添加评论时使用后者
-2. 不要用markdown格式回复内容，不要使用表格回复内容，飞书只能接收无格式的的字符，注意排版优美
+1. feishu_doc_add_comment 是添加文档评论，不是追加正文内容
+2. 不要用markdown格式回复内容，不要使用表格回复内容，飞书只能接收无格式的的字符，除非需要创建飞书文档
 3. 回复的内容超过1000个字，创建飞书文档回复
-4. 回复的时候根据回复的内容，带上用户的名字
-5. 来自信息中包含了发送信息的用户的姓名，群消息还包含群名称，收到消息中的“我”就是发送者，如果当前信息来自群，“我”指代群本身。执行任务时需要用正确名称代替。
-6. 禁止使用 feishu_send_message 工具给自己发送消息，可以发送给其他用户和群]`;
+4. 创建飞书文档时，使用 feishu_doc_insert_rich_blocks 插入丰富格式内容（Markdown）
+5. 回复的时候根据回复的内容，带上用户的名字
+6. 来自信息中包含了发送信息的用户的姓名，群消息还包含群名称，收到消息中的“我”就是发送者，如果当前信息来自群，“我”指代群本身。执行任务时需要用正确名称代替。
+7. 不要使用 feishu_send_message 工具回复，除非收到明确指令要给具体目标发送消息]`;
 
     // 额外系统通知（由连接器按需注入，如首次管理员授权提示）
     const extraNotice = message.systemContext ? `\n\n${message.systemContext}` : '';

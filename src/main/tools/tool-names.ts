@@ -74,6 +74,7 @@ export const TOOL_NAMES = {
   FEISHU_DOC_GET_BLOCKS: 'feishu_doc_get_blocks',
   FEISHU_DOC_ADD_COMMENT: 'feishu_doc_add_comment',
   FEISHU_DRIVE_DOWNLOAD: 'feishu_drive_download',
+  FEISHU_DOC_INSERT_RICH_BLOCKS: 'feishu_doc_insert_rich_blocks',
   
   // AI 对话工具
   CHAT: 'chat',

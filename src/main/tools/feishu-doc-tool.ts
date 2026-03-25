@@ -8,6 +8,8 @@
  * - 追加内容到文档末尾
  * - 更新指定块内容
  * - 删除文档中的块
+ * - 插入丰富格式内容（Markdown/HTML → 文档块，支持表格、标题、列表等）
+ * - 插入嵌套块结构（直接构建表格、多级列表等复杂结构）
  *
  * 依赖飞书连接器配置中的 appId / appSecret
  */
@@ -17,6 +19,7 @@ import type { ToolPlugin, ToolCreateOptions } from './registry/tool-interface';
 import { getErrorMessage } from '../../shared/utils/error-handler';
 import { TOOL_NAMES } from './tool-names';
 import { createLogger } from '../../shared/utils/logger';
+import { createRichBlockTools } from './feishu-doc-rich-blocks';
 
 const logger = createLogger('FeishuDocTool');
 
@@ -158,7 +161,7 @@ export const feishuDocToolPlugin: ToolPlugin = {
     id: 'feishu-doc-tool',
     name: 'feishu_doc',
     version: '1.0.0',
-    description: '操作飞书云文档：创建、读取、追加内容、更新块、删除块、获取所有块',
+    description: '操作飞书云文档：创建、读取、追加内容、更新块、删除块、获取所有块、插入丰富格式内容、插入嵌套块',
     author: 'DeepBot',
     category: 'network',
     tags: ['feishu', 'lark', 'doc', 'document'],
@@ -282,44 +285,44 @@ export const feishuDocToolPlugin: ToolPlugin = {
         },
       },
 
-      // ── 追加内容 ──────────────────────────────────────────────
-      {
-        name: TOOL_NAMES.FEISHU_DOC_APPEND,
-        label: '追加内容到飞书文档',
-        description: '将文本内容追加到飞书文档末尾',
-        parameters: Type.Object({
-          document_id: Type.String({ description: '文档 ID' }),
-          content: Type.String({ description: '要追加的文本内容' }),
-        }),
-        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
-          try {
-            checkAbort(signal);
-            const client = await getLarkClient();
-            logger.info('追加内容到文档:', args.document_id);
-            const res = await client.docx.v1.documentBlockChildren.create({
-              path: { document_id: args.document_id, block_id: args.document_id },
-              params: { document_revision_id: -1 },
-              data: {
-                children: [{
-                  block_type: 2,
-                  text: {
-                    elements: [{ text_run: { content: args.content } }],
-                    style: {},
-                  },
-                }],
-                index: -1,
-              },
-            });
-            return {
-              content: [{ type: 'text' as const, text: `✅ 内容已追加到文档\n链接: ${docUrl(args.document_id)}` }],
-              details: { document_id: args.document_id, url: docUrl(args.document_id), result: res?.data },
-            };
-          } catch (error) {
-            logger.error('追加内容失败:', error);
-            return errResult('追加内容失败', error);
-          }
-        },
-      },
+      // ── 追加内容（已废弃，使用 feishu_doc_insert_rich_blocks 替代）──
+      // {
+      //   name: TOOL_NAMES.FEISHU_DOC_APPEND,
+      //   label: '追加内容到飞书文档',
+      //   description: '将文本内容追加到飞书文档末尾',
+      //   parameters: Type.Object({
+      //     document_id: Type.String({ description: '文档 ID' }),
+      //     content: Type.String({ description: '要追加的文本内容' }),
+      //   }),
+      //   execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
+      //     try {
+      //       checkAbort(signal);
+      //       const client = await getLarkClient();
+      //       logger.info('追加内容到文档:', args.document_id);
+      //       const res = await client.docx.v1.documentBlockChildren.create({
+      //         path: { document_id: args.document_id, block_id: args.document_id },
+      //         params: { document_revision_id: -1 },
+      //         data: {
+      //           children: [{
+      //             block_type: 2,
+      //             text: {
+      //               elements: [{ text_run: { content: args.content } }],
+      //               style: {},
+      //             },
+      //           }],
+      //           index: -1,
+      //         },
+      //       });
+      //       return {
+      //         content: [{ type: 'text' as const, text: `✅ 内容已追加到文档\n链接: ${docUrl(args.document_id)}` }],
+      //         details: { document_id: args.document_id, url: docUrl(args.document_id), result: res?.data },
+      //       };
+      //     } catch (error) {
+      //       logger.error('追加内容失败:', error);
+      //       return errResult('追加内容失败', error);
+      //     }
+      //   },
+      // },
 
       // ── 更新块内容 ────────────────────────────────────────────
       {
@@ -533,6 +536,15 @@ export const feishuDocToolPlugin: ToolPlugin = {
           }
         },
       },
+
+      // ── 丰富格式块工具（Markdown 转换 + 嵌套块创建）──────────
+      ...createRichBlockTools(
+        getLarkClient,
+        () => configStoreInstance,
+        docUrl,
+        errResult,
+        checkAbort
+      ),
 
     ];
   },
