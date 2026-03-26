@@ -11,6 +11,7 @@
   --settings-text-dim: #8b9aaf;
   --settings-border: #2d3748;
   --settings-accent: #7aa2f7;
+  --settings-accent-hover: #5b8ae0;
   --settings-success: #9ece6a;
   --settings-error: #f7768e;
   --settings-warning: #e0af68;
@@ -19,14 +20,15 @@
 /* 浅色设置主题 */
 [data-theme="light"] {
   --settings-bg: #ffffff;
-  --settings-bg-light: #f5f5f7;
+  --settings-bg-light: #f8f8fa;
   --settings-text: #1d1d1f;
-  --settings-text-dim: #86868b;
-  --settings-border: #e8e8ed;
-  --settings-accent: #0071e3;
-  --settings-success: #248a3d;
-  --settings-error: #de3730;
-  --settings-warning: #bf8600;
+  --settings-text-dim: #8e8e93;
+  --settings-border: #d1d1d6;
+  --settings-accent: #007aff;
+  --settings-accent-hover: #0056b3;
+  --settings-success: #34c759;
+  --settings-error: #ff3b30;
+  --settings-warning: #ff9500;
 }
 
 /* ========== 模态框遮罩层 ========== */
@@ -588,3 +590,5 @@
 .fixed .opacity-60 {
   opacity: 0.7 !important;
 }
+
+/* ========== 浅色模式覆盖 ========== */

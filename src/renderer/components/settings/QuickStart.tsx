@@ -43,18 +43,17 @@ export function QuickStart(_props: QuickStartProps) {
   return (
     <div className="settings-section">
       {/* 欢迎横幅 */}
-      <div style={{ 
+      <div className="quickstart-welcome" style={{ 
         marginBottom: '12px', 
         padding: '16px 20px', 
-        background: 'linear-gradient(135deg, var(--settings-accent) 0%, var(--settings-accent-hover) 100%)',
         borderRadius: '8px',
-        color: '#fff'
+        color: 'var(--settings-text)'
       }}>
-        <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '6px', color: '#fff', display: 'flex', alignItems: 'center', marginLeft: '-20px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '6px', color: 'inherit', display: 'flex', alignItems: 'center', marginLeft: '-20px' }}>
           <span style={{ marginRight: '8px' }}>👋</span>
           欢迎使用 DeepBot
         </h2>
-        <p style={{ fontSize: '13px', lineHeight: '1.5', opacity: 0.95 }}>
+        <p style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--settings-text-dim)' }}>
           DeepBot 是一个系统级 AI 助手，会更多探索企业生产提效方向。它能够与企业现有系统深度结合，让 AI 深入参与各部门的日常办公提效，通过多 Agent 协作模式实现复杂业务流程的自动化。无论是文档处理、数据分析、系统监控，还是跨部门协作任务，DeepBot 都能通过 AI Agent 技术帮助企业轻松搞定。它支持多任务并行处理、定时任务、技能扩展等功能，同时通过严格的安全机制保护企业系统安全。
         </p>
       </div>

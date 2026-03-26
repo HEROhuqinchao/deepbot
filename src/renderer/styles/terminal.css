@@ -32,29 +32,29 @@
 
 /* 浅色终端主题 - Apple 风格 */
 [data-theme="light"] {
-  --terminal-bg: #f5f5f7;
+  --terminal-bg: #f8f8fa;
   --terminal-text: #1d1d1f;
-  --terminal-text-dim: #86868b;
-  --terminal-prompt-user: #0071e3;
-  --terminal-prompt-agent: #7d3caf;
-  --terminal-border: #e8e8ed;
-  --terminal-selection: rgba(0, 113, 227, 0.12);
-  --terminal-cursor: #0071e3;
-  --terminal-error: #de3730;
-  --terminal-warning: #bf8600;
-  --terminal-success: #248a3d;
+  --terminal-text-dim: #8e8e93;
+  --terminal-prompt-user: #007aff;
+  --terminal-prompt-agent: #5856d6;
+  --terminal-border: #d1d1d6;
+  --terminal-selection: rgba(0, 122, 255, 0.15);
+  --terminal-cursor: #007aff;
+  --terminal-error: #ff3b30;
+  --terminal-warning: #ff9500;
+  --terminal-success: #34c759;
   --terminal-overlay: rgba(0, 0, 0, 0.03);
   --terminal-overlay-heavy: rgba(0, 0, 0, 0.06);
-  --terminal-shadow: rgba(0, 0, 0, 0.06);
+  --terminal-shadow: rgba(0, 0, 0, 0.08);
   --terminal-code-bg: rgba(0, 0, 0, 0.04);
-  --terminal-accent-bg: rgba(0, 113, 227, 0.04);
-  --terminal-accent-bg-hover: rgba(0, 113, 227, 0.07);
-  --terminal-accent-bg-active: rgba(0, 113, 227, 0.1);
-  --terminal-accent-border: rgba(0, 113, 227, 0.15);
-  --terminal-accent-glow: rgba(0, 113, 227, 0.1);
+  --terminal-accent-bg: rgba(0, 122, 255, 0.04);
+  --terminal-accent-bg-hover: rgba(0, 122, 255, 0.08);
+  --terminal-accent-bg-active: rgba(0, 122, 255, 0.12);
+  --terminal-accent-border: rgba(0, 122, 255, 0.2);
+  --terminal-accent-glow: rgba(0, 122, 255, 0.12);
   --terminal-line-hover: transparent;
-  --terminal-header-bg: rgba(255, 255, 255, 0.85);
-  --terminal-input-focus-bg: rgba(255, 255, 255, 0.9);
+  --terminal-header-bg: rgba(255, 255, 255, 0.8);
+  --terminal-input-focus-bg: #ffffff;
 }
 
 /* 终端容器 */
@@ -1560,3 +1560,187 @@ ul.terminal-list {
   }
 }
 
+
+/* ========== 浅色模式覆盖样式 ========== */
+
+/* header：纯白底 + 底部阴影代替边框线 */
+[data-theme="light"] .terminal-header {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: none;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* 输入框区域：纯白底 + 顶部阴影浮起 */
+[data-theme="light"] .terminal-input-container {
+  background: rgba(255, 255, 255, 0.92);
+  border-top: none;
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.06), 0 -4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* 输入框：白色卡片感 */
+[data-theme="light"] .terminal-input-with-upload {
+  background: #ffffff;
+  border-color: #d1d1d6;
+}
+
+[data-theme="light"] .terminal-input-with-upload:focus-within {
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+
+/* 按钮：圆角胶囊风格 */
+[data-theme="light"] .terminal-control-button {
+  background: #ffffff;
+  border: 1px solid #d1d1d6;
+  border-radius: 8px;
+  color: #1d1d1f;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .terminal-control-button:hover {
+  background: #f2f2f7;
+  border-color: #007aff;
+  color: #007aff;
+  box-shadow: 0 1px 4px rgba(0, 122, 255, 0.15);
+}
+
+/* 发送按钮 */
+[data-theme="light"] .terminal-button {
+  background: #007aff;
+  border: none;
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 122, 255, 0.3);
+}
+
+[data-theme="light"] .terminal-button:hover {
+  background: #0066d6;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+}
+
+/* 代码块：白色卡片 */
+[data-theme="light"] .terminal-code-block {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 8px;
+}
+
+/* 行内代码 */
+[data-theme="light"] .terminal-code {
+  background: rgba(0, 0, 0, 0.05);
+  color: #d63384;
+  border-radius: 4px;
+}
+
+/* 执行步骤区域：白色卡片 */
+[data-theme="light"] .terminal-execution-detail-content {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 8px;
+}
+
+/* 链接颜色 */
+[data-theme="light"] .terminal-link {
+  color: #007aff;
+}
+
+[data-theme="light"] .terminal-link:hover {
+  color: #0056b3;
+  text-shadow: none;
+}
+
+/* 表格 */
+[data-theme="light"] .terminal-message table {
+  border: 1px solid #e5e5ea;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+[data-theme="light"] .terminal-message table th {
+  background: #f0f0f5;
+  color: #1d1d1f;
+  border-color: #e5e5ea;
+}
+
+[data-theme="light"] .terminal-message table td {
+  border-color: #e5e5ea;
+}
+
+/* 滚动条 */
+[data-theme="light"] .terminal-content::-webkit-scrollbar-thumb {
+  background: #c7c7cc;
+}
+
+[data-theme="light"] .terminal-content::-webkit-scrollbar-thumb:hover {
+  background: #8e8e93;
+}
+
+/* 执行步骤中的代码/JSON 内容：深色文字 */
+[data-theme="light"] .terminal-execution-detail-content pre,
+[data-theme="light"] .terminal-execution-detail-content code {
+  color: #1d1d1f;
+}
+
+/* 执行时间、发送时间等 dim 文字：加深 */
+[data-theme="light"] .terminal-execution-duration,
+[data-theme="light"] .terminal-message-timestamp,
+[data-theme="light"] .terminal-execution-title {
+  color: #48484a;
+}
+
+/* 执行步骤：保留状态颜色，只覆盖默认色 */
+[data-theme="light"] .terminal-execution-step {
+  color: #48484a;
+}
+
+[data-theme="light"] .terminal-execution-step.success {
+  color: #248a3d;
+}
+
+[data-theme="light"] .terminal-execution-step.success::before {
+  color: #248a3d;
+}
+
+[data-theme="light"] .terminal-execution-step.running {
+  color: #b25000;
+}
+
+[data-theme="light"] .terminal-execution-step.running::before {
+  color: #b25000;
+}
+
+[data-theme="light"] .terminal-execution-step.error {
+  color: #d70015;
+}
+
+[data-theme="light"] .terminal-execution-step.error::before {
+  color: #d70015;
+}
+
+/* 执行步骤中的工具名称 */
+[data-theme="light"] .terminal-execution-step .terminal-link {
+  color: #007aff;
+}
+
+/* 参数/结果标签 */
+[data-theme="light"] .terminal-execution-detail-content .terminal-execution-label {
+  color: #007aff;
+  font-weight: 600;
+}
+
+/* Stop 按钮：浅色模式下保持红色 */
+[data-theme="light"] .terminal-button.danger {
+  background: #ff3b30;
+  border: none;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(255, 59, 48, 0.3);
+}
+
+[data-theme="light"] .terminal-button.danger:hover {
+  background: #d70015;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(255, 59, 48, 0.4);
+}
