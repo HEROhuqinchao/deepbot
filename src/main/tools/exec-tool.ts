@@ -166,6 +166,7 @@ function checkCommandPathSecurity(command: string): void {
     // cd 命令：cd /path/to/dir
     { pattern: /cd\s+([^\s&|;]+)/gi, name: 'cd' },
     // 文件操作：cp, mv, rm, mkdir, rmdir, touch, cat, ls, find, grep 等
+    // 注意：这里只匹配第一个参数，多参数情况由下面的 multiArg 处理
     { pattern: /(cp|mv|rm|mkdir|rmdir|touch|cat|ls|find|grep)\s+([^\s&|;-][^\s&|;]*)/gi, name: 'file operations' },
     // 重定向：> /path/to/file, >> /path/to/file
     { pattern: /(>>?)\s*([^\s&|;]+)/gi, name: 'redirection' },
@@ -173,6 +174,28 @@ function checkCommandPathSecurity(command: string): void {
     { pattern: /(python|python3|node|npm|pip|pip3)\s+([^\s&|;-][^\s&|;]*)/gi, name: 'script execution' },
     // 注意：移除了通用 absolute paths 正则，因为它会误匹配命令字符串内容（如 URL、Python 代码里的路径）
   ];
+
+  // 🔥 额外检查：提取文件操作命令中所有路径参数（包括 flags 后面的路径）
+  // 例如：ls -la ~/Downloads/ 中的 ~/Downloads/
+  const fileOpMultiArgPattern = /(?:^|\s)(cp|mv|rm|mkdir|rmdir|touch|cat|ls|find|grep)\s+(.*?)(?=\s*(?:&&|\|\||;|$))/gi;
+  const fileOpMatches = Array.from(command.matchAll(fileOpMultiArgPattern));
+  for (const match of fileOpMatches) {
+    const args = match[2].trim().split(/\s+/);
+    for (const arg of args) {
+      // 跳过 flags（以 - 开头）
+      if (arg.startsWith('-')) continue;
+      // 只检查包含路径分隔符或 ~ 的参数
+      if (!arg.includes('/') && !arg.includes('\\') && !arg.startsWith('~')) continue;
+      if (arg.startsWith('http://') || arg.startsWith('https://')) continue;
+      if (SYSTEM_PATH_WHITELIST.includes(arg)) continue;
+      if (allPrefixWhitelist.some(prefix => arg.startsWith(prefix))) continue;
+      try {
+        assertPathAllowed(arg);
+      } catch (error) {
+        throw new Error(`命令安全检查失败：${error instanceof Error ? error.message : '未知错误'}\n命令：${command}\n不安全路径：${arg}`);
+      }
+    }
+  }
   
   for (const { pattern, name } of pathPatterns) {
     const matches = Array.from(command.matchAll(pattern));
