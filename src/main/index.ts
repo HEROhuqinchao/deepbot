@@ -20,7 +20,7 @@ if (typeof globalThis.File === 'undefined') {
   };
 }
 
-import { app, BrowserWindow, ipcMain, Menu, MenuItem, dialog, Tray, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, MenuItem, dialog, Tray, nativeImage, shell } from 'electron';
 import path from 'path';
 import { Gateway } from './gateway';
 import { IPC_CHANNELS } from '../types/ipc';
@@ -192,6 +192,22 @@ function createWindow() {
       }
       
       return false;
+    }
+  });
+
+  // 拦截外部链接，使用系统默认浏览器打开
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  // 拦截页面内导航到外部链接
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const currentUrl = mainWindow?.webContents.getURL() || '';
+    // 如果不是当前页面的刷新/内部导航，用系统浏览器打开
+    if (url !== currentUrl && !url.startsWith('file://') && !url.startsWith('http://localhost')) {
+      event.preventDefault();
+      shell.openExternal(url);
     }
   });
 
