@@ -85,10 +85,10 @@ export class GatewayMessageHandler {
     const sentAt = Date.now();
     
     // 命令预处理：检查是否是系统命令
-    const commandMatch = content.trim().match(/^\/(\w+)(?:\s+(.*))?$/);
+    const commandMatch = content.trim().match(/^\/([\w-]+)(?:\s+(.*))?$/);
     if (commandMatch) {
       const [, commandName, commandArgs] = commandMatch;
-      const supportedCommands = ['new', 'memory', 'history'];
+      const supportedCommands = ['new', 'memory', 'history', 'reload-env'];
       
       if (supportedCommands.includes(commandName.toLowerCase())) {
         console.log(`[MessageHandler] 🎯 检测到系统命令: /${commandName}，直接执行`);

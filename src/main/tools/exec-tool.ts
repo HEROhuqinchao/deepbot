@@ -27,7 +27,7 @@
  */
 
 import type { AgentTool } from '@mariozechner/pi-agent-core';
-import { applyShellPath, getShellEnvFromLoginShell } from './shell-env';
+import { getShellEnvFromLoginShell } from './shell-env';
 import { isBlockingInteractiveCommand, getBlockingCommandSuggestion } from './exec-blocking-check';
 import { TIMEOUTS } from '../config/timeouts';
 import { assertPathAllowed } from '../utils/path-security';
@@ -302,7 +302,7 @@ function isDangerousCommand(command: string): boolean {
  * @param shellPath - 合并后的 PATH
  * @returns 包装后的工具
  */
-function wrapToolWithSecurity(tool: AgentTool, shellPath: string, fullShellEnv?: Record<string, string>): AgentTool {
+function wrapToolWithSecurity(tool: AgentTool, shellPath: string): AgentTool {
   return {
     ...tool,
     execute: async (toolCallId, params, signal, onUpdate) => {
@@ -322,13 +322,9 @@ function wrapToolWithSecurity(tool: AgentTool, shellPath: string, fullShellEnv?:
         checkCommandPathSecurity(command);
       }
       
-      // 🔥 应用完整的 shell 环境变量
-      // 如果用户没有提供自定义 env，则使用完整的 shell 环境变量
+      // 🔥 应用完整的 shell 环境变量（动态获取，支持 /reload-env 刷新）
       if (record && !record.env) {
-        const env = fullShellEnv ? { ...fullShellEnv } : { ...process.env } as Record<string, string>;
-        if (!fullShellEnv) {
-          applyShellPath(env, shellPath);
-        }
+        const env = { ...getShellEnvFromLoginShell({ env: process.env, timeoutMs: 15_000 }) };
         record.env = env;
       }
       
@@ -386,15 +382,15 @@ export async function getExecTools(workspaceDir: string): Promise<AgentTool[]> {
   // eslint-disable-next-line no-eval
   const { createBashTool } = await eval('import("@mariozechner/pi-coding-agent")');
   
-  // 🔥 从登录 shell 获取完整环境变量
+  // 🔥 从登录 shell 获取完整环境变量（初始化时预热缓存）
   // 解决 Electron 主进程环境变量不完整的问题（TAVILY_API_KEY 等用户自定义变量缺失）
-  const shellEnv = getShellEnvFromLoginShell({
+  getShellEnvFromLoginShell({
     env: process.env,
     timeoutMs: 15_000,
   });
   
-  // 兼容：保留 shellPath 变量供其他地方使用
-  const shellPath = shellEnv.PATH || process.env.PATH || '';
+  // shellPath 供 wrapToolWithSecurity fallback 使用
+  const shellPath = getShellEnvFromLoginShell({ env: process.env, timeoutMs: 15_000 }).PATH || process.env.PATH || '';
   
   // 创建基础工具（使用 pi-coding-agent）
   // 🔥 使用 operations 自定义命令执行，添加阻塞命令检查
@@ -417,8 +413,8 @@ export async function getExecTools(workspaceDir: string): Promise<AgentTool[]> {
         // 🔥 检查命令中的路径是否安全（严格模式）
         checkCommandPathSecurity(command);
         
-        // 🔥 使用完整的 shell 环境变量（包含用户在 .zshrc 中定义的变量）
-        const env: Record<string, string> = { ...shellEnv };
+        // 🔥 使用完整的 shell 环境变量（每次动态获取，支持 /reload-env 刷新）
+        const env: Record<string, string> = { ...getShellEnvFromLoginShell({ env: process.env, timeoutMs: 15_000 }) };
         
         // 🔥 Windows 中文编码处理：设置代码页为 UTF-8
         if (process.platform === 'win32') {
@@ -514,7 +510,7 @@ export async function getExecTools(workspaceDir: string): Promise<AgentTool[]> {
   }) as unknown as AgentTool;
   
   // 包装安全检查和 PATH 处理
-  const secureBashTool = wrapToolWithSecurity(bashTool, shellPath, shellEnv);
+  const secureBashTool = wrapToolWithSecurity(bashTool, shellPath);
   
   return [secureBashTool];
 }

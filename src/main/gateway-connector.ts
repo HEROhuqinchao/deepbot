@@ -195,7 +195,7 @@ export class GatewayConnectorHandler {
       // 支持两种格式：
       // 1. /command - 行首的指令
       // 2. @xxx /command - @ 提及后的指令（飞书群组场景）
-      const systemCommandMatch = rawContent.match(/^(?:@\S+\s+)?\/(\w+)(?:\s+(.*))?$/);
+      const systemCommandMatch = rawContent.match(/^(?:@\S+\s+)?\/([\w-]+)(?:\s+(.*))?$/);
       if (systemCommandMatch) {
         const commandName = systemCommandMatch[1];
         const commandArgs = systemCommandMatch[2];
@@ -517,8 +517,12 @@ export class GatewayConnectorHandler {
           resultText = await this.handleStatusCommand(sessionId);
           break;
 
+        case 'reload-env':
+          resultText = await this.handleReloadEnvCommand();
+          break;
+
         default:
-          resultText = `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /history - 查看对话历史统计\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
+          resultText = `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /history - 查看对话历史统计\n- /reload-env - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
       }
 
       sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
@@ -680,6 +684,22 @@ export class GatewayConnectorHandler {
     } catch (error) {
       logger.error('❌ 执行 /status 指令失败:', error);
       return `❌ 获取状态失败: ${getErrorMessage(error)}`;
+    }
+  }
+
+  /**
+   * 处理 /reload-env 命令 - 刷新环境变量缓存
+   */
+  private async handleReloadEnvCommand(): Promise<string> {
+    try {
+      logger.info('执行 /reload-env 指令，刷新环境变量缓存');
+      const { resetShellPathCache } = require('./tools/shell-env');
+      resetShellPathCache();
+      logger.info('✅ 环境变量缓存已清除，下次执行命令时将重新加载');
+      return '✅ 环境变量已刷新\n\n下次执行命令时将从系统重新加载所有环境变量（包括 .zshrc/.bashrc 中新增的变量）';
+    } catch (error) {
+      logger.error('❌ 刷新环境变量失败:', error);
+      return `❌ 刷新环境变量失败: ${getErrorMessage(error)}`;
     }
   }
 
