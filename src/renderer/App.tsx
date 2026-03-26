@@ -2,7 +2,7 @@
  * DeepBot 主应用组件
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext } from 'react';
 import './styles/terminal.css';
 import './styles/tabs.css';
 import { ChatWindow } from './components/ChatWindow';
@@ -12,8 +12,18 @@ import { SystemSettings } from './components/SystemSettings';
 import { Message } from '../types/message';
 import type { AgentTab } from '../types/agent-tab';
 import { api } from './api';
+import { useTheme, ThemeMode } from './hooks/useTheme';
+
+// 主题 Context
+export const ThemeContext = createContext<{
+  mode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
+}>({ mode: 'dark', setThemeMode: () => {} });
 
 function App() {
+  // 主题管理
+  const { mode: themeMode, setThemeMode } = useTheme();
+
   // Tab 管理
   const [tabs, setTabs] = useState<AgentTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('default');
@@ -678,7 +688,7 @@ function App() {
   };
 
   return (
-    <>
+    <ThemeContext.Provider value={{ mode: themeMode, setThemeMode }}>
       <ChatWindow
         messages={messages}
         onSendMessage={handleSendMessage}
@@ -714,11 +724,9 @@ function App() {
         activeTabId={activeTabId}
         onClose={() => {
           setIsSystemSettingsOpen(false);
-          // 不要在这里重新检查配置，避免无限循环
-          // checkModelConfig();
         }}
       />
-    </>
+    </ThemeContext.Provider>
   );
 }
 

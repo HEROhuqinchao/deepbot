@@ -7,8 +7,10 @@
  * 3. 从数据库读取状态并显示
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { api } from '../../api';
+import { ThemeContext } from '../../App';
+import type { ThemeMode } from '../../hooks/useTheme';
 
 interface EnvironmentStatus {
   python: {
@@ -27,6 +29,7 @@ interface EnvironmentConfigProps {
 }
 
 export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigProps) {
+  const { mode: themeMode, setThemeMode } = useContext(ThemeContext);
   const [status, setStatus] = useState<EnvironmentStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedRef = React.useRef(false);
@@ -136,9 +139,80 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">环境配置</h3>
         <p className="text-sm text-gray-500">
-          DeepBot 需要 Python 环境才能正常运行。
+          配置界面主题和运行环境。
         </p>
       </div>
+
+      {/* 界面主题 */}
+      <div style={{
+        padding: '12px 16px',
+        border: '1px solid var(--settings-border)',
+        borderRadius: '8px',
+      }}>
+        <div style={{ fontSize: '13px', color: 'var(--settings-text)', fontWeight: '600', marginBottom: '8px' }}>
+          界面主题
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {([
+            { value: 'light' as ThemeMode, label: '浅色', icon: (
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="5" stroke="currentColor" strokeWidth="2"/>
+                <path d="M16 4v3M16 25v3M4 16h3M25 16h3M7.8 7.8l2.1 2.1M22.1 22.1l2.1 2.1M7.8 24.2l2.1-2.1M22.1 9.9l2.1-2.1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            )},
+            { value: 'dark' as ThemeMode, label: '深色', icon: (
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+                <path d="M26 17.6A10 10 0 1114.4 6a8 8 0 0011.6 11.6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )},
+            { value: 'auto' as ThemeMode, label: '自动', icon: (
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="10" stroke="currentColor" strokeWidth="2"/>
+                <path d="M16 6v20" stroke="currentColor" strokeWidth="2"/>
+                <path d="M16 6a10 10 0 010 20" fill="currentColor" opacity="0.15"/>
+              </svg>
+            )},
+          ]).map(opt => (
+            <div
+              key={opt.value}
+              onClick={() => setThemeMode(opt.value)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                border: themeMode === opt.value ? '2px solid var(--settings-accent)' : '2px solid transparent',
+                background: themeMode === opt.value ? 'var(--terminal-accent-bg)' : 'transparent',
+                color: themeMode === opt.value ? 'var(--settings-accent)' : 'var(--settings-text-dim)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {opt.icon}
+              <span style={{ fontSize: '11px', fontWeight: themeMode === opt.value ? '600' : '400' }}>
+                {opt.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 运行环境 */}
+      <div style={{
+        padding: '16px',
+        border: '1px solid var(--settings-border)',
+        borderRadius: '8px',
+      }}>
+        <div style={{ fontSize: '13px', color: 'var(--settings-text)', fontWeight: '600', marginBottom: '4px' }}>
+          运行环境
+        </div>
+        <p style={{ fontSize: '12px', color: 'var(--settings-text-dim)', marginBottom: '12px' }}>
+          DeepBot 需要 Python 环境来执行脚本和 Skill。
+        </p>
+
+        <div className="space-y-3">
 
       {/* 错误提示 */}
       {error && (
@@ -241,6 +315,8 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }
