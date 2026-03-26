@@ -16,18 +16,18 @@
   --terminal-error: #f7768e;
   --terminal-warning: #e0af68;
   --terminal-success: #9ece6a;
-  --terminal-overlay: var(--terminal-overlay);
-  --terminal-overlay-heavy: var(--terminal-overlay-heavy);
-  --terminal-shadow: var(--terminal-shadow);
-  --terminal-code-bg: var(--terminal-overlay);
-  --terminal-accent-bg: var(--terminal-accent-bg);
-  --terminal-accent-bg-hover: var(--terminal-accent-bg-hover);
-  --terminal-accent-bg-active: var(--terminal-accent-bg-active);
-  --terminal-accent-border: var(--terminal-accent-glow);
-  --terminal-accent-glow: var(--terminal-accent-glow);
-  --terminal-line-hover: var(--terminal-line-hover);
-  --terminal-header-bg: var(--terminal-header-bg);
-  --terminal-input-focus-bg: var(--terminal-input-focus-bg);
+  --terminal-overlay: rgba(255, 255, 255, 0.03);
+  --terminal-overlay-heavy: rgba(255, 255, 255, 0.06);
+  --terminal-shadow: rgba(0, 0, 0, 0.3);
+  --terminal-code-bg: rgba(255, 255, 255, 0.03);
+  --terminal-accent-bg: rgba(122, 162, 247, 0.06);
+  --terminal-accent-bg-hover: rgba(122, 162, 247, 0.1);
+  --terminal-accent-bg-active: rgba(122, 162, 247, 0.15);
+  --terminal-accent-border: rgba(122, 162, 247, 0.2);
+  --terminal-accent-glow: rgba(122, 162, 247, 0.15);
+  --terminal-line-hover: rgba(122, 162, 247, 0.04);
+  --terminal-header-bg: #0f1320;
+  --terminal-input-focus-bg: #121729;
 }
 
 /* 浅色终端主题 - Apple 风格 */
@@ -1425,12 +1425,12 @@ ul.terminal-list {
   margin: 8px 0;
   width: 100%;
   background-color: var(--terminal-accent-bg);
-  border: 1px solid var(--terminal-accent-glow);
+  border: 1px solid var(--terminal-border);
 }
 
 .terminal-message table th,
 .terminal-message table td {
-  border: 1px solid var(--terminal-accent-glow);
+  border: 1px solid var(--terminal-border);
   padding: 8px 12px;
   text-align: left;
 }
@@ -1654,7 +1654,7 @@ ul.terminal-list {
 
 /* 表格 */
 [data-theme="light"] .terminal-message table {
-  border: 1px solid #e5e5ea;
+  border: 1px solid #d1d1d6;
   border-radius: 8px;
   overflow: hidden;
 }
@@ -1662,11 +1662,16 @@ ul.terminal-list {
 [data-theme="light"] .terminal-message table th {
   background: #f0f0f5;
   color: #1d1d1f;
-  border-color: #e5e5ea;
+  border-color: #d1d1d6;
 }
 
 [data-theme="light"] .terminal-message table td {
-  border-color: #e5e5ea;
+  border-color: #d1d1d6;
+}
+
+[data-theme="light"] .terminal-message table th,
+[data-theme="light"] .terminal-message table td {
+  border: 1px solid #d1d1d6;
 }
 
 /* 滚动条 */
@@ -1743,4 +1748,20 @@ ul.terminal-list {
   background: #d70015;
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(255, 59, 48, 0.4);
+}
+
+/* 指令弹出框：浅色模式下使用不透明背景 */
+[data-theme="light"] .command-suggestions {
+  background: #ffffff;
+  border-color: #007aff;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .command-suggestion-item {
+  border-bottom-color: #e5e5ea;
+}
+
+[data-theme="light"] .command-suggestion-item:hover,
+[data-theme="light"] .command-suggestion-item.selected {
+  background: rgba(0, 122, 255, 0.08);
 }
