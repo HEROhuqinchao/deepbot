@@ -49,6 +49,9 @@ export const IPC_CHANNELS = {
   
   // 用系统默认应用打开文件
   OPEN_PATH: 'shell:open-path',
+
+  // 打开文件夹选择对话框
+  SELECT_FOLDER: 'dialog:select-folder',
   
   // 图片上传
   UPLOAD_IMAGE: 'image:upload',

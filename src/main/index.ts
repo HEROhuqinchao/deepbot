@@ -633,6 +633,21 @@ function registerIpcHandlers() {
     }
   });
 
+  // 打开文件夹选择对话框
+  ipcMain.handle(IPC_CHANNELS.SELECT_FOLDER, async () => {
+    try {
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, canceled: true };
+      }
+      return { success: true, path: result.filePaths[0] };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 上传图片（保存到临时目录）
   ipcMain.handle(IPC_CHANNELS.UPLOAD_IMAGE, async (_event, { name, dataUrl, size }) => {
     try {

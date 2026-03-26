@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { isElectron } from '../../utils/platform';
 
 interface WorkspaceConfigProps {
   onClose: () => void;
@@ -49,6 +50,30 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
   const [newSkillDir, setNewSkillDir] = useState('');
   const [showAddInput, setShowAddInput] = useState(false);
   const hasLoadedRef = React.useRef(false);
+
+  // 追踪哪些字段被修改了（脏状态）
+  const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
+
+  const markDirty = (field: string) => {
+    setDirtyFields(prev => new Set(prev).add(field));
+  };
+
+  const clearDirty = (field: string) => {
+    setDirtyFields(prev => {
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
+  };
+
+  // 打开文件夹选择对话框
+  const handleBrowse = async (field: keyof WorkspaceSettings) => {
+    const result = await api.selectFolder();
+    if (result.success && result.path) {
+      setSettings(prev => ({ ...prev, [field]: result.path! }));
+      markDirty(field);
+    }
+  };
 
   // 加载配置（防止 Strict Mode 重复执行）
   useEffect(() => {
@@ -97,6 +122,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
       
       if (result.success) {
         showMessage('success', '默认工作目录已保存');
+        clearDirty('workspaceDir');
       } else {
         showMessage('error', result.error || '保存失败');
       }
@@ -115,6 +141,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
       
       if (result.success) {
         showMessage('success', 'Python 脚本目录已保存');
+        clearDirty('scriptDir');
       } else {
         showMessage('error', result.error || '保存失败');
       }
@@ -133,6 +160,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
       
       if (result.success) {
         showMessage('success', '图片生成目录已保存');
+        clearDirty('imageDir');
       } else {
         showMessage('error', result.error || '保存失败');
       }
@@ -219,48 +247,36 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
 
   const handleResetWorkspaceDir = async () => {
     try {
-      // 从后端获取真正的默认路径（绝对路径）
       const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
-        setSettings({
-          ...settings,
-          workspaceDir: result.settings.workspaceDir,
-        });
+        setSettings({ ...settings, workspaceDir: result.settings.workspaceDir });
+        markDirty('workspaceDir');
       }
     } catch (error) {
-      console.error('获取默认工作目录失败:', error);
       showMessage('error', '获取默认路径失败');
     }
   };
 
   const handleResetScriptDir = async () => {
     try {
-      // 从后端获取真正的默认路径（绝对路径）
       const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
-        setSettings({
-          ...settings,
-          scriptDir: result.settings.scriptDir,
-        });
+        setSettings({ ...settings, scriptDir: result.settings.scriptDir });
+        markDirty('scriptDir');
       }
     } catch (error) {
-      console.error('获取默认脚本目录失败:', error);
       showMessage('error', '获取默认路径失败');
     }
   };
 
   const handleResetImageDir = async () => {
     try {
-      // 从后端获取真正的默认路径（绝对路径）
       const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
-        setSettings({
-          ...settings,
-          imageDir: result.settings.imageDir,
-        });
+        setSettings({ ...settings, imageDir: result.settings.imageDir });
+        markDirty('imageDir');
       }
     } catch (error) {
-      console.error('获取默认图片目录失败:', error);
       showMessage('error', '获取默认路径失败');
     }
   };
@@ -272,6 +288,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
       
       if (result.success) {
         showMessage('success', '记忆管理目录已保存');
+        clearDirty('memoryDir');
       } else {
         showMessage('error', result.error || '保存失败');
       }
@@ -285,16 +302,12 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
 
   const handleResetMemoryDir = async () => {
     try {
-      // 从后端获取真正的默认路径（绝对路径）
       const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
-        setSettings({
-          ...settings,
-          memoryDir: result.settings.memoryDir,
-        });
+        setSettings({ ...settings, memoryDir: result.settings.memoryDir });
+        markDirty('memoryDir');
       }
     } catch (error) {
-      console.error('获取默认记忆目录失败:', error);
       showMessage('error', '获取默认路径失败');
     }
   };
@@ -306,6 +319,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
       
       if (result.success) {
         showMessage('success', '对话历史目录已保存');
+        clearDirty('sessionDir');
       } else {
         showMessage('error', result.error || '保存失败');
       }
@@ -319,16 +333,12 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
 
   const handleResetSessionDir = async () => {
     try {
-      // 从后端获取真正的默认路径（绝对路径）
       const result = await api.getDefaultWorkspaceSettings();
       if (result.success && result.settings) {
-        setSettings({
-          ...settings,
-          sessionDir: result.settings.sessionDir,
-        });
+        setSettings({ ...settings, sessionDir: result.settings.sessionDir });
+        markDirty('sessionDir');
       }
     } catch (error) {
-      console.error('获取默认对话历史目录失败:', error);
       showMessage('error', '获取默认路径失败');
     }
   };
@@ -377,26 +387,36 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           <input
             type="text"
             value={settings.workspaceDir}
-            onChange={(e) => setSettings({ ...settings, workspaceDir: e.target.value })}
+            onChange={(e) => { setSettings({ ...settings, workspaceDir: e.target.value }); markDirty('workspaceDir'); }}
             disabled={isDocker}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             placeholder={defaultSettings.workspaceDir || '~/'}
             required
           />
+          {isElectron() && !isDocker && (
+            <button
+              onClick={() => handleBrowse('workspaceDir')}
+              className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap"
+            >
+              浏览
+            </button>
+          )}
           <button
             onClick={handleResetWorkspaceDir}
             disabled={isDocker}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             重置
           </button>
-          <button
-            onClick={handleSaveWorkspaceDir}
-            disabled={saving || !settings.workspaceDir.trim() || isDocker}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
-          >
-            {saving ? '保存中...' : '保存'}
-          </button>
+          {dirtyFields.has('workspaceDir') && (
+            <button
+              onClick={handleSaveWorkspaceDir}
+              disabled={saving || !settings.workspaceDir.trim() || isDocker}
+              className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              {saving ? '保存中...' : '保存'}
+            </button>
+          )}
         </div>
         <p className="text-xs text-gray-400">
           默认：{defaultSettings.workspaceDir || '用户主目录'}
@@ -426,25 +446,18 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           <input
             type="text"
             value={settings.scriptDir}
-            onChange={(e) => setSettings({ ...settings, scriptDir: e.target.value })}
+            onChange={(e) => { setSettings({ ...settings, scriptDir: e.target.value }); markDirty('scriptDir'); }}
             disabled={isDocker}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             placeholder="~/.deepbot/scripts"
           />
-          <button
-            onClick={handleResetScriptDir}
-            disabled={isDocker}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            重置
-          </button>
-          <button
-            onClick={handleSaveScriptDir}
-            disabled={saving || isDocker}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
-          >
-            {saving ? '保存中...' : '保存'}
-          </button>
+          {isElectron() && !isDocker && (
+            <button onClick={() => handleBrowse('scriptDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">浏览</button>
+          )}
+          <button onClick={handleResetScriptDir} disabled={isDocker} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">重置</button>
+          {dirtyFields.has('scriptDir') && (
+            <button onClick={handleSaveScriptDir} disabled={saving || isDocker} className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors whitespace-nowrap">{saving ? '保存中...' : '保存'}</button>
+          )}
         </div>
         <p className="text-xs text-gray-400">
           默认：{defaultSettings.scriptDir || '~/.deepbot/scripts'}
@@ -463,25 +476,18 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           <input
             type="text"
             value={settings.imageDir}
-            onChange={(e) => setSettings({ ...settings, imageDir: e.target.value })}
+            onChange={(e) => { setSettings({ ...settings, imageDir: e.target.value }); markDirty('imageDir'); }}
             disabled={isDocker}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             placeholder="~/.deepbot/generated-images"
           />
-          <button
-            onClick={handleResetImageDir}
-            disabled={isDocker}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            重置
-          </button>
-          <button
-            onClick={handleSaveImageDir}
-            disabled={saving || isDocker}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
-          >
-            {saving ? '保存中...' : '保存'}
-          </button>
+          {isElectron() && !isDocker && (
+            <button onClick={() => handleBrowse('imageDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">浏览</button>
+          )}
+          <button onClick={handleResetImageDir} disabled={isDocker} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">重置</button>
+          {dirtyFields.has('imageDir') && (
+            <button onClick={handleSaveImageDir} disabled={saving || isDocker} className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors whitespace-nowrap">{saving ? '保存中...' : '保存'}</button>
+          )}
         </div>
         <p className="text-xs text-gray-400">
           默认：{defaultSettings.imageDir || '~/.deepbot/generated-images'}
@@ -500,25 +506,18 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           <input
             type="text"
             value={settings.memoryDir}
-            onChange={(e) => setSettings({ ...settings, memoryDir: e.target.value })}
+            onChange={(e) => { setSettings({ ...settings, memoryDir: e.target.value }); markDirty('memoryDir'); }}
             disabled={isDocker}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             placeholder="~/.deepbot/memory"
           />
-          <button
-            onClick={handleResetMemoryDir}
-            disabled={isDocker}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            重置
-          </button>
-          <button
-            onClick={handleSaveMemoryDir}
-            disabled={saving || isDocker}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
-          >
-            {saving ? '保存中...' : '保存'}
-          </button>
+          {isElectron() && !isDocker && (
+            <button onClick={() => handleBrowse('memoryDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">浏览</button>
+          )}
+          <button onClick={handleResetMemoryDir} disabled={isDocker} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">重置</button>
+          {dirtyFields.has('memoryDir') && (
+            <button onClick={handleSaveMemoryDir} disabled={saving || isDocker} className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors whitespace-nowrap">{saving ? '保存中...' : '保存'}</button>
+          )}
         </div>
         <p className="text-xs text-gray-400">
           默认：{defaultSettings.memoryDir || '~/.deepbot/memory'}
@@ -537,25 +536,18 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           <input
             type="text"
             value={settings.sessionDir}
-            onChange={(e) => setSettings({ ...settings, sessionDir: e.target.value })}
+            onChange={(e) => { setSettings({ ...settings, sessionDir: e.target.value }); markDirty('sessionDir'); }}
             disabled={isDocker}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             placeholder="~/.deepbot/sessions"
           />
-          <button
-            onClick={handleResetSessionDir}
-            disabled={isDocker}
-            className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            重置
-          </button>
-          <button
-            onClick={handleSaveSessionDir}
-            disabled={saving || isDocker}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed"
-          >
-            {saving ? '保存中...' : '保存'}
-          </button>
+          {isElectron() && !isDocker && (
+            <button onClick={() => handleBrowse('sessionDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">浏览</button>
+          )}
+          <button onClick={handleResetSessionDir} disabled={isDocker} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">重置</button>
+          {dirtyFields.has('sessionDir') && (
+            <button onClick={handleSaveSessionDir} disabled={saving || isDocker} className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors whitespace-nowrap">{saving ? '保存中...' : '保存'}</button>
+          )}
         </div>
         <p className="text-xs text-gray-400">
           默认：{defaultSettings.sessionDir || '~/.deepbot/sessions'}

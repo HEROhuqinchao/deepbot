@@ -307,6 +307,12 @@ export const api = {
     return { success: false, error: 'web' };
   },
 
+  // 打开文件夹选择对话框（仅 Electron）
+  async selectFolder(): Promise<{ success: boolean; path?: string; canceled?: boolean; error?: string }> {
+    if (isElectron()) return (window as any).deepbot.selectFolder();
+    return { success: false, error: 'web' };
+  },
+
   async deleteTempFile(filePath: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.deleteTempFile(filePath);
     return webClient.delete(`/api/files/temp?path=${encodeURIComponent(filePath)}`);
