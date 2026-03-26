@@ -23,6 +23,7 @@
     "pack": "pnpm run build && electron-builder --dir",
     "dist": "pnpm run build && electron-builder",
     "dist:mac": "node scripts/load-env-build.js --mac",
+    "dist:mac:local": "pnpm run build && electron-builder --mac --config.mac.identity=null --config.mac.notarize=false",
     "dist:win": "node scripts/load-env-build.js --win",
     "reset-dev": "bash scripts/reset-dev-data.sh",
 

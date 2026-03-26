@@ -184,8 +184,10 @@ function checkCommandPathSecurity(command: string): void {
     for (const arg of args) {
       // 跳过 flags（以 - 开头）
       if (arg.startsWith('-')) continue;
-      // 只检查包含路径分隔符或 ~ 的参数
-      if (!arg.includes('/') && !arg.includes('\\') && !arg.startsWith('~')) continue;
+      // 只检查绝对路径（相对路径由 cwd 安全检查保证）
+      const isAbsPath = arg.startsWith('/') || arg.startsWith('~') || 
+        arg.startsWith('./') || arg.startsWith('../') || /^[A-Za-z]:[/\\]/.test(arg);
+      if (!isAbsPath) continue;
       if (arg.startsWith('http://') || arg.startsWith('https://')) continue;
       if (SYSTEM_PATH_WHITELIST.includes(arg)) continue;
       if (allPrefixWhitelist.some(prefix => arg.startsWith(prefix))) continue;
@@ -241,11 +243,21 @@ function checkCommandPathSecurity(command: string): void {
         continue;
       }
       
+      // 跳过相对路径（不以 /、~、./、../ 或 Windows 盘符开头）
+      // 相对路径依赖 cwd，由 assertPathAllowed(cwd) 保证安全，无需单独检查
+      const isAbsolutePath = pathToCheck.startsWith('/') || 
+        pathToCheck.startsWith('~') || 
+        pathToCheck.startsWith('./') || 
+        pathToCheck.startsWith('../') ||
+        /^[A-Za-z]:[/\\]/.test(pathToCheck);
+      if (!isAbsolutePath) {
+        continue;
+      }
+      
       // 跳过纯文件名（不包含路径分隔符）
       if (!pathToCheck.includes('/') && !pathToCheck.includes('\\') && !pathToCheck.startsWith('~')) {
         continue;
       }
-      
       // 🔥 跳过系统路径白名单
       // 1. 精确匹配
       if (SYSTEM_PATH_WHITELIST.includes(pathToCheck)) {
