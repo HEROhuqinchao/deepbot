@@ -16,12 +16,25 @@
   --settings-warning: #e0af68;
 }
 
+/* 浅色设置主题 */
+[data-theme="light"] {
+  --settings-bg: #ffffff;
+  --settings-bg-light: #f5f5f7;
+  --settings-text: #1d1d1f;
+  --settings-text-dim: #86868b;
+  --settings-border: #e8e8ed;
+  --settings-accent: #0071e3;
+  --settings-success: #248a3d;
+  --settings-error: #de3730;
+  --settings-warning: #bf8600;
+}
+
 /* ========== 模态框遮罩层 ========== */
 .settings-overlay,
 .fixed.inset-0.bg-black {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7) !important;
+  background: var(--terminal-overlay-heavy) !important;
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -37,7 +50,7 @@
   color: var(--settings-text) !important;
   border: 1px solid var(--settings-border) !important;
   border-radius: 8px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px var(--terminal-overlay);
   overflow: hidden;
   width: 90vw;
   max-width: 1200px;
@@ -57,7 +70,7 @@
 /* ========== 标题栏 ========== */
 .settings-header,
 .fixed .border-b:first-child {
-  background: rgba(26, 31, 46, 0.95) !important;
+  background: var(--settings-bg) !important;
   border-bottom: 1px solid var(--settings-border) !important;
   padding: 16px 24px;
   display: flex;
@@ -103,7 +116,7 @@
 .fixed button[class*="text-gray-400"]:hover {
   color: var(--settings-error) !important;
   border-color: var(--settings-error) !important;
-  background: rgba(247, 118, 142, 0.1) !important;
+  background: var(--terminal-accent-bg-hover) !important;
 }
 
 /* ========== 侧边栏（系统设置专用） ========== */
@@ -138,13 +151,13 @@
 
 .settings-nav-item:hover {
   color: var(--settings-text);
-  background: rgba(122, 162, 247, 0.05);
+  background: var(--terminal-accent-bg);
   border-color: var(--settings-border);
 }
 
 .settings-nav-item.active {
   color: var(--settings-accent);
-  background: rgba(122, 162, 247, 0.1);
+  background: var(--terminal-accent-bg-hover);
   border-color: var(--settings-accent);
 }
 
@@ -235,39 +248,39 @@
 /* ========== 所有背景颜色统一 ========== */
 .settings-panel [class*="bg-gray"],
 .fixed [class*="bg-gray"] {
-  background: rgba(26, 31, 46, 0.6) !important;
+  background: var(--settings-bg-light) !important;
 }
 
 .settings-panel .bg-gray-100,
 .fixed .bg-gray-100 {
-  background: rgba(107, 122, 143, 0.3) !important;
+  background: var(--terminal-accent-bg-active) !important;
 }
 
 .settings-panel .bg-gray-200,
 .fixed .bg-gray-200 {
-  background: rgba(45, 55, 72, 0.5) !important;
+  background: var(--terminal-accent-bg-hover) !important;
 }
 
 .settings-panel [class*="bg-green"],
 .fixed [class*="bg-green"] {
-  background: rgba(158, 206, 106, 0.15) !important;
+  background: var(--terminal-accent-bg-active) !important;
 }
 
 .settings-panel [class*="bg-red"],
 .fixed [class*="bg-red"] {
-  background: rgba(247, 118, 142, 0.15) !important;
+  background: var(--terminal-accent-bg-active) !important;
 }
 
 .settings-panel [class*="bg-blue"],
 .fixed [class*="bg-blue"]:not(button) {
-  background: rgba(122, 162, 247, 0.15) !important;
+  background: var(--terminal-accent-bg-active) !important;
 }
 
 .settings-panel [class*="bg-yellow"],
 .settings-panel [class*="bg-orange"],
 .fixed [class*="bg-yellow"],
 .fixed [class*="bg-orange"] {
-  background: rgba(224, 175, 104, 0.15) !important;
+  background: var(--terminal-accent-bg-active) !important;
 }
 
 /* 自定义背景类 */
@@ -280,7 +293,7 @@
 }
 
 .bg-bg-tertiary {
-  background: rgba(26, 31, 46, 0.8) !important;
+  background: var(--settings-bg) !important;
 }
 
 /* ========== 所有边框颜色统一 ========== */
@@ -326,7 +339,7 @@
 .fixed input,
 .fixed textarea,
 .fixed select {
-  background: rgba(26, 31, 46, 0.8) !important;
+  background: var(--settings-bg) !important;
   border: 1px solid var(--settings-border) !important;
   color: var(--settings-text) !important;
   font-family: 'Courier New', Consolas, Monaco, monospace;
@@ -345,8 +358,8 @@
 .fixed textarea:focus,
 .fixed select:focus {
   border-color: var(--settings-accent) !important;
-  background: rgba(26, 31, 46, 0.95) !important;
-  box-shadow: 0 0 12px rgba(122, 162, 247, 0.4) !important;
+  background: var(--settings-bg) !important;
+  box-shadow: 0 0 12px var(--terminal-accent-glow) !important;
   outline: none !important;
 }
 
@@ -395,7 +408,7 @@
 .fixed button:hover:not(:disabled) {
   background: var(--settings-accent) !important;
   color: var(--settings-bg) !important;
-  box-shadow: 0 0 16px rgba(122, 162, 247, 0.6) !important;
+  box-shadow: 0 0 16px var(--terminal-accent-glow) !important;
 }
 
 .settings-button:disabled,
@@ -493,7 +506,7 @@
 .settings-panel .border.rounded,
 .fixed .border.rounded-lg,
 .fixed .border.rounded {
-  background: rgba(26, 31, 46, 0.6) !important;
+  background: var(--settings-bg-light) !important;
   border: 1px solid var(--settings-border) !important;
   transition: all 0.2s;
 }
@@ -504,13 +517,13 @@
 .fixed .border.rounded-lg:hover,
 .fixed .border.rounded:hover {
   border-color: var(--settings-accent) !important;
-  box-shadow: 0 0 12px rgba(122, 162, 247, 0.2) !important;
+  box-shadow: 0 0 12px var(--terminal-accent-glow) !important;
 }
 
 /* ========== 代码块统一 ========== */
 .settings-panel code,
 .fixed code {
-  background: rgba(26, 31, 46, 0.8) !important;
+  background: var(--settings-bg) !important;
   color: var(--settings-accent) !important;
   border: 1px solid var(--settings-border) !important;
   font-family: 'Courier New', Consolas, Monaco, monospace;
@@ -520,7 +533,7 @@
 
 .settings-panel pre,
 .fixed pre {
-  background: rgba(26, 31, 46, 0.8) !important;
+  background: var(--settings-bg) !important;
   border: 1px solid var(--settings-border) !important;
   color: var(--settings-text) !important;
 }
@@ -536,7 +549,7 @@
 .settings-panel::-webkit-scrollbar-track,
 .settings-sidebar::-webkit-scrollbar-track,
 .fixed *::-webkit-scrollbar-track {
-  background: rgba(122, 162, 247, 0.05);
+  background: var(--terminal-accent-bg);
 }
 
 .settings-panel::-webkit-scrollbar-thumb,
@@ -567,7 +580,7 @@
 /* ========== 特殊元素 ========== */
 /* 圆形步骤编号 */
 .fixed .rounded-full {
-  background: rgba(107, 122, 143, 0.3) !important;
+  background: var(--terminal-accent-bg-active) !important;
   color: var(--settings-text) !important;
 }
 

@@ -16,6 +16,45 @@
   --terminal-error: #f7768e;
   --terminal-warning: #e0af68;
   --terminal-success: #9ece6a;
+  --terminal-overlay: var(--terminal-overlay);
+  --terminal-overlay-heavy: var(--terminal-overlay-heavy);
+  --terminal-shadow: var(--terminal-shadow);
+  --terminal-code-bg: var(--terminal-overlay);
+  --terminal-accent-bg: var(--terminal-accent-bg);
+  --terminal-accent-bg-hover: var(--terminal-accent-bg-hover);
+  --terminal-accent-bg-active: var(--terminal-accent-bg-active);
+  --terminal-accent-border: var(--terminal-accent-glow);
+  --terminal-accent-glow: var(--terminal-accent-glow);
+  --terminal-line-hover: var(--terminal-line-hover);
+  --terminal-header-bg: var(--terminal-header-bg);
+  --terminal-input-focus-bg: var(--terminal-input-focus-bg);
+}
+
+/* 浅色终端主题 - Apple 风格 */
+[data-theme="light"] {
+  --terminal-bg: #f5f5f7;
+  --terminal-text: #1d1d1f;
+  --terminal-text-dim: #86868b;
+  --terminal-prompt-user: #0071e3;
+  --terminal-prompt-agent: #7d3caf;
+  --terminal-border: #e8e8ed;
+  --terminal-selection: rgba(0, 113, 227, 0.12);
+  --terminal-cursor: #0071e3;
+  --terminal-error: #de3730;
+  --terminal-warning: #bf8600;
+  --terminal-success: #248a3d;
+  --terminal-overlay: rgba(0, 0, 0, 0.03);
+  --terminal-overlay-heavy: rgba(0, 0, 0, 0.06);
+  --terminal-shadow: rgba(0, 0, 0, 0.06);
+  --terminal-code-bg: rgba(0, 0, 0, 0.04);
+  --terminal-accent-bg: rgba(0, 113, 227, 0.04);
+  --terminal-accent-bg-hover: rgba(0, 113, 227, 0.07);
+  --terminal-accent-bg-active: rgba(0, 113, 227, 0.1);
+  --terminal-accent-border: rgba(0, 113, 227, 0.15);
+  --terminal-accent-glow: rgba(0, 113, 227, 0.1);
+  --terminal-line-hover: transparent;
+  --terminal-header-bg: rgba(255, 255, 255, 0.85);
+  --terminal-input-focus-bg: rgba(255, 255, 255, 0.9);
 }
 
 /* 终端容器 */
@@ -63,7 +102,7 @@
 }
 
 .terminal-content::-webkit-scrollbar-track {
-  background: rgba(88, 166, 255, 0.05);
+  background: var(--terminal-accent-bg);
 }
 
 .terminal-content::-webkit-scrollbar-thumb {
@@ -92,7 +131,7 @@
 
 /* 鼠标悬停高亮 - 使用 CSS :hover 避免影响文本选择 */
 .terminal-line:hover {
-  background-color: rgba(122, 162, 247, 0.08);
+  background-color: var(--terminal-line-hover);
 }
 
 /* 消息底部栏（时间戳 + 复制按钮） */
@@ -213,7 +252,7 @@
   position: relative;
   z-index: 3;
   border-top: 1px solid var(--terminal-border);
-  background: rgba(26, 31, 46, 0.95);
+  background: var(--terminal-header-bg);
   padding: 12px 20px;
   backdrop-filter: blur(10px);
 }
@@ -240,7 +279,7 @@
   position: relative;
   display: flex;
   align-items: flex-start;
-  background: rgba(45, 55, 72, 0.5);
+  background: var(--terminal-accent-bg-hover);
   border: 1px solid var(--terminal-border);
   border-radius: 4px;
   padding: 6px 40px 6px 6px; /* 右侧留出空间给上传按钮 */
@@ -250,8 +289,8 @@
 
 .terminal-input-with-upload:focus-within {
   border-color: var(--terminal-prompt-user);
-  box-shadow: 0 0 8px rgba(122, 162, 247, 0.3);
-  background: rgba(45, 55, 72, 0.7);
+  box-shadow: 0 0 8px var(--terminal-accent-glow);
+  background: var(--terminal-input-focus-bg);
 }
 
 /* 输入框内的图片预览（最前面） */
@@ -286,7 +325,7 @@
   width: 14px;
   height: 14px;
   padding: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: var(--terminal-overlay-heavy);
   color: var(--terminal-text);
   border: none;
   border-radius: 50%;
@@ -358,7 +397,7 @@
 
 /* 按钮 */
 .terminal-button {
-  background: rgba(122, 162, 247, 0.1);
+  background: var(--terminal-accent-bg-hover);
   border: 1px solid var(--terminal-prompt-user);
   color: var(--terminal-prompt-user);
   font-family: 'Courier New', Consolas, Monaco, monospace;
@@ -374,7 +413,7 @@
 .terminal-button:hover {
   background: var(--terminal-prompt-user);
   color: var(--terminal-bg);
-  box-shadow: 0 0 12px rgba(122, 162, 247, 0.5);
+  box-shadow: 0 0 12px var(--terminal-accent-glow);
 }
 
 .terminal-button:active {
@@ -394,7 +433,7 @@
 .terminal-button.danger:hover {
   background: var(--terminal-error);
   color: var(--terminal-bg);
-  box-shadow: 0 0 12px rgba(255, 51, 51, 0.5);
+  box-shadow: 0 0 12px var(--terminal-error);
 }
 
 /* 窗口控制栏 - 为系统原生按钮预留空间 */
@@ -402,8 +441,8 @@
   position: relative;
   z-index: 5;
   height: 40px;
-  background: rgba(5, 7, 13, 0.98);
-  border-bottom: 1px solid rgba(26, 35, 50, 0.5);
+  background: var(--terminal-header-bg);
+  border-bottom: 1px solid var(--terminal-border);
   -webkit-app-region: drag; /* 允许拖动窗口 */
   backdrop-filter: blur(10px);
 }
@@ -413,7 +452,7 @@
   position: relative;
   z-index: 4;
   border-bottom: 1px solid var(--terminal-border);
-  background: rgba(10, 14, 26, 0.95);
+  background: var(--terminal-header-bg);
   padding: 12px 20px;
   display: flex;
   justify-content: space-between;
@@ -441,7 +480,7 @@
 }
 
 .terminal-control-button {
-  background: rgba(122, 162, 247, 0.05);
+  background: var(--terminal-accent-bg);
   border: 1px solid var(--terminal-border);
   color: var(--terminal-text);
   padding: 6px 12px;
@@ -457,8 +496,8 @@
 .terminal-control-button:hover {
   color: var(--terminal-prompt-user);
   border-color: var(--terminal-prompt-user);
-  background: rgba(122, 162, 247, 0.1);
-  box-shadow: 0 0 8px rgba(122, 162, 247, 0.3);
+  background: var(--terminal-accent-bg-hover);
+  box-shadow: 0 0 8px var(--terminal-accent-glow);
 }
 
 /* 加载动画 */
@@ -509,7 +548,7 @@
   align-items: center;
   margin-bottom: 6px;
   padding: 4px 8px;
-  background: rgba(122, 162, 247, 0.05);
+  background: var(--terminal-accent-bg);
   border-radius: 3px;
 }
 
@@ -534,7 +573,7 @@
 .terminal-execution-toggle-all:hover {
   color: var(--terminal-prompt-user);
   border-color: var(--terminal-prompt-user);
-  background: rgba(122, 162, 247, 0.1);
+  background: var(--terminal-accent-bg-hover);
 }
 
 /* 执行步骤容器 */
@@ -555,7 +594,7 @@
 }
 
 .terminal-execution-step.clickable:hover {
-  background: rgba(122, 162, 247, 0.05);
+  background: var(--terminal-accent-bg);
 }
 
 .terminal-execution-expand-icon {
@@ -605,7 +644,7 @@
 .terminal-execution-details {
   margin-left: 18px;
   padding: 8px;
-  background: rgba(26, 31, 46, 0.6);
+  background: var(--terminal-overlay);
   border-left: 2px solid var(--terminal-border);
   border-radius: 3px;
   margin-top: 4px;
@@ -633,7 +672,7 @@
 }
 
 .terminal-execution-detail-content {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--terminal-overlay);
   border: 1px solid var(--terminal-border);
   padding: 6px 10px;
   border-radius: 3px;
@@ -722,7 +761,7 @@
 
 /* 代码样式 */
 .terminal-code {
-  background: rgba(88, 166, 255, 0.1);
+  background: var(--terminal-accent-bg-hover);
   border: 1px solid var(--terminal-border);
   padding: 2px 6px;
   border-radius: 3px;
@@ -731,7 +770,7 @@
 }
 
 .terminal-code-block {
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--terminal-code-bg);
   border: 1px solid var(--terminal-border);
   padding: 4px 12px;
   border-radius: 4px;
@@ -814,7 +853,7 @@ ul.terminal-list {
 
 .terminal-link:hover {
   color: var(--terminal-text);
-  text-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
+  text-shadow: 0 0 8px var(--terminal-accent-glow);
 }
 
 
@@ -822,7 +861,7 @@ ul.terminal-list {
 .terminal-image-container {
   margin: 8px 0;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--terminal-accent-bg);
   border: 1px solid var(--terminal-border);
   border-radius: 4px;
   display: inline-block;
@@ -849,7 +888,7 @@ ul.terminal-list {
 }
 
 .terminal-image-clickable:hover {
-  box-shadow: 0 0 8px rgba(100, 200, 255, 0.4);
+  box-shadow: 0 0 8px var(--terminal-accent-glow);
 }
 
 .terminal-image-caption {
@@ -920,7 +959,7 @@ ul.terminal-list {
 
 .image-upload-button-inline:hover {
   color: var(--terminal-prompt-user);
-  background: rgba(122, 162, 247, 0.1);
+  background: var(--terminal-accent-bg-hover);
 }
 
 .image-upload-button-inline:hover svg {
@@ -948,11 +987,11 @@ ul.terminal-list {
   max-width: 300px;
   z-index: 10;
   padding: 6px;
-  background: rgba(26, 31, 46, 0.95);
+  background: var(--terminal-header-bg);
   border: 1px solid var(--terminal-border);
   border-radius: 4px;
   backdrop-filter: blur(10px);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 -4px 12px var(--terminal-shadow);
 }
 
 .image-preview-item-floating {
@@ -978,7 +1017,7 @@ ul.terminal-list {
   width: 14px;
   height: 14px;
   padding: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--terminal-overlay-heavy);
   color: var(--terminal-text);
   border: none;
   border-radius: 50%;
@@ -1026,7 +1065,7 @@ ul.terminal-list {
   width: 18px;
   height: 18px;
   padding: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--terminal-overlay-heavy);
   color: var(--terminal-text);
   border: none;
   border-radius: 50%;
@@ -1049,7 +1088,7 @@ ul.terminal-list {
   left: 0;
   right: 0;
   padding: 2px 4px;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--terminal-overlay-heavy);
   color: var(--terminal-text);
   font-size: 10px;
   white-space: nowrap;
@@ -1130,7 +1169,7 @@ ul.terminal-list {
 
 .file-upload-button-inline:hover {
   color: var(--terminal-prompt-user);
-  background: rgba(122, 162, 247, 0.1);
+  background: var(--terminal-accent-bg-hover);
 }
 
 .file-upload-button-inline:hover svg {
@@ -1159,7 +1198,7 @@ ul.terminal-list {
   align-items: center;
   gap: 4px;
   padding: 4px 6px;
-  background: rgba(122, 162, 247, 0.1);
+  background: var(--terminal-accent-bg-hover);
   border: 1px solid var(--terminal-border);
   border-radius: 3px;
   max-width: 150px;
@@ -1219,11 +1258,11 @@ ul.terminal-list {
   gap: 6px;
   z-index: 10;
   padding: 6px;
-  background: rgba(26, 31, 46, 0.95);
+  background: var(--terminal-header-bg);
   border: 1px solid var(--terminal-border);
   border-radius: 4px;
   backdrop-filter: blur(10px);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 -4px 12px var(--terminal-shadow);
 }
 
 .file-preview-item-floating {
@@ -1233,7 +1272,7 @@ ul.terminal-list {
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid var(--terminal-border);
-  background: rgba(122, 162, 247, 0.05);
+  background: var(--terminal-accent-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1248,7 +1287,7 @@ ul.terminal-list {
   position: absolute;
   top: 1px;
   right: 1px;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--terminal-overlay-heavy);
   border: none;
   color: white;
   cursor: pointer;
@@ -1281,7 +1320,7 @@ ul.terminal-list {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: rgba(122, 162, 247, 0.05);
+  background: var(--terminal-accent-bg);
   border: 1px solid var(--terminal-border);
   border-radius: 4px;
 }
@@ -1346,14 +1385,14 @@ ul.terminal-list {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: rgba(122, 162, 247, 0.08);
+  background: var(--terminal-line-hover);
   border: 1px solid var(--terminal-border);
   border-radius: 4px;
   transition: background 0.2s;
 }
 
 .message-uploaded-file:hover {
-  background: rgba(122, 162, 247, 0.12);
+  background: var(--terminal-accent-bg-active);
 }
 
 .message-file-icon {
@@ -1385,25 +1424,25 @@ ul.terminal-list {
   border-collapse: collapse;
   margin: 8px 0;
   width: 100%;
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(122, 162, 247, 0.3);
+  background-color: var(--terminal-accent-bg);
+  border: 1px solid var(--terminal-accent-glow);
 }
 
 .terminal-message table th,
 .terminal-message table td {
-  border: 1px solid rgba(122, 162, 247, 0.3);
+  border: 1px solid var(--terminal-accent-glow);
   padding: 8px 12px;
   text-align: left;
 }
 
 .terminal-message table th {
-  background-color: rgba(122, 162, 247, 0.1);
-  color: #7aa2f7;
+  background-color: var(--terminal-accent-bg-hover);
+  color: var(--terminal-prompt-user);
   font-weight: 600;
 }
 
 .terminal-message table tr:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--terminal-accent-bg);
 }
 
 /* ==================== 命令提示样式 ==================== */
@@ -1414,10 +1453,10 @@ ul.terminal-list {
   left: 0;
   right: 0;
   margin-bottom: 8px;
-  background: rgba(26, 31, 46, 0.98);
+  background: var(--terminal-header-bg);
   border: 1px solid var(--terminal-prompt-user);
   border-radius: 4px;
-  box-shadow: 0 -4px 12px rgba(122, 162, 247, 0.3);
+  box-shadow: 0 -4px 12px var(--terminal-accent-glow);
   backdrop-filter: blur(10px);
   z-index: 1000;
   max-height: 200px;
@@ -1431,7 +1470,7 @@ ul.terminal-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-bottom: 1px solid rgba(122, 162, 247, 0.1);
+  border-bottom: 1px solid var(--terminal-accent-bg-hover);
 }
 
 .command-suggestion-item:last-child {
@@ -1440,7 +1479,7 @@ ul.terminal-list {
 
 .command-suggestion-item:hover,
 .command-suggestion-item.selected {
-  background: rgba(122, 162, 247, 0.15);
+  background: var(--terminal-accent-bg-active);
 }
 
 .command-suggestion-name {
@@ -1463,7 +1502,7 @@ ul.terminal-list {
 }
 
 .command-suggestions::-webkit-scrollbar-track {
-  background: rgba(122, 162, 247, 0.05);
+  background: var(--terminal-accent-bg);
 }
 
 .command-suggestions::-webkit-scrollbar-thumb {
@@ -1483,7 +1522,7 @@ ul.terminal-list {
 
 .tooltip-content {
   position: fixed; /* 使用 fixed 定位，相对于视口 */
-  background: rgba(26, 31, 46, 0.98);
+  background: var(--terminal-header-bg);
   color: var(--terminal-text);
   padding: 4px 8px;
   border-radius: 4px;
@@ -1494,7 +1533,7 @@ ul.terminal-list {
   z-index: 10000; /* 🔥 使用非常高的 z-index 确保在最上层 */
   pointer-events: none;
   border: 1px solid var(--terminal-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px var(--terminal-shadow);
   animation: tooltipFadeIn 0.15s ease-out;
   transform: translate(-50%, calc(-100% - 6px)); /* 居中并向上偏移 */
 }
@@ -1507,7 +1546,7 @@ ul.terminal-list {
   left: 50%;
   transform: translateX(-50%);
   border: 4px solid transparent;
-  border-top-color: rgba(26, 31, 46, 0.98);
+  border-top-color: var(--terminal-header-bg);
 }
 
 @keyframes tooltipFadeIn {
