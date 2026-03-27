@@ -50,6 +50,7 @@ export function listInstalledSkills(
         
         if (row) {
           // 数据库中有记录
+          const meta = safeJsonParse<any>(row.metadata, {});
           allSkills.push({
             name: row.name,
             version: row.version,
@@ -58,6 +59,7 @@ export function listInstalledSkills(
             lastUsed: row.last_used ? new Date(row.last_used) : undefined,
             usageCount: row.usage_count,
             repository: row.repository,
+            description: meta.description || '',
           });
         } else {
           // 数据库中没有记录，创建新记录
@@ -83,6 +85,7 @@ export function listInstalledSkills(
               installedAt: new Date(),
               usageCount: 0,
               repository: metadata.repository || '',
+              description: metadata.description || '',
             });
             
             console.log(`[Skill Manager] 自动注册 Skill: ${dir}`);

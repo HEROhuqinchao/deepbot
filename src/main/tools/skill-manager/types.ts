@@ -30,6 +30,7 @@ export interface InstalledSkill {
   lastUsed?: Date;
   usageCount: number;
   repository: string;
+  description?: string;
 }
 
 /**
