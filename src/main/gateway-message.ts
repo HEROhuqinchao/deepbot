@@ -439,6 +439,11 @@ export class GatewayMessageHandler {
       const totalDuration = Date.now() - startTime;
       console.log(`[MessageHandler] ⏱️ Agent 总执行时间: ${(totalDuration / 1000).toFixed(2)} 秒`);
       this.sendStreamChunk(messageId, '', true, false, undefined, finalSteps, sessionId, totalDuration, sentAt);
+
+      // 检查并执行延迟重置（如工具配置变更）
+      const { getGatewayInstance } = await import('./gateway');
+      const gateway = getGatewayInstance();
+      if (gateway) await gateway.checkAndApplyPendingReset();
       
       // 保存 AI 响应到 session
       if (this.sessionManager && fullResponse.trim() && !isTaskTab) {

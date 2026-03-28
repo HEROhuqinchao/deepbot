@@ -94,6 +94,17 @@ export const apiToolPlugin: ToolPlugin = {
         },
       },
       
+      // 启用/禁用内置工具
+      {
+        name: TOOL_NAMES.API_SET_TOOL_ENABLED,
+        label: '启用/禁用内置工具',
+        description: '启用或禁用内置工具（图片生成、网络搜索、浏览器、日历）。禁用后可用已安装的 Skill 替代。配置将在本次对话结束后生效。',
+        parameters: schemas.SetToolEnabledSchema,
+        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
+          return handlers.handleSetToolEnabled(args, signal);
+        },
+      },
+
       // 设置飞书连接器配置
       {
         name: TOOL_NAMES.API_SET_FEISHU_CONNECTOR_CONFIG,

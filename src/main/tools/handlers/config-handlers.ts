@@ -243,6 +243,44 @@ export async function handleSetImageGenerationConfig(
 }
 
 /**
+ * 设置工具启用/禁用状态
+ * 
+ * 保存配置后标记延迟重置，等当前 Agent 执行完成后再 reset runtime，
+ * 避免中断正在进行的任务。
+ */
+export async function handleSetToolEnabled(
+  params: { toolName: string; enabled: boolean },
+  signal?: AbortSignal
+): Promise<ToolResult> {
+  try {
+    logger.info('设置工具启用状态:', params);
+
+    checkAbortSignal(signal, '设置工具状态');
+
+    const store = await getSystemConfigStore();
+    store.setToolDisabled(params.toolName, !params.enabled);
+
+    const statusText = params.enabled ? '启用' : '禁用';
+    const hint = params.enabled
+      ? `✅ 工具 "${params.toolName}" 已启用。配置将在本次对话结束后生效。`
+      : `✅ 工具 "${params.toolName}" 已禁用，后续请优先使用已安装的 Skill 替代该功能。配置将在本次对话结束后生效。`;
+
+    // 标记延迟重置，等本次 Agent 执行完成后再重载工具列表
+    const gateway = await getGatewayInstance();
+    if (gateway) {
+      gateway.markPendingRuntimeReset();
+    }
+
+    return createSuccessResponse(
+      hint,
+      { toolName: params.toolName, enabled: params.enabled }
+    );
+  } catch (error) {
+    return createErrorResponse(error, '设置工具状态');
+  }
+}
+
+/**
  * 设置 Web 搜索工具配置
  */
 export async function handleSetWebSearchConfig(

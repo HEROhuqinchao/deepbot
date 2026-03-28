@@ -50,6 +50,7 @@ export const TOOL_NAMES = {
   API_SET_WEB_SEARCH_CONFIG: 'api_set_web_search_config',
   API_SET_FEISHU_CONNECTOR_CONFIG: 'api_set_feishu_connector_config',
   API_SET_CONNECTOR_ENABLED: 'api_set_connector_enabled',
+  API_SET_TOOL_ENABLED: 'api_set_tool_enabled',
   API_GET_PAIRING_RECORDS: 'api_get_pairing_records',
   API_APPROVE_PAIRING: 'api_approve_pairing',
   API_REJECT_PAIRING: 'api_reject_pairing',

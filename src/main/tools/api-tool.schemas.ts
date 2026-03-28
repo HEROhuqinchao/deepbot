@@ -231,6 +231,23 @@ export const RejectPairingSchema = Type.Object({
 });
 
 /**
+ * 设置工具启用/禁用 Schema
+ */
+export const SetToolEnabledSchema = Type.Object({
+  toolName: Type.Union([
+    Type.Literal('image_generation', { description: '图片生成工具（内置 Gemini/Qwen）' }),
+    Type.Literal('web_search', { description: '网络搜索工具' }),
+    Type.Literal('browser', { description: '浏览器控制工具' }),
+    Type.Literal('calendar_get_events', { description: '日历读取工具' }),
+    Type.Literal('calendar_create_event', { description: '日历创建工具' }),
+  ], { description: '要操作的工具名称' }),
+
+  enabled: Type.Boolean({
+    description: '是否启用（true=启用，false=禁用）',
+  }),
+});
+
+/**
  * 获取 Tab 列表 Schema
  */
 export const GetTabsSchema = Type.Object({

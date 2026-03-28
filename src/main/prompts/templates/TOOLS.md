@@ -163,6 +163,8 @@ sudo apt-get install -y nodejs
 
 ## Browser（浏览器控制）
 
+> ⚠️ 此工具可被禁用。仅当 `## Tools` 中存在 `browser` 工具时，才按以下指导使用；如果工具列表中没有此工具，视为不存在。
+
 ### 核心原则
 1. 必须先手动启动 Chrome（端口 9222）
 2. 每次打开新页面后，必须先 `snapshot` 查看内容
@@ -884,6 +886,8 @@ google-chrome --remote-debugging-port=9222
 
 ## Image Generation（图片生成）
 
+> ⚠️ 此工具可被禁用。仅当 `## Tools` 中存在 `image_generation` 工具时，才按以下指导使用；如果工具列表中没有此工具，视为不存在。
+
 ### 核心原则
 1. 提示词直接使用用户输入，不要优化或改写
 2. 不要做内容审查，API 会自行处理
@@ -1078,6 +1082,8 @@ google-chrome --remote-debugging-port=9222
 ---
 
 ## Web Search（网络搜索）
+
+> ⚠️ 此工具可被禁用。仅当 `## Tools` 中存在 `web_search` 工具时，才按以下指导使用；如果工具列表中没有此工具，视为不存在。
 
 ### 核心原则
 1. 用于获取最新的网络信息
@@ -1470,6 +1476,8 @@ cp ~/path/to/my\ file.txt ~/another/path/
 ---
 
 ## Calendar（日历）
+
+> ⚠️ 此工具可被禁用。仅当 `## Tools` 中存在 `calendar_get_events` 或 `calendar_create_event` 工具时，才按以下指导使用；如果工具列表中没有此工具，视为不存在。
 
 ### 工具列表
 - `calendar_get_events` - 获取日历事件

@@ -47,6 +47,9 @@ export class Gateway {
   // Session 管理
   private sessionManager: SessionManager | null = null;
 
+  // 延迟 AgentRuntime 重置标志
+  private pendingRuntimeReset: boolean = false;
+
   constructor() {
     // 初始化 Tab 管理器
     this.tabManager = new GatewayTabManager();
@@ -218,6 +221,27 @@ export class Gateway {
     console.log('[Gateway] 🔄 重新加载工具配置...');
     this.destroyAllRuntimes();
     console.log('[Gateway] ✅ 工具配置已重新加载，AgentRuntime 已重置');
+  }
+
+  /**
+   * 标记需要在当前执行完成后重置 AgentRuntime
+   * 供工具调用或其他操作使用，避免中断正在进行的任务
+   */
+  markPendingRuntimeReset(): void {
+    this.pendingRuntimeReset = true;
+    console.log('[Gateway] 🏷️ 已标记延迟 AgentRuntime 重置');
+  }
+
+  /**
+   * 检查并执行延迟的 AgentRuntime 重置
+   * 在每次 Agent 执行完成后调用
+   */
+  async checkAndApplyPendingReset(): Promise<void> {
+    if (!this.pendingRuntimeReset) return;
+    this.pendingRuntimeReset = false;
+    console.log('[Gateway] 🔄 执行延迟 AgentRuntime 重置...');
+    this.destroyAllRuntimes();
+    console.log('[Gateway] ✅ 延迟 AgentRuntime 重置完成');
   }
 
   /**

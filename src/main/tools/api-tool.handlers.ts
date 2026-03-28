@@ -19,6 +19,7 @@ export {
   handleSetModelConfig,
   handleSetImageGenerationConfig,
   handleSetWebSearchConfig,
+  handleSetToolEnabled,
 } from './handlers/config-handlers';
 
 // 名称配置和会话时间相关
