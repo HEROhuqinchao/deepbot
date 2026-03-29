@@ -439,6 +439,14 @@ google-chrome --remote-debugging-port=9222
 3. **从 `readme` 中提取正确的执行命令**：完整路径、脚本名、参数格式，不要猜测
 4. **适用于所有安装位置**：无论 Skill 安装在配置目录还是其他目录，都遵循相同流程
 
+### ⚠️ search 操作说明（重要）
+
+`skill_manager` 的 `search` 操作**只能用来搜索可安装的 Skill**，不能用来搜索网络信息。
+
+- ✅ `search`：在 Skill 仓库中查找可安装的 Skill（如 `{ "action": "search", "query": "youtube" }`）
+- ❌ `search` 不是网络搜索工具，不要用它来查天气、新闻、汇率等网络信息
+- 搜索网络信息请使用 `web_search` 工具或具有搜索能力的 Skill
+
 ### 🔍 URL 安装流程（通用处理）
 
 **场景 1：用户提出需求，但不确定使用哪个 Skill**

@@ -36,7 +36,7 @@ export function createSkillManagerTool(): AgentTool {
     description: `Skill 管理工具，用于搜索、安装、管理 DeepBot Skills。
 
 功能：
-- search: 从 ClawHub 搜索 Skill（返回 slug、displayName、description、stars 等）
+- search: 从 ClawHub 搜索 Skill（返回 slug、displayName、description、stars 等），只用于搜索还没有安装的Skill，不用做其他任何场景
 - install: 安装 Skill（从 ClawHub 下载，只需提供 slug）
 - list: 列出已安装的 Skill
 - enable: 启用 Skill
@@ -47,7 +47,7 @@ export function createSkillManagerTool(): AgentTool {
 - get-env: 获取 Skill 的环境变量配置
 
 使用示例：
-- 搜索: { "action": "search", "query": "PDF" }
+- 搜索还没有安装的skill: { "action": "search", "query": "PDF" }
 - 安装: { "action": "install", "name": "youtube-watcher" }
 - 列出: { "action": "list" }
 - 启用: { "action": "enable", "name": "pdf-editor" }
