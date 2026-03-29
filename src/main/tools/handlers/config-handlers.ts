@@ -9,7 +9,7 @@ import {
   DEFAULT_WEB_SEARCH_CONFIG 
 } from '../../../shared/config/default-configs';
 import * as formatters from '../api-tool.formatters';
-import { checkBrowserToolStatus, checkEmailToolConfig } from './tool-check-handlers';
+import { checkBrowserToolStatus } from './tool-check-handlers';
 import {
   ToolResult,
   checkAbortSignal,
@@ -59,6 +59,10 @@ export async function handleGetConfig(
       result.webSearch = store.getWebSearchToolConfig();
     }
     
+    // 查询工具禁用状态
+    const disabledTools = store.getDisabledTools();
+    result.disabledTools = disabledTools;
+    
     // 添加 Connector 配置
     if (params.configType === 'all') {
       result.connectors = store.getAllConnectorConfigs();
@@ -67,11 +71,6 @@ export async function handleGetConfig(
     // 检查浏览器工具（Chrome 安装情况）
     if (params.configType === 'all') {
       result.browserTool = await checkBrowserToolStatus();
-    }
-    
-    // 检查邮件工具配置
-    if (params.configType === 'all') {
-      result.emailTool = await checkEmailToolConfig(result.workspace?.workspaceDir || '');
     }
     
     return createSuccessResponse(

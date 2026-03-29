@@ -36,7 +36,8 @@ export function formatGetConfigResult(result: any): string {
   
   // 🔥 图片生成工具配置 - 即使未配置也显示
   if (result.imageGeneration !== undefined) {
-    message += `🎨 图片生成工具配置：\n`;
+    const imgDisabled = result.disabledTools?.includes('image_generation');
+    message += `🎨 图片生成工具配置：${imgDisabled ? '⏸️ 已禁用' : '✅ 已启用'}\n`;
     if (result.imageGeneration) {
       message += `  • 模型: ${result.imageGeneration.model}\n`;
       message += `  • API 地址: ${result.imageGeneration.apiUrl}\n`;
@@ -48,7 +49,8 @@ export function formatGetConfigResult(result: any): string {
   
   // 🔥 Web 搜索工具配置 - 即使未配置也显示
   if (result.webSearch !== undefined) {
-    message += `🔍 Web 搜索工具配置：\n`;
+    const wsDisabled = result.disabledTools?.includes('web_search');
+    message += `🔍 Web 搜索工具配置：${wsDisabled ? '⏸️ 已禁用' : '✅ 已启用'}\n`;
     if (result.webSearch) {
       message += `  • 提供商: ${result.webSearch.provider}\n`;
       message += `  • 模型: ${result.webSearch.model}\n`;
@@ -98,7 +100,8 @@ export function formatGetConfigResult(result: any): string {
   
   // 🔥 浏览器工具状态
   if (result.browserTool !== undefined) {
-    message += `🌐 浏览器工具状态：\n`;
+    const browserDisabled = result.disabledTools?.includes('browser');
+    message += `🌐 浏览器工具状态：${browserDisabled ? '⏸️ 已禁用' : '✅ 已启用'}\n`;
     if (result.browserTool.chromeInstalled) {
       message += `  • Chrome 浏览器: ✅ 已安装\n`;
       if (result.browserTool.chromePath) {
@@ -110,24 +113,6 @@ export function formatGetConfigResult(result: any): string {
         message += `  • 错误信息: ${result.browserTool.error}\n`;
       }
       message += `  • 提示: 浏览器工具需要安装 Google Chrome 浏览器\n`;
-    }
-    message += '\n';
-  }
-  
-  // 🔥 邮件工具配置状态
-  if (result.emailTool !== undefined) {
-    message += `📧 邮件工具配置：\n`;
-    if (result.emailTool.configured) {
-      message += `  • 配置状态: ✅ 已配置\n`;
-      if (result.emailTool.configPath) {
-        message += `  • 配置文件: ${result.emailTool.configPath}\n`;
-      }
-    } else {
-      message += `  • 配置状态: ❌ 未配置\n`;
-      if (result.emailTool.error) {
-        message += `  • 错误信息: ${result.emailTool.error}\n`;
-      }
-      message += `  • 提示: 需要创建配置文件 ~/.deepbot/tools/email-tool/config.json\n`;
     }
     message += '\n';
   }
