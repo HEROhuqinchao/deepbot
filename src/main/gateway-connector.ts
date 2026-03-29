@@ -655,32 +655,51 @@ export class GatewayConnectorHandler {
         return '❌ 未找到当前会话';
       }
 
-      // 🔥 优先获取当前正在流式输出的内容
       if (this.getOrCreateRuntimeFn) {
         const runtime = this.getOrCreateRuntimeFn(sessionId);
         if (runtime) {
-          const streamingContent = runtime.getCurrentStreamingContent();
-          if (streamingContent && streamingContent.trim()) {
-            return `📊 当前正在输出的内容\n\n${streamingContent}`;
+          const isGenerating = runtime.isCurrentlyGenerating();
+
+          if (isGenerating) {
+            const steps = runtime.getExecutionSteps();
+            const streamingContent = runtime.getCurrentStreamingContent();
+            
+            let statusText = '📊 任务正在执行中\n\n';
+            
+            // 显示 AI 已输出的文本内容
+            if (streamingContent && streamingContent.trim()) {
+              statusText += `💬 AI 输出内容:\n${streamingContent}\n\n`;
+            }
+            
+            // 显示执行步骤
+            if (steps && steps.length > 0) {
+              const runningSteps = steps.filter((s: { status: string }) => s.status === 'running');
+              const completedSteps = steps.filter((s: { status: string }) => s.status === 'success' || s.status === 'error');
+              
+              statusText += `⚙️ 已完成 ${completedSteps.length} 个步骤，正在执行 ${runningSteps.length} 个步骤\n\n`;
+              
+              for (const step of runningSteps) {
+                statusText += `🔄 正在执行: ${step.toolLabel || step.toolName}\n`;
+              }
+              
+              const recentCompleted = completedSteps.slice(-3);
+              if (recentCompleted.length > 0) {
+                statusText += `\n最近完成的步骤:\n`;
+                for (const step of recentCompleted) {
+                  const icon = step.status === 'success' ? '✅' : '❌';
+                  statusText += `${icon} ${step.toolLabel || step.toolName}\n`;
+                }
+              }
+            } else if (!streamingContent || !streamingContent.trim()) {
+              statusText += '正在等待 AI 响应...';
+            }
+            
+            return statusText;
           }
         }
       }
 
-      // 如果没有正在流式输出的内容，获取最近的 AI 回复消息
-      const messages = tab.messages || [];
-      const lastAssistantMessage = messages
-        .slice()
-        .reverse()
-        .find(msg => msg.role === 'assistant');
-
-      if (!lastAssistantMessage || !lastAssistantMessage.content) {
-        return '📊 当前状态\n\n暂无输出内容';
-      }
-
-      // 直接返回最后一条 AI 回复的完整内容
-      const content = lastAssistantMessage.content.trim();
-      
-      return `📊 最近的输出内容\n\n${content}`;
+      return '📊 当前没有正在执行的任务';
     } catch (error) {
       logger.error('❌ 执行 /status 指令失败:', error);
       return `❌ 获取状态失败: ${getErrorMessage(error)}`;
