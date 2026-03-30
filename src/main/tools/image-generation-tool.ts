@@ -326,7 +326,7 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
                 success: true,
                 action: 'generate',
                 provider: toolConfig.provider,
-                message: '图片生成成功',
+                message: '图片生成成功，显示图片预览时，必须使用path中的完整路径作为图片路径，禁止只显示图片的名字',
                 path: savedPath,
                 aspectRatio: params.aspectRatio || '16:9',
                 resolution: params.resolution || '1K',
