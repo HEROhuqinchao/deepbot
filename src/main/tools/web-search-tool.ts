@@ -449,7 +449,7 @@ export function createWebSearchTool(configStore: SystemConfigStore): AgentTool {
         let answer: string;
         let sources: Array<{ title: string; url: string }>;
 
-        if (toolConfig.provider === 'gemini') {
+        if (toolConfig.provider === 'gemini' || toolConfig.provider === 'deepbot') {
           // 使用 Gemini API（Grounding with Google Search）
           const result = await performGeminiWebSearch({
             query: params.query,

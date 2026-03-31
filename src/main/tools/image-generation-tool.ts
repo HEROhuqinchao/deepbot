@@ -50,11 +50,12 @@ function getToolConfig(configStore: SystemConfigStore): {
     throw new Error('模型未配置。请在系统设置 > 工具配置中选择模型');
   }
   
-  // 根据模型名称判断提供商
+  // 根据保存的提供商或模型名称判断
   let provider: 'gemini' | 'qwen' = 'gemini';
-  if (dbConfig.model.includes('qwen-image')) {
+  if (dbConfig.provider === 'qwen' || (!dbConfig.provider && dbConfig.model.includes('qwen-image'))) {
     provider = 'qwen';
   }
+  // deepbot 提供商走 gemini 逻辑，无需特殊处理
   
   return {
     apiKey: dbConfig.apiKey,
