@@ -163,7 +163,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     return cleanup;
   }, [activeTabId]);
 
-  // 🔥 检测用户手动滚动 - 重新设计的逻辑
+  // 🔥 检测用户手动滚动
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -171,36 +171,41 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     let scrollEndTimer: NodeJS.Timeout | null = null;
 
     const handleScroll = () => {
-      // 🔥 清除之前的定时器
+      // 如果是程序滚动，忽略此事件
+      if (programScrollingRef.current) {
+        return;
+      }
+
+      // 🔥 用户手动滚动时，立即暂停自动滚动（不等延迟）
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
+
+      if (!isAtBottom && autoScroll) {
+        setAutoScroll(false);
+      }
+
+      // 🔥 延迟检测滚动停止后的状态（恢复自动滚动、加载更多）
       if (scrollEndTimer) {
         clearTimeout(scrollEndTimer);
       }
 
-      // 🔥 延迟检测，等待滚动完全停止后再判断
       scrollEndTimer = setTimeout(() => {
-        // 如果是程序滚动，忽略此事件
-        if (programScrollingRef.current) {
-          return;
-        }
+        if (programScrollingRef.current) return;
 
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10; // 10px 容差
-        const isAtTop = scrollTop < 100; // 距离顶部小于 100px
+        const { scrollTop: st, scrollHeight: sh, clientHeight: ch } = container;
+        const atBottom = Math.abs(sh - st - ch) < 10;
+        const atTop = st < 100;
 
-        // 🔥 用户滚动到顶部，加载更多消息
-        if (isAtTop && hasMoreMessages && !isLoadingMore) {
+        // 用户滚动到顶部，加载更多消息
+        if (atTop && hasMoreMessages && !isLoadingMore) {
           loadMoreMessages();
         }
 
         // 用户滚动到底部，恢复自动滚动
-        if (isAtBottom && !autoScroll) {
+        if (atBottom && !autoScroll) {
           setAutoScroll(true);
         }
-        // 用户向上滚动（离开底部），暂停自动滚动
-        else if (!isAtBottom && autoScroll) {
-          setAutoScroll(false);
-        }
-      }, 150); // 延迟 150ms，等待滚动完全停止
+      }, 150);
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -265,13 +270,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     // 滚动到底部的函数
     const scrollToBottom = () => {
       if (messagesEndRef.current) {
-        programScrollingRef.current = true; // 标记为程序滚动
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        
-        // 🔥 滚动完成后重置标记（增加延迟确保所有 scroll 事件都被忽略）
+        programScrollingRef.current = true;
+        messagesEndRef.current.scrollIntoView({ behavior: 'instant' });
+        // instant 滚动立即完成，短延迟后重置标记
         setTimeout(() => {
           programScrollingRef.current = false;
-        }, 800); // 增加到 800ms，确保 smooth 滚动完全完成
+        }, 50);
       }
     };
 
