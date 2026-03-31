@@ -1,7 +1,5 @@
 /**
  * Web Search 工具配置页面
- * 
- * 配置 Qwen Web Search 工具
  */
 
 import React, { useState, useEffect } from 'react';
@@ -10,9 +8,10 @@ import {
 } from '../../../shared/config/default-configs';
 import { api } from '../../api';
 import { showToast } from '../../utils/toast';
+import { ApiKeyHelpModal } from './ApiKeyHelpModal';
 
 interface WebSearchToolConfig {
-  provider: 'qwen' | 'gemini';  // 提供商类型（仅支持 Qwen 和 Gemini）
+  provider: 'deepbot' | 'qwen' | 'gemini';
   model: string;
   apiUrl: string;
   apiKey: string;
@@ -30,13 +29,12 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
     apiKey: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [showApiKeyHelp, setShowApiKeyHelp] = useState(false);
   const hasLoadedRef = React.useRef(false);
 
-  // 加载当前配置（防止 Strict Mode 重复执行）
   useEffect(() => {
     if (hasLoadedRef.current) return;
     hasLoadedRef.current = true;
-    
     loadConfig();
   }, []);
 
@@ -51,10 +49,8 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
     }
   };
 
-  // 当提供商改变时，更新默认 API 地址和模型
-  const handleProviderChange = (newProvider: 'qwen' | 'gemini') => {
+  const handleProviderChange = (newProvider: 'deepbot' | 'qwen' | 'gemini') => {
     const preset = WEB_SEARCH_PROVIDER_PRESETS[newProvider];
-
     setConfig({
       ...config,
       provider: newProvider,
@@ -64,27 +60,13 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
   };
 
   const handleSave = async () => {
-    // 验证配置
-    if (!config.apiUrl) {
-      showToast('error', '请输入 API 地址');
-      return;
-    }
-
-    if (!config.model) {
-      showToast('error', '请输入模型 ID');
-      return;
-    }
-
-    if (!config.apiKey) {
-      showToast('error', '请输入 API Key');
-      return;
-    }
+    if (!config.apiUrl) { showToast('error', '请输入 API 地址'); return; }
+    if (!config.model) { showToast('error', '请输入模型 ID'); return; }
+    if (!config.apiKey) { showToast('error', '请输入 API Key'); return; }
 
     setIsSaving(true);
-
     try {
       const result = await api.saveWebSearchToolConfig(config);
-      
       if (result.success) {
         showToast('success', '✅ 保存成功！');
       } else {
@@ -103,55 +85,27 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
       <div>
         <h4 className="text-base font-medium text-gray-900 mb-2">Web Search 工具配置</h4>
         <p className="text-sm text-gray-600 mb-4">
-          系统内置 Qwen 和 Google Gemini 两个网络搜索提供商，可在下方切换。如需调用其他搜索提供商，可通过安装 Skill 扩展。
+          配置网络搜索能力，获取最新的网络信息、新闻、天气等实时数据。如需调用其他提供商，可通过安装 Skill 扩展。<span style={{ color: 'var(--settings-accent)' }}>推荐：Tavily Search Skill</span>
         </p>
       </div>
 
-      {/* 提示信息 */}
-      {!config.apiKey && (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">
-                关于 Web Search
-              </h3>
-              <div className="mt-2 text-sm text-blue-700">
-                <p>Web Search 工具可以获取最新的网络信息、新闻、天气等实时数据。</p>
-                <p className="mt-1">• Qwen: 使用 Qwen 的网络搜索能力 (enable_search)</p>
-                <p className="mt-1">• Gemini: 使用 Google Search Grounding (google_search_retrieval)</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 提供商选择 */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          提供商
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">提供商</label>
         <select
           value={config.provider}
-          onChange={(e) => handleProviderChange(e.target.value as 'qwen' | 'gemini')}
+          onChange={(e) => handleProviderChange(e.target.value as 'deepbot' | 'qwen' | 'gemini')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
+          <option value="deepbot">DeepBot（Gemini 3）</option>
           <option value="qwen">Qwen</option>
-          <option value="gemini">Google Gemini</option>
         </select>
-        <p className="mt-1 text-xs text-gray-500">
-          选择支持网络搜索的 AI 提供商
-        </p>
       </div>
 
       {/* API 地址 */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          API 地址
+          API 地址 <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -161,37 +115,42 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="mt-1 text-xs text-gray-500">
-          预设提供商的 API 地址（可修改）
+          {config.provider === 'deepbot' && '无需魔法，直连 Gemini 3'}
+          {config.provider === 'qwen' && '预设提供商的 API 地址（可修改）'}
+          {config.provider === 'gemini' && '预设提供商的 API 地址（可修改）'}
         </p>
       </div>
 
       {/* 模型 ID */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          模型 ID
+          模型 ID <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           value={config.model}
           onChange={(e) => setConfig({ ...config, model: e.target.value })}
-          placeholder={
-            config.provider === 'qwen' 
-              ? 'qwen3.5-plus' 
-              : 'gemini-3-flash-preview'
-          }
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          disabled={config.provider === 'deepbot'}
+          placeholder={config.provider === 'qwen' ? 'qwen3.5-plus' : 'gemini-3-flash-preview'}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
         />
         <p className="mt-1 text-xs text-gray-500">
           {config.provider === 'qwen' && '默认: qwen3.5-plus（可选: qwen-plus, qwen-turbo, qwen-max 等）'}
-          {config.provider === 'gemini' && '默认: gemini-3-flash-preview（可选: gemini-2.5-flash, gemini-2.5-pro 等）'}
+          {(config.provider === 'gemini' || config.provider === 'deepbot') && '默认: gemini-3-flash-preview'}
         </p>
       </div>
 
       {/* API Key */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          API Key
-        </label>
+        <div className="flex items-center gap-2 mb-2">
+          <label className="text-sm font-medium text-gray-700">API Key <span className="text-red-500">*</span></label>
+          <span
+            onClick={() => setShowApiKeyHelp(true)}
+            style={{ fontSize: '11px', color: 'var(--settings-accent)', cursor: 'pointer' }}
+          >
+            如何获取？
+          </span>
+        </div>
         <input
           type="password"
           value={config.apiKey}
@@ -200,9 +159,9 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="mt-1 text-xs text-gray-500">
-          {config.provider === 'qwen' 
-            ? 'Qwen API Key（可以与主模型使用相同的 Key）'
-            : 'Google Gemini API Key'}
+          {config.provider === 'deepbot' && '使用工具专用的 DeepBot Token'}
+          {config.provider === 'qwen' && 'Qwen API Key（可以与主模型使用相同的 Key）'}
+          {config.provider === 'gemini' && 'Google Gemini API Key'}
         </p>
       </div>
 
@@ -216,6 +175,9 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           {isSaving ? '保存中...' : '保存配置'}
         </button>
       </div>
+
+      {/* 如何获取 API Key 模态框 */}
+      {showApiKeyHelp && <ApiKeyHelpModal onClose={() => setShowApiKeyHelp(false)} />}
     </div>
   );
 }

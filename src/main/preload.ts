@@ -158,7 +158,7 @@ contextBridge.exposeInMainWorld('deepbot', {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_IMAGE_GENERATION_TOOL_CONFIG);
   },
 
-  saveImageGenerationToolConfig: (config: { model: string; apiUrl: string; apiKey: string }) => {
+  saveImageGenerationToolConfig: (config: { provider?: string; model: string; apiUrl: string; apiKey: string }) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SAVE_IMAGE_GENERATION_TOOL_CONFIG, config);
   },
 

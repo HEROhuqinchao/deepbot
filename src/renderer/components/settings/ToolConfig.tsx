@@ -13,6 +13,7 @@ import { WebSearchToolConfig } from './WebSearchToolConfig';
 import { BrowserToolConfig } from './BrowserToolConfig';
 import { api } from '../../api';
 import { showToast } from '../../utils/toast';
+import { ApiKeyHelpModal } from './ApiKeyHelpModal';
 
 // 可供用户禁用的工具列表
 const TOGGLEABLE_TOOLS: Array<{ name: string; label: string; description: string }> = [
@@ -28,7 +29,7 @@ interface ToolConfigProps {
 }
 
 interface ImageGenerationConfig {
-  provider: 'gemini' | 'qwen';
+  provider: 'deepbot' | 'gemini' | 'qwen';
   model: string;
   apiUrl: string;
   apiKey: string;
@@ -36,6 +37,7 @@ interface ImageGenerationConfig {
 
 export function ToolConfig({ onClose }: ToolConfigProps) {
   const [activeTab, setActiveTab] = useState<'image' | 'websearch' | 'email' | 'browser' | 'manage'>('image');
+  const [showApiKeyHelp, setShowApiKeyHelp] = useState(false);
   const [imageGenConfig, setImageGenConfig] = useState<ImageGenerationConfig>({
     provider: DEFAULT_IMAGE_GENERATION_CONFIG.provider,
     model: DEFAULT_IMAGE_GENERATION_CONFIG.model,
@@ -64,7 +66,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
       ]);
       if (imageConfig) {
         // 兼容旧配置格式，添加默认 provider 字段
-        let provider: 'gemini' | 'qwen' = 'gemini';
+        let provider: 'deepbot' | 'gemini' | 'qwen' = 'gemini';
         if ((imageConfig as any).provider) {
           provider = (imageConfig as any).provider;
         } else if (imageConfig.model && imageConfig.model.includes('qwen-image')) {
@@ -113,7 +115,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
   };
 
   // 当提供商改变时，更新默认 API 地址和模型
-  const handleImageProviderChange = (newProvider: 'gemini' | 'qwen') => {
+  const handleImageProviderChange = (newProvider: 'deepbot' | 'gemini' | 'qwen') => {
     const preset = IMAGE_GENERATION_PROVIDER_PRESETS[newProvider];
 
     setImageGenConfig({
@@ -229,7 +231,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
           <div>
             <h4 className="text-base font-medium text-gray-900 mb-2">图片生成工具配置</h4>
             <p className="text-sm text-gray-600 mb-4">
-              系统内置 Gemini 和 Qwen 两个图片生成提供商，可在下方切换。如需调用其他提供商，可通过安装 Skill 扩展。
+              配置 AI 图片生成能力，支持根据文字描述或参考图生成图片。如需调用其他提供商，可通过安装 Skill 扩展。
             </p>
           </div>
 
@@ -240,10 +242,10 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
             </label>
             <select
               value={imageGenConfig.provider}
-              onChange={(e) => handleImageProviderChange(e.target.value as 'gemini' | 'qwen')}
+              onChange={(e) => handleImageProviderChange(e.target.value as 'deepbot' | 'gemini' | 'qwen')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="gemini">Google Gemini (nana banana pro)</option>
+              <option value="deepbot">DeepBot（Nano banana 2）</option>
               <option value="qwen">Qwen Image</option>
             </select>
             <p className="mt-1 text-xs text-gray-500">
@@ -264,9 +266,9 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="mt-1 text-xs text-gray-500">
-              {imageGenConfig.provider === 'qwen'
-                ? 'Qwen Image 图片生成 API 地址'
-                : '预设提供商的 API 地址（可修改）'}
+              {imageGenConfig.provider === 'deepbot' && '无需魔法，直连 Nano Banana 2'}
+              {imageGenConfig.provider === 'qwen' && 'Qwen Image 图片生成 API 地址'}
+              {imageGenConfig.provider === 'gemini' && '预设提供商的 API 地址（可修改）'}
             </p>
           </div>
 
@@ -279,24 +281,31 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
               type="text"
               value={imageGenConfig.model}
               onChange={(e) => setImageGenConfig({ ...imageGenConfig, model: e.target.value })}
+              disabled={imageGenConfig.provider === 'deepbot'}
               placeholder={
-                imageGenConfig.provider === 'gemini' 
-                  ? 'gemini-3-pro-image-preview' 
-                  : 'qwen-image-2.0-pro'
+                imageGenConfig.provider === 'qwen'
+                  ? 'qwen-image-2.0-pro'
+                  : 'gemini-3.1-flash-image-preview'
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
             <p className="mt-1 text-xs text-gray-500">
-              {imageGenConfig.provider === 'gemini' && '默认: gemini-3-pro-image-preview（可选: gemini-2.5-flash 等）'}
+              {(imageGenConfig.provider === 'gemini' || imageGenConfig.provider === 'deepbot') && '默认: gemini-3.1-flash-image-preview'}
               {imageGenConfig.provider === 'qwen' && '推荐: qwen-image-2.0-pro（可选: qwen-image-2.0, qwen-image-max, qwen-image-plus）'}
             </p>
           </div>
 
           {/* API Key */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              API Key <span className="text-red-500">*</span>
-            </label>
+            <div className="flex items-center gap-2 mb-2">
+              <label className="text-sm font-medium text-gray-700">API Key <span className="text-red-500">*</span></label>
+              <span
+                onClick={() => setShowApiKeyHelp(true)}
+                style={{ fontSize: '11px', color: 'var(--settings-accent)', cursor: 'pointer' }}
+              >
+                如何获取？
+              </span>
+            </div>
             <input
               type="password"
               value={imageGenConfig.apiKey}
@@ -306,6 +315,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
             />
             <p className="mt-1 text-xs text-gray-500">
               {imageGenConfig.provider === 'gemini' && '用于访问 Gemini API 的密钥'}
+              {imageGenConfig.provider === 'deepbot' && '使用工具专用的 DeepBot Token'}
               {imageGenConfig.provider === 'qwen' && '用于访问 Qwen API 的密钥（DashScope API Key）'}
             </p>
           </div>
@@ -449,9 +459,9 @@ SMTP_FROM=your@163.com`}
       {activeTab === 'manage' && (
         <div className="space-y-4">
           <div>
-            <h4 className="text-base font-medium text-gray-900 mb-1">工具管理</h4>
-            <p className="text-sm text-gray-500">
-              勾选表示启用，取消勾选表示禁用。点击保存后立即生效，Agent 将重新加载工具列表。如果你已安装对应功能的 Skill，可以关闭内置工具，优先使用 Skill。
+            <h4 className="text-base font-medium text-gray-900 mb-2">工具管理</h4>
+            <p className="text-sm text-gray-600 mb-4">
+              勾选表示启用，取消勾选表示禁用。保存后立即生效。如果你已安装对应功能的 Skill，可以关闭内置工具，优先使用 Skill。
             </p>
           </div>
           <div className="space-y-2">
@@ -487,6 +497,8 @@ SMTP_FROM=your@163.com`}
           </div>
         </div>
       )}
+      {/* 如何获取 API Key 模态框 */}
+      {showApiKeyHelp && <ApiKeyHelpModal onClose={() => setShowApiKeyHelp(false)} />}
     </div>
   );
 }

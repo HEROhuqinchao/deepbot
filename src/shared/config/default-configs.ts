@@ -59,10 +59,15 @@ export const PROVIDER_PRESETS = {
  * 图片生成提供商预设配置
  */
 export const IMAGE_GENERATION_PROVIDER_PRESETS = {
+  deepbot: {
+    name: 'DeepBot（Nano banana 2）',
+    baseUrl: 'https://www.im-director.com/api/gemini-proxy',
+    defaultModelId: 'gemini-3.1-flash-image-preview',
+  },
   gemini: {
     name: 'Google Gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    defaultModelId: 'gemini-3-pro-image-preview',
+    defaultModelId: 'gemini-3.1-flash-image-preview',
   },
   qwen: {
     name: 'Qwen Image',
@@ -75,6 +80,11 @@ export const IMAGE_GENERATION_PROVIDER_PRESETS = {
  * Web 搜索提供商预设配置
  */
 export const WEB_SEARCH_PROVIDER_PRESETS = {
+  deepbot: {
+    name: 'DeepBot',
+    baseUrl: 'https://www.im-director.com/api/gemini-proxy',
+    defaultModelId: 'gemini-3-flash-preview',
+  },
   qwen: {
     name: 'Qwen',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',

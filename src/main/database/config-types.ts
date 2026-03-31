@@ -49,6 +49,7 @@ export interface ModelConfig {
  * 工具配置 - 图片生成工具
  */
 export interface ImageGenerationToolConfig {
+  provider?: string;       // 提供商
   model: string;           // 模型名称
   apiUrl: string;          // API 地址
   apiKey: string;          // API Key

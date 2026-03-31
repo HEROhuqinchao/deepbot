@@ -20,6 +20,7 @@ export function getImageGenerationToolConfig(db: Database.Database): ImageGenera
     if (!row) return null;
 
     return {
+      provider: row.provider,
       model: row.model,
       apiUrl: row.api_url,
       apiKey: row.api_key,
@@ -36,11 +37,12 @@ export function getImageGenerationToolConfig(db: Database.Database): ImageGenera
 export function saveImageGenerationToolConfig(db: Database.Database, config: ImageGenerationToolConfig): void {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO tool_config_image_generation 
-    (id, model, api_url, api_key)
-    VALUES (1, ?, ?, ?)
+    (id, provider, model, api_url, api_key)
+    VALUES (1, ?, ?, ?, ?)
   `);
 
   stmt.run(
+    config.provider || 'gemini',
     config.model,
     config.apiUrl,
     config.apiKey

@@ -143,6 +143,13 @@ export class SystemConfigStore {
       )
     `);
 
+    // 兼容升级：为图片生成工具配置表添加 provider 字段
+    try {
+      this.db.exec(`ALTER TABLE tool_config_image_generation ADD COLUMN provider TEXT NOT NULL DEFAULT 'gemini'`);
+    } catch (_e) {
+      // 字段已存在，忽略
+    }
+
     // 工具配置表 - Web Search 工具
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS tool_config_web_search (
