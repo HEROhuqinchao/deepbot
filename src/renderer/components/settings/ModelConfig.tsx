@@ -273,9 +273,17 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
               onChange={(e) => setConfig({ ...config, modelId: e.target.value, modelName: e.target.value, contextWindow: undefined })}
               onFocus={() => setShowModelDropdown(true)}
               onBlur={() => setTimeout(() => setShowModelDropdown(false), 150)}
-              placeholder="deepseek-v3.2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="minimax-m2.5"
+              className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <span
+              onClick={() => setShowModelDropdown(!showModelDropdown)}
+              style={{
+                position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                cursor: 'pointer', color: 'var(--settings-text-dim, #999)', fontSize: '10px',
+                pointerEvents: 'auto',
+              }}
+            >▼</span>
             {showModelDropdown && (
               <ul style={{
                 position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
