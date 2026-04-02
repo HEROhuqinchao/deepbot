@@ -195,18 +195,12 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "publisherName": "Kevin Luo",
       "verifyUpdateCodeSignature": false,
       "requestedExecutionLevel": "asInvoker",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -220,7 +214,7 @@
       "uninstallDisplayName": "DeepBot Terminal",
       "deleteAppDataOnUninstall": false,
       "differentialPackage": false,
-      "packElevateHelper": true,
+      "packElevateHelper": false,
       "artifactName": "${productName}-Setup-${version}.${ext}",
       "guid": "com.deepbot.app",
       "warningsAsErrors": false,
