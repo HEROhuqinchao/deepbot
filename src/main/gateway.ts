@@ -21,6 +21,10 @@ import { setGatewayInstance } from './tools/scheduled-task-tool';
 import type { GatewayMessage } from '../types/connector';
 import { ConnectorManager } from './connectors/connector-manager';
 import { FeishuConnector } from './connectors/feishu/feishu-connector';
+import { DingTalkConnector } from './connectors/dingtalk/dingtalk-connector';
+import { SlackConnector } from './connectors/slack/slack-connector';
+import { WeComConnector } from './connectors/wecom/wecom-connector';
+import { QQConnector } from './connectors/qq/qq-connector';
 import { SessionManager } from './session/session-manager';
 import { GatewayTabManager } from './gateway-tab';
 import { GatewayConnectorHandler } from './gateway-connector';
@@ -72,6 +76,26 @@ export class Gateway {
     const feishuConnector = new FeishuConnector(this.connectorManager);
     this.connectorManager.registerConnector(feishuConnector);
     console.log('[Gateway] ✅ 飞书连接器已注册');
+    
+    // 注册钉钉连接器
+    const dingtalkConnector = new DingTalkConnector(this.connectorManager);
+    this.connectorManager.registerConnector(dingtalkConnector);
+    console.log('[Gateway] ✅ 钉钉连接器已注册');
+    
+    // 注册 Slack 连接器
+    const slackConnector = new SlackConnector(this.connectorManager);
+    this.connectorManager.registerConnector(slackConnector);
+    console.log('[Gateway] ✅ Slack 连接器已注册');
+    
+    // 注册企业微信连接器
+    const wecomConnector = new WeComConnector(this.connectorManager);
+    this.connectorManager.registerConnector(wecomConnector);
+    console.log('[Gateway] ✅ 企业微信连接器已注册');
+    
+    // 注册 QQ 机器人连接器
+    const qqConnector = new QQConnector(this.connectorManager);
+    this.connectorManager.registerConnector(qqConnector);
+    console.log('[Gateway] ✅ QQ 机器人连接器已注册');
     
     // 设置 Gateway 实例供 scheduled-task-tool 使用
     setGatewayInstance(this);

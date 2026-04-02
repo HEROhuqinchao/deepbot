@@ -27,6 +27,41 @@ interface FeishuConfig {
   requirePairing?: boolean;
 }
 
+interface DingTalkConfig {
+  clientId: string;
+  clientSecret: string;
+  robotCode?: string;
+  enabled?: boolean;
+  requirePairing?: boolean;
+}
+
+interface SlackConfig {
+  botToken: string;
+  appToken: string;
+  signingSecret: string;
+  enabled?: boolean;
+  requirePairing?: boolean;
+}
+
+interface WeComConfig {
+  corpId: string;
+  agentId: string;
+  secret: string;
+  token?: string;
+  encodingAESKey?: string;
+  enabled?: boolean;
+  requirePairing?: boolean;
+}
+
+interface QQConfig {
+  appId: string;
+  appSecret: string;
+  enabled?: boolean;
+  requirePairing?: boolean;
+}
+
+type ConnectorConfig = FeishuConfig | DingTalkConfig | SlackConfig | WeComConfig | QQConfig;
+
 interface PairingRecord {
   connectorId: string;
   userId: string;

@@ -7,7 +7,7 @@
 /**
  * 连接器 ID
  */
-export type ConnectorId = 'feishu' | 'dingtalk' | 'wechat' | 'slack';
+export type ConnectorId = 'feishu' | 'dingtalk' | 'wecom' | 'slack' | 'qq';
 
 /**
  * 连接器配置
@@ -203,4 +203,184 @@ export interface PairingRecord {
   approved: boolean;
   createdAt: number;
   approvedAt?: number;
+  userName?: string;         // 用户名称
+  openId?: string;           // 开放平台 ID
+  isAdmin?: boolean;         // 是否是管理员
+}
+
+// ========== 钉钉特定类型 ==========
+
+/**
+ * 钉钉连接器配置
+ */
+export interface DingTalkConnectorConfig extends ConnectorConfig {
+  clientId: string;          // 应用的 ClientId
+  clientSecret: string;      // 应用的 ClientSecret
+  robotCode?: string;        // 机器人码（可选）
+  requirePairing?: boolean;  // 是否需要配对授权，默认 false
+}
+
+/**
+ * 钉钉消息（内部格式）
+ */
+export interface DingTalkIncomingMessage {
+  messageId: string;
+  timestamp: number;
+  sender: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  conversation: {
+    id: string;
+    type: 'p2p' | 'group';
+    name?: string;
+  };
+  mentions?: {
+    isBotMentioned: boolean;
+    mentionList: any[];
+  };
+  content: {
+    type: 'text' | 'image' | 'file';
+    text: string;
+    fileUrl?: string;
+    fileName?: string;
+    imagePath?: string;
+    filePath?: string;
+  };
+  systemContext?: string;
+  raw: any;
+}
+
+// ========== 企业微信特定类型 ==========
+
+/**
+ * 企业微信连接器配置
+ */
+export interface WeComConnectorConfig extends ConnectorConfig {
+  corpId: string;            // 企业 ID
+  agentId: string;           // 应用 AgentId
+  secret: string;            // 应用 Secret
+  token?: string;            // 回调 Token（可选）
+  encodingAESKey?: string;   // 加密密钥（可选）
+  requirePairing?: boolean;  // 是否需要配对授权，默认 false
+}
+
+/**
+ * 企业微信消息（内部格式）
+ */
+export interface WeComIncomingMessage {
+  messageId: string;
+  timestamp: number;
+  sender: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  conversation: {
+    id: string;
+    type: 'p2p' | 'group';
+    name?: string;
+  };
+  mentions?: {
+    isBotMentioned: boolean;
+    mentionList: any[];
+  };
+  content: {
+    type: 'text' | 'image' | 'file';
+    text: string;
+    fileUrl?: string;
+    fileName?: string;
+    imagePath?: string;
+    filePath?: string;
+  };
+  systemContext?: string;
+  raw: any;
+}
+
+// ========== Slack 特定类型 ==========
+
+/**
+ * Slack 连接器配置
+ */
+export interface SlackConnectorConfig extends ConnectorConfig {
+  botToken: string;          // xoxb-xxx
+  appToken: string;          // xapp-xxx (Socket Mode 需要)
+  signingSecret: string;     // 签名验证
+  requirePairing?: boolean;  // 是否需要配对授权，默认 false
+}
+
+/**
+ * Slack 消息（内部格式）
+ */
+export interface SlackIncomingMessage {
+  messageId: string;
+  timestamp: number;
+  sender: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  conversation: {
+    id: string;
+    type: 'p2p' | 'group';
+    name?: string;
+  };
+  mentions?: {
+    isBotMentioned: boolean;
+    mentionList: any[];
+  };
+  content: {
+    type: 'text' | 'image' | 'file';
+    text: string;
+    fileUrl?: string;
+    fileName?: string;
+    imagePath?: string;
+    filePath?: string;
+  };
+  systemContext?: string;
+  raw: any;
+}
+
+// ========== QQ 机器人特定类型 ==========
+
+/**
+ * QQ 机器人连接器配置
+ */
+export interface QQConnectorConfig extends ConnectorConfig {
+  appId: string;             // 机器人 AppID
+  appSecret: string;         // 机器人 AppSecret
+  requirePairing?: boolean;  // 是否需要配对授权，默认 false
+}
+
+/**
+ * QQ 消息（内部格式）
+ */
+export interface QQIncomingMessage {
+  messageId: string;
+  timestamp: number;
+  sender: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  conversation: {
+    id: string;
+    type: 'p2p' | 'group';
+    name?: string;
+  };
+  mentions?: {
+    isBotMentioned: boolean;
+    mentionList: any[];
+  };
+  content: {
+    type: 'text' | 'image' | 'file';
+    text: string;
+    fileUrl?: string;
+    fileName?: string;
+    imagePath?: string;
+    filePath?: string;
+  };
+  systemContext?: string;
+  raw: any;
 }
