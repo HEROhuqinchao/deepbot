@@ -172,12 +172,9 @@
           ]
         }
       ],
-      "identity": "KAI LUO (LB8Z97ZG5Y)",
+      "identity": null,
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "notarize": {
-        "teamId": "LB8Z97ZG5Y"
-      },
       "signIgnore": [
         "\\.json$"
       ],
