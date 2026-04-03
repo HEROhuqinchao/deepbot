@@ -63,7 +63,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           textAlign: 'center',
           letterSpacing: '1px',
         }}>
-          DeepBot
+          史丽慧小助理
         </h1>
         <p style={{
           fontSize: '13px',

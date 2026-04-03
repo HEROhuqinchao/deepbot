@@ -29,7 +29,7 @@
 10. [附录](#附录)
 
 ## 简介
-本文件面向 DeepBot 的“任务调度 API”，系统性阐述定时任务的架构设计、调度机制与 API 实现，覆盖以下主题：
+本文件面向 史丽慧小助理 的“任务调度 API”，系统性阐述定时任务的架构设计、调度机制与 API 实现，覆盖以下主题：
 - 任务路由与 API 设计
 - 定时任务的创建、修改、删除、暂停/恢复、查询与手动触发
 - Cron 表达式解析与调度算法
@@ -40,7 +40,7 @@
 - 最佳实践与性能优化建议
 
 ## 项目结构
-DeepBot 的任务调度系统围绕“工具 + 路由 + 存储 + 调度器 + 执行器”五部分构建，采用模块化组织，便于扩展与维护。
+史丽慧小助理 的任务调度系统围绕“工具 + 路由 + 存储 + 调度器 + 执行器”五部分构建，采用模块化组织，便于扩展与维护。
 
 ```mermaid
 graph TB
@@ -256,7 +256,7 @@ E-->>S : TaskExecution
 flowchart TD
 Start(["初始化"]) --> Mode{"Docker 模式?"}
 Mode --> |是| PathDocker["DB_DIR/scheduled-tasks.db"]
-Mode --> |否| PathNormal["~/.deepbot/scheduled-tasks.db"]
+Mode --> |否| PathNormal["~/.slhbot/scheduled-tasks.db"]
 PathDocker --> Ensure["确保目录存在"]
 PathNormal --> Ensure
 Ensure --> Open["打开数据库(WAL)"]
@@ -368,7 +368,7 @@ ST --> DB["sqlite-adapter.ts"]
   - 章节来源: [store.ts:40-65](file://src/main/scheduled-tasks/store.ts#L40-L65)
 
 ## 结论
-DeepBot 的任务调度 API 通过清晰的分层设计与完善的持久化机制，实现了稳定、可扩展的定时任务能力。其调度算法简洁可靠，执行器与网关深度集成，确保任务在隔离环境中安全执行。配合历史记录与清理策略，系统在长期运行中保持良好性能与可观测性。
+史丽慧小助理 的任务调度 API 通过清晰的分层设计与完善的持久化机制，实现了稳定、可扩展的定时任务能力。其调度算法简洁可靠，执行器与网关深度集成，确保任务在隔离环境中安全执行。配合历史记录与清理策略，系统在长期运行中保持良好性能与可观测性。
 
 ## 附录
 

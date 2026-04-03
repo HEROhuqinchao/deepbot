@@ -1,5 +1,5 @@
 /**
- * DeepBot Web 版本主应用组件
+ * 史丽慧小助理 Web 版本主应用组件
  * 使用统一 API 适配器，支持 HTTP + WebSocket 通信
  */
 

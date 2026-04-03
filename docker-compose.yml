@@ -1,11 +1,11 @@
 services:
-  deepbot:
-    image: deepbot:latest
+  slhbot:
+    image: slhbot:latest
     build:
       context: .
       dockerfile: Dockerfile
       # 多架构构建：linux/amd64（x64）和 linux/arm64（Apple Silicon / ARM 服务器）
-      # 使用 buildx 时启用：docker buildx build --platform linux/amd64,linux/arm64 -t deepbot:latest .
+      # 使用 buildx 时启用：docker buildx build --platform linux/amd64,linux/arm64 -t slhbot:latest .
       # platforms:
       #   - linux/amd64
       #   - linux/arm64
@@ -36,22 +36,22 @@ services:
       - ${SKILLS_DIR:-~/.agents/skills}:/data/skills
 
       # 记忆文件目录
-      - ${MEMORY_DIR:-~/.deepbot/memory}:/data/memory
+      - ${MEMORY_DIR:-~/.slhbot/memory}:/data/memory
 
       # 对话历史目录
-      - ${SESSIONS_DIR:-~/.deepbot/sessions}:/data/sessions
+      - ${SESSIONS_DIR:-~/.slhbot/sessions}:/data/sessions
 
       # 脚本目录（AI 生成的脚本文件）
-      - ${SCRIPTS_DIR:-~/.deepbot/scripts}:/data/scripts
+      - ${SCRIPTS_DIR:-~/.slhbot/scripts}:/data/scripts
 
       # 图片生成目录（AI 生成的图片文件）
-      - ${IMAGES_DIR:-~/.deepbot/generated-images}:/data/images
+      - ${IMAGES_DIR:-~/.slhbot/generated-images}:/data/images
 
       # 数据库目录（SQLite 文件）
-      - ${DB_DIR:-~/.deepbot}:/data/db
+      - ${DB_DIR:-~/.slhbot}:/data/db
 
       # Playwright Chromium 浏览器（持久化，避免重复下载）
-      - ${PLAYWRIGHT_CACHE_DIR:-~/.deepbot/playwright}:/ms-playwright
+      - ${PLAYWRIGHT_CACHE_DIR:-~/.slhbot/playwright}:/ms-playwright
 
     restart: unless-stopped
 

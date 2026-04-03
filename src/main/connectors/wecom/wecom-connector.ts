@@ -251,14 +251,14 @@ export class WeComConnector implements Connector {
           const store = SystemConfigStore.getInstance();
           const record = store.getPairingRecordByUser('wecom', wecomMessage.sender.id);
           if (record?.approved) {
-            wecomMessage.systemContext = `[系统通知] 这是第一次有用户连接到 DeepBot。`;
+            wecomMessage.systemContext = `[系统通知] 这是第一次有用户连接到 史丽慧小助理。`;
             await this.connectorManager.handleIncomingMessage('wecom', wecomMessage);
             return;
           }
           
           await this.outbound.sendMessage({
             conversationId: wecomMessage.conversation.id,
-            content: `请使用配对码进行授权：${code}\n\n管理员可以使用以下命令批准：\ndeepbot pairing approve wecom ${code}`,
+            content: `请使用配对码进行授权：${code}\n\n管理员可以使用以下命令批准：\nslhbot pairing approve wecom ${code}`,
           });
         }
         return;
@@ -537,7 +537,7 @@ export class WeComConnector implements Connector {
   onPairingApproved(userId: string): void {
     this.outbound.sendMessage({
       conversationId: userId,
-      content: '✅ 授权完成，你可以开始和 DeepBot 对话了。\n\n发送「你能做什么」获取使用帮助。',
+      content: '✅ 授权完成，你可以开始和 史丽慧小助理 对话了。\n\n发送「你能做什么」获取使用帮助。',
     }).catch(() => {});
   }
   

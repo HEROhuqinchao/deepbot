@@ -30,7 +30,7 @@ export function getAllowedDirectories(): string[] {
   const store = SystemConfigStore.getInstance();
   const settings = store.getWorkspaceSettings();
   
-  // Docker 模式下用 /data/db，Electron 模式下用 ~/.deepbot
+  // Docker 模式下用 /data/db，Electron 模式下用 ~/.slhbot
   const extraDir = getDbDir();
 
   return [
@@ -97,7 +97,7 @@ export function assertPathAllowed(filePath: string): void {
     const expandedPath = expandHomePath(filePath);
     const resolvedPath = path.resolve(expandedPath);
     
-    // Docker 模式用 /data/db，Electron 模式用 ~/.deepbot
+    // Docker 模式用 /data/db，Electron 模式用 ~/.slhbot
     const extraDir = getDbDir();
 
     throw new Error(

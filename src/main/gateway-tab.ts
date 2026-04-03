@@ -275,7 +275,7 @@ export class GatewayTabManager {
       const nameConfig = configStore.getNameConfig();
       
       const isDefaultUserName = nameConfig.userName === 'user';
-      const isDefaultAgentName = nameConfig.agentName === 'DeepBot';
+      const isDefaultAgentName = nameConfig.agentName === '史丽慧小助理';
       
       // 清除默认 Tab 的所有消息
       const defaultTab = this.tabs.get('default');
@@ -303,7 +303,7 @@ export class GatewayTabManager {
    * 生成欢迎消息内容
    */
   private generateWelcomeContent(userName: string, agentName: string, isDefaultUserName: boolean, isDefaultAgentName: boolean): string {
-    return `👋 你好！欢迎第一次使用 DeepBot！
+    return `👋 你好！欢迎第一次使用 史丽慧小助理！
 
 我是你的全能 AI 助手，24 小时待命帮你处理各种任务。在开始之前，让我们先互相认识一下吧！
 

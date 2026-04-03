@@ -33,7 +33,7 @@
 10. [附录](#附录)
 
 ## 简介
-本文件面向 DeepBot 的 Web 服务器与 API 路由系统，系统采用 Express 提供 REST API，并通过 WebSocket 实现实时消息推送。API 路由围绕“配置管理、标签页管理、工具调用、连接器操作、定时任务、文件管理、技能管理”等模块组织，遵循 RESTful 设计原则，结合 JWT 令牌与可选密码保护机制实现鉴权。路由层通过 GatewayAdapter 将 API 请求桥接到 Gateway，后者负责会话生命周期、消息路由与运行时管理。
+本文件面向 史丽慧小助理 的 Web 服务器与 API 路由系统，系统采用 Express 提供 REST API，并通过 WebSocket 实现实时消息推送。API 路由围绕“配置管理、标签页管理、工具调用、连接器操作、定时任务、文件管理、技能管理”等模块组织，遵循 RESTful 设计原则，结合 JWT 令牌与可选密码保护机制实现鉴权。路由层通过 GatewayAdapter 将 API 请求桥接到 Gateway，后者负责会话生命周期、消息路由与运行时管理。
 
 ## 项目结构
 - 服务器入口与中间件
@@ -404,7 +404,7 @@ GA --> WS["websocket-manager.ts"]
 - [src/shared/utils/error-handler.ts:8-13](file://src/shared/utils/error-handler.ts#L8-L13)
 
 ## 结论
-DeepBot 的 API 路由系统以清晰的模块划分与统一的错误处理为基础，通过 GatewayAdapter 将 API 与核心业务解耦，配合 WebSocket 实现高效实时通信。路由遵循 RESTful 设计，参数与响应结构统一，便于客户端集成。版本管理与向后兼容可通过配置字段扩展与客户端容错实现。
+史丽慧小助理 的 API 路由系统以清晰的模块划分与统一的错误处理为基础，通过 GatewayAdapter 将 API 与核心业务解耦，配合 WebSocket 实现高效实时通信。路由遵循 RESTful 设计，参数与响应结构统一，便于客户端集成。版本管理与向后兼容可通过配置字段扩展与客户端容错实现。
 
 ## 附录
 

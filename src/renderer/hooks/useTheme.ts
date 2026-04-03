@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
 
-const STORAGE_KEY = 'deepbot-theme-mode';
+const STORAGE_KEY = 'slhbot-theme-mode';
 
 // 根据当前时间判断应该用浅色还是深色
 function getAutoTheme(): 'light' | 'dark' {

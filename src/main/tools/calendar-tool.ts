@@ -12,7 +12,7 @@
  * 
  * 权限要求：
  * - System Preferences > Security & Privacy > Privacy > Automation
- * - 允许 DeepBot 控制 Calendar.app
+ * - 允许 史丽慧小助理 控制 Calendar.app
  * 
  * @example
  * ```typescript
@@ -76,7 +76,7 @@ async function runAppleScript(script: string): Promise<string> {
         throw new Error(
           'Calendar Tool 需要 Automation 权限。\n' +
           '请前往：系统偏好设置 > 安全性与隐私 > 隐私 > 自动化\n' +
-          '允许 DeepBot 控制 Calendar.app'
+          '允许 史丽慧小助理 控制 Calendar.app'
         );
       }
       throw new Error(`AppleScript 执行失败: ${error.message}`);

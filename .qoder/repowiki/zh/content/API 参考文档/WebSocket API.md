@@ -28,10 +28,10 @@
 10. [附录](#附录)
 
 ## 简介
-本文件为 DeepBot 的 WebSocket API 文档，覆盖连接建立、消息格式、事件类型、消息路由、连接状态管理、错误处理与重连策略、客户端示例、消息收发流程以及实时数据推送机制。文档同时解释 WebSocket 在 DeepBot 中的应用场景与最佳实践，帮助开发者与集成方快速理解并正确使用。
+本文件为 史丽慧小助理 的 WebSocket API 文档，覆盖连接建立、消息格式、事件类型、消息路由、连接状态管理、错误处理与重连策略、客户端示例、消息收发流程以及实时数据推送机制。文档同时解释 WebSocket 在 史丽慧小助理 中的应用场景与最佳实践，帮助开发者与集成方快速理解并正确使用。
 
 ## 项目结构
-DeepBot 的 WebSocket 能力由 Web 服务器侧提供，核心模块包括：
+史丽慧小助理 的 WebSocket 能力由 Web 服务器侧提供，核心模块包括：
 - Web 服务器入口与路由：负责启动 HTTP 与 WebSocket 服务、认证中间件与 API 路由
 - WebSocket 管理器：负责连接接入、鉴权、订阅管理、消息广播
 - Gateway 适配器：将 Gateway 的内部事件转换为 WebSocket 事件
@@ -90,7 +90,7 @@ WC --> WS
 - [web-client.ts:194-199](file://src/renderer/api/web-client.ts#L194-L199)
 
 ## 架构总览
-WebSocket 在 DeepBot 中承担“实时消息通道”的职责，将 Gateway 的内部事件以统一的 WebSocket 消息格式推送到客户端。客户端通过订阅特定 Tab 的消息，实现按需接收实时流式响应与状态更新。
+WebSocket 在 史丽慧小助理 中承担“实时消息通道”的职责，将 Gateway 的内部事件以统一的 WebSocket 消息格式推送到客户端。客户端通过订阅特定 Tab 的消息，实现按需接收实时流式响应与状态更新。
 
 ```mermaid
 sequenceDiagram
@@ -366,7 +366,7 @@ WC["web-client.ts"] --> WS
 - [gateway-message.ts:246-283](file://src/main/gateway-message.ts#L246-L283)
 
 ## 结论
-DeepBot 的 WebSocket API 通过统一的事件桥接与订阅机制，实现了从 Gateway 到客户端的实时消息推送。配合队列与自动恢复机制，保证了在高并发与复杂任务场景下的稳定性与一致性。建议在生产环境中启用 ACCESS_PASSWORD 与合适的 JWT 密钥，合理使用订阅与心跳，确保连接质量与安全性。
+史丽慧小助理 的 WebSocket API 通过统一的事件桥接与订阅机制，实现了从 Gateway 到客户端的实时消息推送。配合队列与自动恢复机制，保证了在高并发与复杂任务场景下的稳定性与一致性。建议在生产环境中启用 ACCESS_PASSWORD 与合适的 JWT 密钥，合理使用订阅与心跳，确保连接质量与安全性。
 
 ## 附录
 

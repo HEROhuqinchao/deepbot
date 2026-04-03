@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="banner.jpg" alt="DeepBot Terminal" width="500"/>
+<img src="banner.jpg" alt="史丽慧小助理 Terminal" width="500"/>
 
 <p>
 
@@ -19,7 +19,7 @@
 
 ## 📖 Introduction
 
-DeepBot is a system-level AI assistant that focuses on exploring enterprise productivity enhancement. It can deeply integrate with existing enterprise systems, enabling AI to participate in daily office efficiency improvements across departments through multi-Agent collaboration mode to automate complex business processes. Whether it's document processing, data analysis, system monitoring, or cross-departmental collaboration tasks, DeepBot can help enterprises handle them easily through AI Agent technology. It supports multi-task parallel processing, scheduled tasks, skill extensions, and other functions, while protecting enterprise system security through strict security mechanisms.
+史丽慧小助理 is a system-level AI assistant that focuses on exploring enterprise productivity enhancement. It can deeply integrate with existing enterprise systems, enabling AI to participate in daily office efficiency improvements across departments through multi-Agent collaboration mode to automate complex business processes. Whether it's document processing, data analysis, system monitoring, or cross-departmental collaboration tasks, 史丽慧小助理 can help enterprises handle them easily through AI Agent technology. It supports multi-task parallel processing, scheduled tasks, skill extensions, and other functions, while protecting enterprise system security through strict security mechanisms.
 
 ### ✨ Core Features
 
@@ -47,8 +47,8 @@ DeepBot is a system-level AI assistant that focuses on exploring enterprise prod
 
 ```bash
 # Clone repository
-git clone https://github.com/kevinluosl/deepbot.git
-cd deepbot
+git clone https://github.com/kevinluosl/slhbot.git
+cd slhbot
 
 # Install dependencies
 pnpm install
@@ -76,7 +76,7 @@ For Linux servers or any Docker-supported environment:
 
 ```bash
 # Build Docker image
-docker build -t deepbot:latest .
+docker build -t slhbot:latest .
 
 # Start with docker-compose
 docker-compose up -d
@@ -99,14 +99,14 @@ Configuration:
 
 ### macOS Installation Issues
 
-macOS may show security warnings when first opening DeepBot. Choose the solution based on the message you see:
+macOS may show security warnings when first opening 史丽慧小助理. Choose the solution based on the message you see:
 
 #### "App is damaged" message
 
 Run this command in Terminal, then reopen the app:
 
 ```bash
-sudo xattr -rd com.apple.quarantine /Applications/DeepBot.app
+sudo xattr -rd com.apple.quarantine /Applications/史丽慧小助理.app
 ```
 
 #### "Cannot verify developer" message
@@ -127,7 +127,7 @@ Right-click the app icon, select "Open", then click "Open" again in the dialog.
 
 ## 🏗️ Architecture Design
 
-DeepBot adopts a modular architecture that supports multi-Agent communication and collaboration:
+史丽慧小助理 adopts a modular architecture that supports multi-Agent communication and collaboration:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -252,13 +252,13 @@ Agent Startup → Load Base Agent Prompt (AGENT.md)
 
 ## 🌐 External Communication (Connector)
 
-DeepBot supports integration with external platforms through the Connector system for cross-platform interaction.
+史丽慧小助理 supports integration with external platforms through the Connector system for cross-platform interaction.
 
 ### Supported Platforms
 
 #### Feishu (Lark)
 
-Interact with DeepBot through Feishu bot, supporting private chats and group chats.
+Interact with 史丽慧小助理 through Feishu bot, supporting private chats and group chats.
 
 **Features**:
 - ✅ Private messages (requires pairing authorization)
@@ -270,7 +270,7 @@ Interact with DeepBot through Feishu bot, supporting private chats and group cha
 
 **Configuration Steps**:
 
-1. Open "System Settings" → "External Connections" → "Feishu" in DeepBot
+1. Open "System Settings" → "External Connections" → "Feishu" in 史丽慧小助理
 2. Fill in Feishu app configuration (App ID, App Secret, Bot Name)
 3. Configure security policies (DM policy, group policy)
 4. Click "Save" and "Start" the connector
@@ -311,7 +311,7 @@ Includes complete Feishu Open Platform configuration steps, permission settings,
 
 ### Creating Custom Tools
 
-DeepBot supports creating custom tools to extend functionality. All tools are built-in tools with code located in the `src/main/tools/` directory.
+史丽慧小助理 supports creating custom tools to extend functionality. All tools are built-in tools with code located in the `src/main/tools/` directory.
 
 #### Quick Start
 
@@ -383,8 +383,8 @@ Using Email tool as an example, the documentation should include the following s
 ### Prerequisites
 
 **Configuration File Path** (searched in priority order):
-1. Project level: `<workspace>/.deepbot/tools/email-tool/config.json`
-2. User level: `~/.deepbot/tools/email-tool/config.json`
+1. Project level: `<workspace>/.slhbot/tools/email-tool/config.json`
+2. User level: `~/.slhbot/tools/email-tool/config.json`
 
 **Configuration File Format**:
 ```json
@@ -459,7 +459,7 @@ Using Email tool as an example, the documentation should include the following s
 
 #### Advanced Features
 
-- **Config Files**: Read configuration from `~/.deepbot/tools/<tool-name>/config.json`
+- **Config Files**: Read configuration from `~/.slhbot/tools/<tool-name>/config.json`
 - **External Dependencies**: Use dynamic `require()` to load dependencies without bundling
 - **Cancellation Support**: Support user cancellation via `AbortSignal`
 - **Prompt Management**: Add tool usage instructions in `CUSTOM-TOOLS.md` to help AI better understand and use the tool
@@ -474,7 +474,7 @@ Using Email tool as an example, the documentation should include the following s
 
 ## 🔒 Security Mechanism
 
-DeepBot implements strict security restrictions to ensure AI Agent can only access user-authorized directories:
+史丽慧小助理 implements strict security restrictions to ensure AI Agent can only access user-authorized directories:
 
 ### Path Whitelist
 
@@ -483,9 +483,9 @@ Only allows access to the following configured directories and their subdirector
 | Directory Type | Default Path | Purpose | Configurable |
 |---------------|--------------|---------|--------------|
 | **Workspace** | `~` (User home) | File read/write, command execution | ✅ |
-| **Scripts** | `~/.deepbot/scripts` | Python script storage | ✅ |
+| **Scripts** | `~/.slhbot/scripts` | Python script storage | ✅ |
 | **Skills** | `~/.agents/skills` | Skill package installation | ✅ |
-| **Images** | `~/.deepbot/generated-images` | AI-generated image storage | ✅ |
+| **Images** | `~/.slhbot/generated-images` | AI-generated image storage | ✅ |
 
 ### Security Check Flow
 
@@ -499,11 +499,11 @@ Tool Call → Path Security Check → Within Whitelist?
 
 ## 🧠 Memory System
 
-DeepBot supports powerful long-term memory functionality to remember user preferences and important information.
+史丽慧小助理 supports powerful long-term memory functionality to remember user preferences and important information.
 
 ### Global Memory
 
-- **Storage Location**: `~/.deepbot/memory/MEMORY.md`
+- **Storage Location**: `~/.slhbot/memory/MEMORY.md`
 - **Format**: Markdown format, structured storage
 - **Auto-Injection**: Automatically loaded into system prompt for each conversation
 - **Real-time Update**: Memory updates automatically reload all Agents
@@ -523,13 +523,13 @@ Each Tab (Agent) can have its own independent memory file for true multi-role co
 **Global Memory**:
 ```
 User: "Remember: I prefer concise code"
-DeepBot: "I've remembered your preference"
+史丽慧小助理: "I've remembered your preference"
 ```
 
 **Independent Memory**:
 ```
 User: "Create a Sales Analysis Agent"
-DeepBot: "New Tab created, this Agent will focus on customer relationship management and sales data analysis"
+史丽慧小助理: "New Tab created, this Agent will focus on customer relationship management and sales data analysis"
 
 User: "Remember: You are a Sales Expert responsible for customer follow-up and sales performance analysis"
 Sales Analysis Agent: "I've remembered my responsibilities"
@@ -563,7 +563,7 @@ Support for creating and managing scheduled tasks to automate periodic work:
 
 ```
 User: "Check desktop files every day at 9 AM"
-DeepBot: "Scheduled task created, will execute daily at 9:00"
+史丽慧小助理: "Scheduled task created, will execute daily at 9:00"
 ```
 
 ---
@@ -575,7 +575,7 @@ The Skills system allows combining multiple tools to implement complex functions
 ### Install Existing Skills
 
 ```bash
-# Use Skill Manager tool in DeepBot
+# Use Skill Manager tool in 史丽慧小助理
 "Install weather skill"
 ```
 
@@ -642,12 +642,12 @@ Two installation methods:
 
 **Method 1: Direct Placement** (Recommended)
 
-Place the Skill directory under `~/.agents/skills/`, restart DeepBot to auto-load.
+Place the Skill directory under `~/.agents/skills/`, restart 史丽慧小助理 to auto-load.
 
 **Method 2: Use Skill Manager**
 
 ```bash
-# Use command in DeepBot
+# Use command in 史丽慧小助理
 "Install local skill at path ~/.agents/skills/my-skill"
 ```
 
@@ -667,7 +667,7 @@ Place the Skill directory under `~/.agents/skills/`, restart DeepBot to auto-loa
 
 ## 🤖 Supported AI Models
 
-DeepBot supports multiple AI model providers:
+史丽慧小助理 supports multiple AI model providers:
 
 - **Qwen** (Alibaba Cloud) - Default model
 - **OpenAI** (GPT-4, GPT-3.5)
@@ -681,7 +681,7 @@ Configure the corresponding API keys in system settings to use.
 
 **Not Recommended: Models with "think" or "reasoning" capabilities**
 
-DeepBot is optimized for standard conversational models. Models with built-in thinking/reasoning modes (such as Qwen's QwQ series, OpenAI's o1 series, or other models with explicit reasoning steps) may cause:
+史丽慧小助理 is optimized for standard conversational models. Models with built-in thinking/reasoning modes (such as Qwen's QwQ series, OpenAI's o1 series, or other models with explicit reasoning steps) may cause:
 
 - Display issues with thinking tags (`<think>...</think>`)
 - Slower response times
@@ -699,7 +699,7 @@ DeepBot is optimized for standard conversational models. Models with built-in th
 
 ## 📦 External Services
 
-DeepBot integrates the following external services:
+史丽慧小助理 integrates the following external services:
 
 | Service | Purpose | Configuration |
 |---------|---------|---------------|
@@ -713,7 +713,7 @@ DeepBot integrates the following external services:
 ### Project Structure
 
 ```
-deepbot/
+slhbot/
 ├── src/
 │   ├── main/           # Main process code
 │   │   ├── gateway.ts          # Session management
@@ -739,7 +739,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 🙏 Acknowledgments
 
-DeepBot's development was inspired by the following projects:
+史丽慧小助理's development was inspired by the following projects:
 
 - [Clawdbot](https://github.com/openclaw/openclaw) - Provided architectural reference
 - [@mariozechner/pi-agent-core](https://github.com/badlogic/pi-agent) - AI Agent Runtime
@@ -749,7 +749,7 @@ DeepBot's development was inspired by the following projects:
 ## 📧 Contact
 
 - **Author**: Kevin Luo @ Deepglint
-- **Issue Reporting**: [GitHub Issues](https://github.com/kevinluosl/deepbot/issues)
+- **Issue Reporting**: [GitHub Issues](https://github.com/kevinluosl/slhbot/issues)
 
 ---
 

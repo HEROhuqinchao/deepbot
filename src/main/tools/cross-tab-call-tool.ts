@@ -52,7 +52,7 @@ export const crossTabCallToolPlugin: ToolPlugin = {
     name: TOOL_NAMES.CROSS_TAB_CALL,
     version: '1.0.0',
     description: '向其他 Tab 发送消息。用于多 Agent 协作场景，Tab 之间可以互相对话',
-    author: 'DeepBot',
+    author: '史丽慧小助理',
     category: 'system',
     tags: ['cross-tab', 'agent', 'collaboration'],
     requiresConfig: false,

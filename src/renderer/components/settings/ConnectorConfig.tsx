@@ -773,7 +773,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
           {activeTab === 'guide' && (
             <div className="space-y-4 text-sm text-gray-700 pr-1">
               <h2 className="text-base font-semibold text-gray-900">飞书机器人配置指南</h2>
-              <p>本文档介绍如何配置 DeepBot 的飞书连接器，使其能够通过飞书接收和发送消息。<span className="bg-yellow-200 text-yellow-900 px-1 rounded">大约 3 ～ 5 分钟配置完成。</span></p>
+              <p>本文档介绍如何配置 史丽慧小助理 的飞书连接器，使其能够通过飞书接收和发送消息。<span className="bg-yellow-200 text-yellow-900 px-1 rounded">大约 3 ～ 5 分钟配置完成。</span></p>
 
               <div>
                 <h3 className="font-semibold text-gray-800 mb-1">前置条件</h3>
@@ -832,9 +832,9 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-2 pl-2 border-l-2 border-blue-400">4. 在 DeepBot 中配置</h4>
+                    <h4 className="font-semibold text-gray-900 mb-2 pl-2 border-l-2 border-blue-400">4. 在 史丽慧小助理 中配置</h4>
                     <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2 text-yellow-800 text-xs">
-                      注意：配置事件订阅前，需要先在 DeepBot 中填入 App ID 和 App Secret，否则无法建立长连接。
+                      注意：配置事件订阅前，需要先在 史丽慧小助理 中填入 App ID 和 App Secret，否则无法建立长连接。
                     </div>
                     <ol className="list-decimal list-inside space-y-1 text-gray-600 ml-2">
                       <li>切换到「基础配置」标签页</li>
@@ -1058,7 +1058,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
           {activeTab === 'guide' && (
             <div className="space-y-4 text-sm text-gray-700 pr-1">
               <h2 className="text-base font-semibold text-gray-900">钉钉机器人配置指南</h2>
-              <p>本文档介绍如何配置 DeepBot 的钉钉连接器。<span className="bg-yellow-200 text-yellow-900 px-1 rounded">大约 3 ～ 5 分钟配置完成。</span></p>
+              <p>本文档介绍如何配置 史丽慧小助理 的钉钉连接器。<span className="bg-yellow-200 text-yellow-900 px-1 rounded">大约 3 ～ 5 分钟配置完成。</span></p>
 
               <div>
                 <h3 className="font-semibold text-gray-800 mb-2">配置步骤</h3>

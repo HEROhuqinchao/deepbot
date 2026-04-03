@@ -174,7 +174,7 @@ export const browserToolPlugin: ToolPlugin = {
     name: TOOL_NAMES.BROWSER,
     version: '2.0.0',
     description: '使用 agent-browser 控制浏览器。支持：打开网页、获取快照、点击、填充表单、截图等操作。使用 @ref 系统进行元素定位',
-    author: 'DeepBot',
+    author: '史丽慧小助理',
     category: 'system',
     tags: ['browser', 'automation', 'web'],
     requiresConfig: false,
@@ -273,7 +273,7 @@ export const browserToolPlugin: ToolPlugin = {
                     '--disable-gpu',
                     '--disable-dev-shm-usage',
                     `--remote-debugging-port=${cdpPort}`,
-                    `--user-data-dir=${join(tmpdir(), 'deepbot-chromium')}`,
+                    `--user-data-dir=${join(tmpdir(), 'slhbot-chromium')}`,
                   ], {
                     detached: true,
                     stdio: 'ignore',
@@ -306,14 +306,14 @@ export const browserToolPlugin: ToolPlugin = {
                   
                   if (platform === 'darwin') {
                     // macOS: 直接调用 Chrome 可执行文件，前台运行
-                    const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+                    const userDataDir = expandUserPath('~/.slhbot/browser-profile');
                     const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
                     command = `"${chromePath}" --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
                   } else if (platform === 'win32') {
-                    command = `start chrome --remote-debugging-port=${cdpPort} --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile --no-first-run --no-default-browser-check`;
+                    command = `start chrome --remote-debugging-port=${cdpPort} --user-data-dir=%USERPROFILE%\\.slhbot\\browser-profile --no-first-run --no-default-browser-check`;
                   } else {
                     // Linux
-                    const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+                    const userDataDir = expandUserPath('~/.slhbot/browser-profile');
                     command = `google-chrome --remote-debugging-port=${cdpPort} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
                   }
                   
@@ -349,10 +349,10 @@ export const browserToolPlugin: ToolPlugin = {
                   }
               } catch (launchError) {
                   const launchErrorMsg = getErrorMessage(launchError);
-                  const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+                  const userDataDir = expandUserPath('~/.slhbot/browser-profile');
                   
                   const macCommand = `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
-                  const winCommand = `chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile`;
+                  const winCommand = `chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\\.slhbot\\browser-profile`;
                   const linuxCommand = `google-chrome --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`;
                   
                   throw new Error(`无法连接到 Chrome 浏览器。\n\n请先启动 Chrome（使用独立的用户数据目录）：\n\nmacOS:\n${macCommand}\n\nWindows:\n${winCommand}\n\nLinux:\n${linuxCommand}\n\n或在系统配置 > 浏览器工具中点击"启动 Chrome"按钮。\n\n错误详情: ${launchErrorMsg}`);

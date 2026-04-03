@@ -20,8 +20,8 @@ export function getNameConfig(db: Database.Database): { agentName: string; userN
       // 返回默认值
       console.log('[SystemConfigStore] 未找到名字配置，返回默认值');
       return {
-        agentName: 'matrix',
-        userName: 'user',
+        agentName: '秋念遥',
+        userName: '史丽慧',
       };
     }
 
@@ -61,7 +61,7 @@ export function saveAgentName(db: Database.Database, agentName: string): void {
     // 插入默认记录
     db.prepare(`
       INSERT INTO name_config (id, agent_name, user_name)
-      VALUES (1, ?, 'user')
+      VALUES (1, ?, '史丽慧')
     `).run(trimmedName);
   } else {
     // 更新
@@ -94,7 +94,7 @@ export function saveUserName(db: Database.Database, userName: string): void {
     // 插入默认记录
     db.prepare(`
       INSERT INTO name_config (id, agent_name, user_name)
-      VALUES (1, 'matrix', ?)
+      VALUES (1, '秋念遥', ?)
     `).run(trimmedName);
   } else {
     // 更新

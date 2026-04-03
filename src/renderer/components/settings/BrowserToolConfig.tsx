@@ -43,7 +43,7 @@ export function BrowserToolConfig({ onClose: _onClose }: BrowserToolConfigProps)
         <p className="text-sm text-gray-600">
           {isDocker
             ? 'Docker 模式下使用无头 Chromium 浏览器（Playwright），无需手动启动。'
-            : 'DeepBot 使用 CDP（Chrome DevTools Protocol）连接到您手动启动的 Chrome 浏览器。'}
+            : '史丽慧小助理 使用 CDP（Chrome DevTools Protocol）连接到您手动启动的 Chrome 浏览器。'}
         </p>
       </div>
 
@@ -56,10 +56,10 @@ export function BrowserToolConfig({ onClose: _onClose }: BrowserToolConfigProps)
               首次使用需要在容器内安装 Chromium，在宿主机终端执行：
             </p>
             <code className="block bg-gray-800 text-gray-100 px-3 py-2 rounded text-xs font-mono overflow-x-auto">
-              docker exec -it deepbot npx playwright install chromium --with-deps
+              docker exec -it slhbot npx playwright install chromium --with-deps
             </code>
             <p className="text-xs text-blue-700 mt-2">
-              安装完成后，Chromium 会保存在 docker-compose.yml 中配置的 <code className="bg-blue-100 px-1 rounded">PLAYWRIGHT_CACHE_DIR</code> 目录（默认 <code className="bg-blue-100 px-1 rounded">~/.deepbot/playwright</code>），容器重启后无需重新安装。
+              安装完成后，Chromium 会保存在 docker-compose.yml 中配置的 <code className="bg-blue-100 px-1 rounded">PLAYWRIGHT_CACHE_DIR</code> 目录（默认 <code className="bg-blue-100 px-1 rounded">~/.slhbot/playwright</code>），容器重启后无需重新安装。
             </p>
           </div>
 
@@ -118,19 +118,19 @@ export function BrowserToolConfig({ onClose: _onClose }: BrowserToolConfigProps)
               <div>
                 <p className="text-xs text-gray-700 font-medium">macOS:</p>
                 <code className="block mt-1 p-2 bg-white border border-gray-300 rounded text-xs text-gray-800 overflow-x-auto">
-                  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="$HOME/.deepbot/browser-profile"
+                  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="$HOME/.slhbot/browser-profile"
                 </code>
               </div>
               <div>
                 <p className="text-xs text-gray-700 font-medium">Windows:</p>
                 <code className="block mt-1 p-2 bg-white border border-gray-300 rounded text-xs text-gray-800 overflow-x-auto">
-                  chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\.deepbot\browser-profile
+                  chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\.slhbot\browser-profile
                 </code>
               </div>
               <div>
                 <p className="text-xs text-gray-700 font-medium">Linux:</p>
                 <code className="block mt-1 p-2 bg-white border border-gray-300 rounded text-xs text-gray-800 overflow-x-auto">
-                  google-chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.deepbot/browser-profile"
+                  google-chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.slhbot/browser-profile"
                 </code>
               </div>
             </div>

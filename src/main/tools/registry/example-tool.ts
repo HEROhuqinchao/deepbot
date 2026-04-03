@@ -5,13 +5,13 @@
  * 
  * ## 工具架构说明
  * 
- * DeepBot 的所有工具都是**内置工具**，代码位于 `src/main/tools/` 目录。
+ * 史丽慧小助理 的所有工具都是**内置工具**，代码位于 `src/main/tools/` 目录。
  * 
  * ### 关键概念
  * 
  * 1. **工具代码**：在 `src/main/tools/` 中创建（如 `my-tool.ts`）
- * 2. **配置文件**：在 `~/.deepbot/tools/my-tool/config.json` 中存储（运行时读取）
- * 3. **外部依赖**：在 `~/.deepbot/tools/my-tool/node_modules/` 中安装（按需安装）
+ * 2. **配置文件**：在 `~/.slhbot/tools/my-tool/config.json` 中存储（运行时读取）
+ * 3. **外部依赖**：在 `~/.slhbot/tools/my-tool/node_modules/` 中安装（按需安装）
  * 4. **工具加载**：在 `tool-loader.ts` 的 `loadBuiltinTools()` 方法中导入
  * 
  * ### 创建新工具的步骤
@@ -30,7 +30,7 @@
  *    });
  *    tools.push(...(Array.isArray(myTools) ? myTools : [myTools]));
  *    ```
- * 4. 如果需要配置文件，在工具执行时从 `~/.deepbot/tools/my-tool/config.json` 读取
+ * 4. 如果需要配置文件，在工具执行时从 `~/.slhbot/tools/my-tool/config.json` 读取
  * 5. 如果需要外部依赖，使用动态 `require()` 加载（参考 `email-tool.ts`）
  * 
  * ### 示例：带外部依赖的工具
@@ -77,7 +77,7 @@ export const plugin: ToolPlugin = {
     name: '示例工具',
     description: '这是一个示例工具，展示如何创建自定义工具',
     version: '1.0.0',
-    author: 'DeepBot Team',
+    author: '史丽慧小助理 Team',
     category: 'custom',
     tags: ['example', 'demo'],
     requiresConfig: false,
@@ -116,7 +116,7 @@ export const plugin: ToolPlugin = {
               if (!name) {
                 throw new Error('缺少参数: name');
               }
-              result = `你好，${name}！欢迎使用 DeepBot 示例工具。`;
+              result = `你好，${name}！欢迎使用 史丽慧小助理 示例工具。`;
               break;
               
             case 'calculate':

@@ -309,7 +309,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
             marginTop: '8px',
             lineHeight: '1.5'
           }}>
-            💡 Skill 是可扩展的功能模块，可以帮助 DeepBot 完成 PDF 处理、视频下载、图片编辑等专业任务。输入关键词搜索，选择合适的 Skill 点击"安装"即可使用。
+            💡 Skill 是可扩展的功能模块，可以帮助 史丽慧小助理 完成 PDF 处理、视频下载、图片编辑等专业任务。输入关键词搜索，选择合适的 Skill 点击"安装"即可使用。
           </p>
         </div>
 

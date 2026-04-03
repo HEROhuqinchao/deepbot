@@ -4,7 +4,7 @@
 
 import { SystemConfigStore } from './database/system-config-store';
 
-export interface DeepBotConfig {
+export interface 史丽慧小助理Config {
   // API Key
   apiKey: string;
   
@@ -35,7 +35,7 @@ export interface DeepBotConfig {
  * 2. 环境变量
  * 3. 抛出错误（需要用户配置）
  */
-export function getConfig(): DeepBotConfig {
+export function getConfig(): 史丽慧小助理Config {
   // 尝试从数据库读取配置
   try {
     const store = SystemConfigStore.getInstance();

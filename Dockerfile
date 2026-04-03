@@ -1,4 +1,4 @@
-# DeepBot Web Server - Docker 镜像
+# 史丽慧小助理 Web Server - Docker 镜像
 # 支持 linux/amd64 和 linux/arm64（buildx 多架构）
 
 # ---- 构建阶段 ----

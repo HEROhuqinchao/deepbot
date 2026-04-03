@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ======================================
-echo DeepBot Windows 安装包打包工具
+echo 史丽慧小助理 Windows 安装包打包工具
 echo ======================================
 echo.
 
@@ -65,17 +65,17 @@ echo ======================================
 echo 打包完成！
 echo ======================================
 echo.
-if exist release\DeepBot-Terminal-Setup-*.exe (
+if exist release\史丽慧小助理-Terminal-Setup-*.exe (
     echo ✅ 安装包位置:
-    dir /b release\DeepBot-Terminal-Setup-*.exe | findstr /v ".blockmap"
+    dir /b release\史丽慧小助理-Terminal-Setup-*.exe | findstr /v ".blockmap"
     echo.
     echo 📦 文件大小:
-    for %%f in (release\DeepBot-Terminal-Setup-*.exe) do @echo   - %%~zf bytes
+    for %%f in (release\史丽慧小助理-Terminal-Setup-*.exe) do @echo   - %%~zf bytes
 ) else (
     echo ⚠️  未找到安装包，请检查错误信息
     echo.
     echo 💡 你可以使用已解压的版本:
-    echo   release\win-unpacked\DeepBot Terminal.exe
+    echo   release\win-unpacked\史丽慧小助理 Terminal.exe
 )
 echo.
 echo ======================================

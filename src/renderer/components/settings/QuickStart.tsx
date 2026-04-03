@@ -1,11 +1,10 @@
 /**
  * 快速入门页面
  * 
- * 帮助用户快速了解和使用 DeepBot
+ * 帮助用户快速了解和使用 史丽慧小助理
  */
 
 import React from 'react';
-import qrcodeImg from '../../assets/qrcode.png';
 
 interface QuickStartProps {
   onClose: () => void;
@@ -52,10 +51,10 @@ export function QuickStart(_props: QuickStartProps) {
       }}>
         <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '6px', color: 'inherit', display: 'flex', alignItems: 'center', marginLeft: '-20px' }}>
           <span style={{ marginRight: '8px' }}>👋</span>
-          欢迎使用 DeepBot
+          欢迎使用 史丽慧小助理
         </h2>
         <p style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--settings-text-dim)' }}>
-          DeepBot 是一个系统级 AI 助手，会更多探索企业生产提效方向。它能够与企业现有系统深度结合，让 AI 深入参与各部门的日常办公提效，通过多 Agent 协作模式实现复杂业务流程的自动化。无论是文档处理、数据分析、系统监控，还是跨部门协作任务，DeepBot 都能通过 AI Agent 技术帮助企业轻松搞定。它支持多任务并行处理、定时任务、技能扩展等功能，同时通过严格的安全机制保护企业系统安全。
+          史丽慧小助理 是一个系统级 AI 助手，会更多探索企业生产提效方向。它能够与企业现有系统深度结合，让 AI 深入参与各部门的日常办公提效，通过多 Agent 协作模式实现复杂业务流程的自动化。无论是文档处理、数据分析、系统监控，还是跨部门协作任务，史丽慧小助理 都能通过 AI Agent 技术帮助企业轻松搞定。它支持多任务并行处理、定时任务、技能扩展等功能，同时通过严格的安全机制保护企业系统安全。
         </p>
       </div>
 
@@ -162,19 +161,6 @@ export function QuickStart(_props: QuickStartProps) {
             fontSize: '12px',
             lineHeight: '1.6'
           }}>
-            <div style={{ marginBottom: '8px' }}>
-              <div style={{ color: 'var(--settings-text)', fontWeight: '600', marginBottom: '4px' }}>
-                🔑 方式一：扫码获取 DeepBot Token
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--settings-text-dim)', marginBottom: '8px' }}>
-                选择 DeepBot 提供商时，扫码添加微信获取 Token
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <img src={qrcodeImg} alt="扫码添加微信" style={{ width: '120px', height: '120px', borderRadius: '6px' }} />
-              </div>
-            </div>
-            <hr style={{ border: 'none', borderTop: '1px solid var(--settings-border)', margin: '10px 0' }} />
-            <div>
               <div style={{ color: 'var(--settings-text)', fontWeight: '600', marginBottom: '4px' }}>
                 🔑 方式二：自行申请（以 Qwen 为例）
               </div>
@@ -185,7 +171,6 @@ export function QuickStart(_props: QuickStartProps) {
                 4. 粘贴到此处保存即可
               </div>
             </div>
-          </div>
 
           <div style={{ marginBottom: '10px' }}>
             <span style={{ fontWeight: '600', color: 'var(--settings-text)' }}>第二步：配置工具（可选）</span>
@@ -197,7 +182,7 @@ export function QuickStart(_props: QuickStartProps) {
           <div>
             <span style={{ fontWeight: '600', color: 'var(--settings-text)' }}>第三步：安装环境依赖（推荐）</span>
             <div style={{ marginLeft: '16px', marginTop: '4px' }}>
-              • Python：用于执行 Python 脚本和 Skill（💬 告诉 DeepBot："帮我安装 Python"）<br/>
+              • Python：用于执行 Python 脚本和 Skill（💬 告诉 史丽慧小助理："帮我安装 Python"）<br/>
               • Chrome：浏览器工具需要系统已安装 Chrome<br/>
               • Node.js：用于运行需要 JavaScript 环境的程序
             </div>
@@ -218,7 +203,8 @@ export function QuickStart(_props: QuickStartProps) {
           fontSize: '13px',
           color: 'var(--settings-text-dim)',
           lineHeight: '1.6'
-        }}>
+        }}
+      >
           <div style={{ marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
               <span style={{ marginRight: '8px', fontSize: '16px' }}>🐍</span>
@@ -239,7 +225,7 @@ export function QuickStart(_props: QuickStartProps) {
                 ⚡ 快速安装
               </div>
               <div style={{ marginBottom: '8px', color: 'var(--settings-accent)', fontWeight: '600' }}>
-                💬 只需告诉 DeepBot："帮我安装 Python"，即可自动完成安装！
+                💬 只需告诉 史丽慧小助理："帮我安装 Python"，即可自动完成安装！
               </div>
               <div style={{ marginBottom: '6px', color: 'var(--settings-text)', fontWeight: '600' }}>
                 📦 手动安装 Python
@@ -369,14 +355,15 @@ export function QuickStart(_props: QuickStartProps) {
           fontSize: '13px',
           color: 'var(--settings-text-dim)',
           lineHeight: '1.6'
-        }}>
+        }}
+      >
           <div style={{ marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
               <span style={{ marginRight: '8px', fontSize: '16px' }}>🚀</span>
               <span style={{ fontWeight: '600', color: 'var(--settings-text)', fontSize: '14px' }}>飞书机器人</span>
             </div>
             <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
-              将 DeepBot 接入飞书，在飞书中直接与 AI 对话，支持私聊和群组
+              将 史丽慧小助理 接入飞书，在飞书中直接与 AI 对话，支持私聊和群组
             </div>
           </div>
 
@@ -394,7 +381,7 @@ export function QuickStart(_props: QuickStartProps) {
             <div style={{ marginTop: '6px', lineHeight: '1.8' }}>
               • <strong>私聊</strong>：首位用户自动成为管理员，后续用户需管理员审批配对码<br/>
               • <strong>群组</strong>：必须 @ 机器人才会回复，无需配对<br/>
-              • <strong>管理员审批</strong>：发送 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>deepbot pairing approve feishu &lt;配对码&gt;</code>
+              • <strong>管理员审批</strong>：发送 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>slhbot pairing approve feishu &lt;配对码&gt;</code>
             </div>
           </div>
 
@@ -435,14 +422,15 @@ export function QuickStart(_props: QuickStartProps) {
           fontSize: '13px',
           color: 'var(--settings-text-dim)',
           lineHeight: '1.6'
-        }}>
+        }}
+      >
           <div style={{ marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
               <span style={{ marginRight: '8px', fontSize: '16px' }}>📦</span>
               <span style={{ fontWeight: '600', color: 'var(--settings-text)', fontSize: '14px' }}>什么是 Skill？</span>
             </div>
             <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
-              Skill 是可以扩展 DeepBot 能力的技能包，类似于插件系统。通过安装不同的 Skill，可以让 AI 获得更多专业能力。
+              Skill 是可以扩展 史丽慧小助理 能力的技能包，类似于插件系统。通过安装不同的 Skill，可以让 AI 获得更多专业能力。
             </div>
           </div>
 
@@ -450,7 +438,7 @@ export function QuickStart(_props: QuickStartProps) {
             <strong style={{ color: 'var(--settings-text)' }}>搜索 Skill：</strong>
             <div style={{ marginTop: '6px', lineHeight: '1.8' }}>
               • 点击聊天界面的 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>[skill]</code> 按钮进入 Skill 管理，在搜索框中搜索关键词<br/>
-              • 或直接告诉 DeepBot 你的需求：<code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>"搜索能做 [某件事] 的 Skill"</code>
+              • 或直接告诉 史丽慧小助理 你的需求：<code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>"搜索能做 [某件事] 的 Skill"</code>
             </div>
           </div>
 
@@ -537,10 +525,11 @@ export function QuickStart(_props: QuickStartProps) {
           fontSize: '13px',
           color: 'var(--settings-text-dim)',
           lineHeight: '1.6'
-        }}>
+        }}
+      >
           <div style={{ marginBottom: '12px' }}>
             <div style={{ marginBottom: '8px' }}>
-              DeepBot 可以通过命令行调用任何已安装的外部工具（Python 包、Node.js 工具、命令行程序等）。
+              史丽慧小助理 可以通过命令行调用任何已安装的外部工具（Python 包、Node.js 工具、命令行程序等）。
             </div>
           </div>
 
@@ -551,7 +540,7 @@ export function QuickStart(_props: QuickStartProps) {
               <span style={{ fontWeight: '600', color: 'var(--settings-text)', fontSize: '13px' }}>直接使用</span>
             </div>
             <div style={{ marginLeft: '28px', marginBottom: '6px', fontSize: '12px' }}>
-              安装完成后，直接告诉 DeepBot 使用该工具即可：
+              安装完成后，直接告诉 史丽慧小助理 使用该工具即可：
             </div>
             <div style={{ 
               marginLeft: '28px',
@@ -589,7 +578,7 @@ export function QuickStart(_props: QuickStartProps) {
               💬 "是，读取markitdown使用说明，帮我创建 Skill"<br/>
               <span style={{ color: 'var(--settings-text-dim)' }}>→ 之后直接说需求，AI 自动调用 Skill</span><br/>
               💬 "使用markitdown skill把这个 PDF 转成 Markdown"<br/>
-               <span style={{ color: 'var(--settings-text-dim)' }}>→ 可以让deepbot记住只要是文档处理，都使用这个skill</span><br/>
+               <span style={{ color: 'var(--settings-text-dim)' }}>→ 可以让slhbot记住只要是文档处理，都使用这个skill</span><br/>
               💬 "记住所有文档的读取，都使用markitdown skill"
             </div>
           </div>
@@ -815,14 +804,15 @@ export function QuickStart(_props: QuickStartProps) {
           fontSize: '13px',
           color: 'var(--settings-text-dim)',
           lineHeight: '1.6'
-        }}>
+        }}
+      >
           <div style={{ marginBottom: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
               <span style={{ marginRight: '8px', fontSize: '16px' }}>📄</span>
               <span style={{ fontWeight: '600', color: 'var(--settings-text)' }}>MarkItDown - 文档转换神器</span>
             </div>
             <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
-              将各种文档格式转换为 Markdown，方便 DeepBot 读取和分析
+              将各种文档格式转换为 Markdown，方便 史丽慧小助理 读取和分析
             </div>
             <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
               <strong style={{ color: 'var(--settings-text)' }}>支持格式：</strong>
@@ -845,7 +835,7 @@ export function QuickStart(_props: QuickStartProps) {
                 fontFamily: 'monospace',
                 fontSize: '12px'
               }}>
-                💬 告诉 DeepBot："读取 github.com/microsoft/markitdown 说明，帮我安装 markitdown"
+                💬 告诉 史丽慧小助理："读取 github.com/microsoft/markitdown 说明，帮我安装 markitdown"
               </div>
               <div style={{ marginTop: '4px', fontSize: '12px' }}>
                 或访问：<a 
@@ -898,7 +888,7 @@ export function QuickStart(_props: QuickStartProps) {
                 fontFamily: 'monospace',
                 fontSize: '12px'
               }}>
-                💬 告诉 DeepBot："帮我安装 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md"
+                💬 告诉 史丽慧小助理："帮我安装 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md"
               </div>
               <div style={{ marginTop: '4px', fontSize: '12px' }}>
                 或访问：<a 
@@ -951,7 +941,7 @@ export function QuickStart(_props: QuickStartProps) {
                 fontFamily: 'monospace',
                 fontSize: '12px'
               }}>
-                💬 告诉 DeepBot："帮我安装 mcporter：npm install -g mcporter"
+                💬 告诉 史丽慧小助理："帮我安装 mcporter：npm install -g mcporter"
               </div>
               <div style={{ marginTop: '4px', fontSize: '12px' }}>
                 或访问：<a 
@@ -972,7 +962,7 @@ export function QuickStart(_props: QuickStartProps) {
               <span style={{ fontWeight: '600', color: 'var(--settings-text)' }}>Tavily Search - AI 搜索引擎 Skill</span>
             </div>
             <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
-              专为 AI Agent 设计的搜索引擎，提供高质量、结构化的搜索结果，让 DeepBot 获得强大的实时信息检索能力
+              专为 AI Agent 设计的搜索引擎，提供高质量、结构化的搜索结果，让 史丽慧小助理 获得强大的实时信息检索能力
             </div>
             <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
               <strong style={{ color: 'var(--settings-text)' }}>核心优势：</strong>
@@ -1007,7 +997,7 @@ export function QuickStart(_props: QuickStartProps) {
                   </a> 注册账号，获取免费 API Key
                 </div>
                 <div>
-                  <strong>第三步：</strong>💬 告诉 DeepBot："按照 Tavily Search skill 的说明配置好 API Key，我的 API Key 是 [粘贴你的 API Key]"
+                  <strong>第三步：</strong>💬 告诉 史丽慧小助理："按照 Tavily Search skill 的说明配置好 API Key，我的 API Key 是 [粘贴你的 API Key]"
                 </div>
               </div>
             </div>
@@ -1044,7 +1034,7 @@ export function QuickStart(_props: QuickStartProps) {
                   <strong>第一步：</strong>打开聊天界面的 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>[skill]</code> 按钮，搜索「imap-smtp-email-chinese」，点击安装
                 </div>
                 <div>
-                  <strong>第二步：</strong>💬 告诉 DeepBot："按照 imap-smtp-email-chinese skill 的说明配置好邮箱信息"
+                  <strong>第二步：</strong>💬 告诉 史丽慧小助理："按照 imap-smtp-email-chinese skill 的说明配置好邮箱信息"
                 </div>
               </div>
             </div>
@@ -1065,14 +1055,15 @@ export function QuickStart(_props: QuickStartProps) {
           fontSize: '13px',
           color: 'var(--settings-text-dim)',
           lineHeight: '1.6'
-        }}>
+        }}
+      >
           <div style={{ marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
               <span style={{ marginRight: '8px', fontSize: '16px' }}>💾</span>
               <span style={{ fontWeight: '600', color: 'var(--settings-text)', fontSize: '14px' }}>什么是记忆？</span>
             </div>
             <div style={{ marginLeft: '28px', marginBottom: '8px' }}>
-              记忆是 DeepBot 的长期存储系统，用于记住用户的偏好、习惯、角色定义和重要信息。不同于对话历史（会话结束后清空），记忆会永久保存，让 AI 越用越懂你。
+              记忆是 史丽慧小助理 的长期存储系统，用于记住用户的偏好、习惯、角色定义和重要信息。不同于对话历史（会话结束后清空），记忆会永久保存，让 AI 越用越懂你。
             </div>
           </div>
 
@@ -1169,7 +1160,7 @@ export function QuickStart(_props: QuickStartProps) {
             borderRadius: '4px',
             fontSize: '12px'
           }}>
-            💡 提示：记忆文件存储在 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>~/.deepbot/memory/</code> 目录，可以手动编辑
+            💡 提示：记忆文件存储在 <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px', fontFamily: 'monospace' }}>~/.slhbot/memory/</code> 目录，可以手动编辑
           </div>
         </div>
       </div>

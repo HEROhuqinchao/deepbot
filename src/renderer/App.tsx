@@ -1,5 +1,5 @@
 /**
- * DeepBot 主应用组件
+ * 史丽慧小助理 主应用组件
  */
 
 import React, { useState, useEffect, createContext } from 'react';

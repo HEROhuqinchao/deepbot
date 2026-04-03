@@ -3,13 +3,13 @@
  * 
  * ## 工具架构说明
  * 
- * DeepBot 的所有工具都是**内置工具**，代码位于 `src/main/tools/` 目录。
+ * 史丽慧小助理 的所有工具都是**内置工具**，代码位于 `src/main/tools/` 目录。
  * 
  * ### 工具组成
  * 
  * 1. **工具代码**：在 `src/main/tools/` 中实现 `ToolPlugin` 接口
- * 2. **配置文件**：（可选）在 `~/.deepbot/tools/<tool-name>/config.json` 中存储
- * 3. **外部依赖**：（可选）在 `~/.deepbot/tools/<tool-name>/node_modules/` 中安装
+ * 2. **配置文件**：（可选）在 `~/.slhbot/tools/<tool-name>/config.json` 中存储
+ * 3. **外部依赖**：（可选）在 `~/.slhbot/tools/<tool-name>/node_modules/` 中安装
  * 
  * ### 创建新工具
  * 

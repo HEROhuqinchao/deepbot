@@ -34,7 +34,7 @@ export async function searchSkillsOnGitHub(query: string): Promise<SkillSearchRe
     const url = `${CLAWHUB_SEARCH_API}?q=${encodeURIComponent(query)}`;
 
     const response = await httpGet<{ results: ClawHubSearchItem[] }>(url, {
-      headers: { 'User-Agent': 'DeepBot-Skill-Manager' },
+      headers: { 'User-Agent': '史丽慧小助理-Skill-Manager' },
       timeout: 10000,
     });
 

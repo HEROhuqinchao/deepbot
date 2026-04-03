@@ -1,5 +1,5 @@
 /**
- * DeepBot 类型定义
+ * 史丽慧小助理 类型定义
  */
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'timeout';
 export interface MainTask {

@@ -29,10 +29,10 @@
 10. [附录](#附录)
 
 ## 简介
-本文件为 DeepBot Web 客户端 API 的使用文档，面向前端 JavaScript 开发者，详细说明如何通过 HTTP 与 WebSocket 与后端通信。内容涵盖客户端初始化配置、API 调用方法、错误处理与状态管理，并提供完整的前端集成示例、SDK 使用指南与最佳实践。同时解释 Web 客户端与 Electron 版本的差异与兼容性注意事项。
+本文件为 史丽慧小助理 Web 客户端 API 的使用文档，面向前端 JavaScript 开发者，详细说明如何通过 HTTP 与 WebSocket 与后端通信。内容涵盖客户端初始化配置、API 调用方法、错误处理与状态管理，并提供完整的前端集成示例、SDK 使用指南与最佳实践。同时解释 Web 客户端与 Electron 版本的差异与兼容性注意事项。
 
 ## 项目结构
-DeepBot 采用统一 API 适配器，通过运行环境自动选择 IPC（Electron）或 HTTP/WebSocket（Web）。Web 模式下，渲染进程通过统一 API 适配器调用 HTTP 接口与后端交互，并通过 WebSocket 接收实时事件推送。
+史丽慧小助理 采用统一 API 适配器，通过运行环境自动选择 IPC（Electron）或 HTTP/WebSocket（Web）。Web 模式下，渲染进程通过统一 API 适配器调用 HTTP 接口与后端交互，并通过 WebSocket 接收实时事件推送。
 
 ```mermaid
 graph TB
@@ -376,7 +376,7 @@ GW --> Message["消息处理器<br/>gateway-message.ts"]
 - [gateway-adapter.ts:558-625](file://src/server/gateway-adapter.ts#L558-L625)
 
 ## 结论
-DeepBot Web 客户端通过统一 API 适配器实现了与 Electron 版本一致的交互体验。Web 模式下，HTTP 与 WebSocket 的组合提供了完善的配置管理、Tab 管理、消息流式传输与事件推送能力。开发者只需关注统一 API 的使用，即可在 Web 环境中实现与桌面版相同的功能与体验。
+史丽慧小助理 Web 客户端通过统一 API 适配器实现了与 Electron 版本一致的交互体验。Web 模式下，HTTP 与 WebSocket 的组合提供了完善的配置管理、Tab 管理、消息流式传输与事件推送能力。开发者只需关注统一 API 的使用，即可在 Web 环境中实现与桌面版相同的功能与体验。
 
 [本节为总结性内容，不直接分析具体文件]
 

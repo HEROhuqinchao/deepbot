@@ -20,7 +20,7 @@
 
 ```bash
 # 运行安装脚本
-cd deepbot/src/main/tools/email-tool
+cd slhbot/src/main/tools/email-tool
 ./install.sh
 ```
 
@@ -30,10 +30,10 @@ cd deepbot/src/main/tools/email-tool
 
 ```bash
 # 创建工具目录
-mkdir -p ~/.deepbot/tools/email-tool
+mkdir -p ~/.slhbot/tools/email-tool
 
 # 进入目录
-cd ~/.deepbot/tools/email-tool
+cd ~/.slhbot/tools/email-tool
 
 # 初始化 package.json
 pnpm init -y
@@ -46,10 +46,10 @@ pnpm add nodemailer
 
 ```bash
 # 创建工具目录
-mkdir -p ~/.deepbot/tools/email-tool
+mkdir -p ~/.slhbot/tools/email-tool
 
 # 安装到指定目录
-npm install nodemailer --prefix ~/.deepbot/tools/email-tool
+npm install nodemailer --prefix ~/.slhbot/tools/email-tool
 ```
 
 ### 验证安装
@@ -62,8 +62,8 @@ npm install nodemailer --prefix ~/.deepbot/tools/email-tool
 
 配置文件位置（按优先级）：
 
-1. **项目级别**：`<workspace>/.deepbot/tools/email-tool/config.json`
-2. **用户级别**（推荐）：`~/.deepbot/tools/email-tool/config.json`
+1. **项目级别**：`<workspace>/.slhbot/tools/email-tool/config.json`
+2. **用户级别**（推荐）：`~/.slhbot/tools/email-tool/config.json`
 
 ### 2. 配置文件格式
 
@@ -259,12 +259,12 @@ await agent.useTool('send_email', {
 
 ### 工具架构
 
-邮件工具是 DeepBot 的**内置工具**，代码位于 `src/main/tools/email-tool.ts`。
+邮件工具是 史丽慧小助理 的**内置工具**，代码位于 `src/main/tools/email-tool.ts`。
 
 **关键设计**：
 - ✅ 工具代码在项目中（`src/main/tools/`）
-- ✅ 配置文件在用户目录（`~/.deepbot/tools/email-tool/config.json`）
-- ✅ 依赖安装在用户目录（`~/.deepbot/tools/email-tool/node_modules/`）
+- ✅ 配置文件在用户目录（`~/.slhbot/tools/email-tool/config.json`）
+- ✅ 依赖安装在用户目录（`~/.slhbot/tools/email-tool/node_modules/`）
 - ✅ 运行时动态加载依赖（不打包到主项目）
 
 ### 为什么使用动态加载？
@@ -278,7 +278,7 @@ await agent.useTool('send_email', {
 ```typescript
 // 动态加载 nodemailer（运行时）
 async function loadNodemailer(): Promise<any> {
-  const toolDir = join(homedir(), '.deepbot', 'tools', 'email-tool');
+  const toolDir = join(homedir(), '.slhbot', 'tools', 'email-tool');
   
   try {
     // 从工具目录加载
@@ -302,8 +302,8 @@ async function loadNodemailer(): Promise<any> {
 1. **在 `src/main/tools/` 创建工具文件**（如 `my-tool.ts`）
 2. **实现 `ToolPlugin` 接口**
 3. **在 `tool-loader.ts` 中导入并加载**
-4. **配置文件放在 `~/.deepbot/tools/my-tool/config.json`**
-5. **依赖安装在 `~/.deepbot/tools/my-tool/node_modules/`**
+4. **配置文件放在 `~/.slhbot/tools/my-tool/config.json`**
+5. **依赖安装在 `~/.slhbot/tools/my-tool/node_modules/`**
 6. **使用动态 `require()` 加载依赖**
 
 参考文件：

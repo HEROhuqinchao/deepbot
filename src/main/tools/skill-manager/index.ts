@@ -33,7 +33,7 @@ export function createSkillManagerTool(): AgentTool {
   return {
     name: TOOL_NAMES.SKILL_MANAGER,
     label: 'Skill Manager',
-    description: `Skill 管理工具，用于搜索、安装、管理 DeepBot Skills。
+    description: `Skill 管理工具，用于搜索、安装、管理 史丽慧小助理 Skills。
 
 功能：
 - find: 从 ClawHub 查找可安装的 Skill（返回 slug、displayName、description、stars 等），仅用于查找未安装的 Skill，不能用于搜索网络信息

@@ -48,8 +48,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<MessageInputRef>(null); // 🔥 添加输入框引用
   const messagesContainerRef = useRef<HTMLDivElement>(null); // 🔥 消息容器引用
-  const [agentName, setAgentName] = useState('matrix');
-  const [userName, setUserName] = useState('user');
+  const [agentName, setAgentName] = useState('秋念遥');
+  const [userName, setUserName] = useState('史丽慧');
   const [isInitializing, setIsInitializing] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true); // 🔥 是否自动滚动
   const programScrollingRef = useRef(false); // 🔥 程序是否正在滚动（避免误判）
@@ -325,7 +325,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
 
       {/* 顶部栏 */}
       <div className="terminal-header">
-        <div className="terminal-title">DeepBot Terminal</div>
+        <div className="terminal-title">史丽慧小助理</div>
         
         <div className="terminal-controls">
           {onOpenSkillManager && (
@@ -427,14 +427,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         {isInitializing ? (
           // 初始化提示 - 显示在提示符后面
           <div className="terminal-line" style={{ display: 'block' }}>
-            <span className="terminal-prompt agent">{agentName}@deepbot:~&gt;</span>
+            <span className="terminal-prompt agent">{agentName}@slhbot:~&gt;</span>
             <span className="terminal-message system">正在初始化系统...</span>
           </div>
         ) : messages.length === 0 ? (
           // 🔥 空状态：显示等待提示符（不显示光标）
           <>
             <div className="terminal-line" style={{ display: 'block' }}>
-              <span className="terminal-prompt agent">{agentName}@deepbot:~&gt;</span>
+              <span className="terminal-prompt agent">{agentName}@slhbot:~&gt;</span>
             </div>
           </>
         ) : (
@@ -480,7 +480,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             {/* 等待提示符 - 只在完全空闲时显示（不显示光标） */}
             {!isLoading && messages.length > 0 && !messages.some(msg => msg.isStreaming) && (
               <div className="terminal-line" style={{ display: 'block' }}>
-                <span className="terminal-prompt agent">{agentName}@deepbot:~&gt;</span>
+                <span className="terminal-prompt agent">{agentName}@slhbot:~&gt;</span>
               </div>
             )}
 

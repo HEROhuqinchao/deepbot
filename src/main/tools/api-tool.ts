@@ -1,7 +1,7 @@
 /**
  * API 工具（系统配置访问）
  * 
- * 让 Agent 可以访问 DeepBot 的系统配置，包括：
+ * 让 Agent 可以访问 史丽慧小助理 的系统配置，包括：
  * - 工作目录配置（workspaceDir, scriptDir, skillDirs, imageDir, memoryDir）
  * - 模型配置（provider, model, apiKey）
  * - 工具配置（图片生成、Web 搜索）
@@ -27,8 +27,8 @@ export const apiToolPlugin: ToolPlugin = {
     id: 'api-tool',
     name: 'api',
     version: '1.0.0',
-    description: '访问 DeepBot 系统配置。支持查询和设置工作目录、模型、工具等配置',
-    author: 'DeepBot',
+    description: '访问 史丽慧小助理 系统配置。支持查询和设置工作目录、模型、工具等配置',
+    author: '史丽慧小助理',
     category: 'system',
     tags: ['api', 'config', 'system'],
     requiresConfig: false,
@@ -43,7 +43,7 @@ export const apiToolPlugin: ToolPlugin = {
       {
         name: TOOL_NAMES.API_GET_CONFIG,
         label: '获取系统配置',
-        description: '查询 DeepBot 的系统配置，包括工作目录、模型、工具等配置',
+        description: '查询 史丽慧小助理 的系统配置，包括工作目录、模型、工具等配置',
         parameters: schemas.GetConfigSchema,
         execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
           return handlers.handleGetConfig(args, signal);
@@ -54,7 +54,7 @@ export const apiToolPlugin: ToolPlugin = {
       // {
       //   name: TOOL_NAMES.API_SET_WORKSPACE_CONFIG,
       //   label: '设置工作目录配置',
-      //   description: '更新 DeepBot 的工作目录配置。可以设置工作目录、脚本目录、Skill 目录、图片目录、记忆目录',
+      //   description: '更新 史丽慧小助理 的工作目录配置。可以设置工作目录、脚本目录、Skill 目录、图片目录、记忆目录',
       //   parameters: schemas.SetWorkspaceConfigSchema,
       //   execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
       //     return handlers.handleSetWorkspaceConfig(args, signal);
@@ -65,7 +65,7 @@ export const apiToolPlugin: ToolPlugin = {
       {
         name: TOOL_NAMES.API_SET_MODEL_CONFIG,
         label: '设置模型配置',
-        description: '更新 DeepBot 的模型配置。可以设置提供商、模型、API 地址、API Key',
+        description: '更新 史丽慧小助理 的模型配置。可以设置提供商、模型、API 地址、API Key',
         parameters: schemas.SetModelConfigSchema,
         execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
           return handlers.handleSetModelConfig(args, signal);
@@ -142,7 +142,7 @@ export const apiToolPlugin: ToolPlugin = {
       {
         name: TOOL_NAMES.API_APPROVE_PAIRING,
         label: '审核配对请求',
-        description: '批准用户的配对请求。审核通过后，用户可以通过连接器与 DeepBot 进行私聊',
+        description: '批准用户的配对请求。审核通过后，用户可以通过连接器与 史丽慧小助理 进行私聊',
         parameters: schemas.ApprovePairingSchema,
         execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
           return handlers.handleApprovePairing(args, signal);

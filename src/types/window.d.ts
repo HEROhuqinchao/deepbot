@@ -2,7 +2,7 @@
  * Window 全局类型定义
  */
 
-interface DeepBotAPI {
+interface SlhBotAPI {
   version: string;
   sendMessage: (content: string, sessionId?: string) => Promise<any>;
   stopGeneration: (sessionId?: string) => Promise<any>;
@@ -83,7 +83,7 @@ interface DeepBotAPI {
 }
 
 interface Window {
-  deepbot: DeepBotAPI;
+  slhbot: SlhBotAPI;
   electron: {
     ipcRenderer: {
       invoke: (channel: string, ...args: any[]) => Promise<any>;

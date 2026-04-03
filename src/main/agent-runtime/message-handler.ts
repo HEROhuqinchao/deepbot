@@ -732,7 +732,7 @@ export class MessageHandler {
       /^Fatal error:/i,                         // 致命错误
       /^Uncaught /i,                            // 未捕获的异常
       
-      // 5. 安全检查失败（DeepBot 特有）
+      // 5. 安全检查失败（史丽慧小助理 特有）
       /^命令安全检查失败/,
       /^工作目录安全检查失败/,
       /^安全限制：/,

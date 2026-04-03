@@ -209,7 +209,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
           运行环境
         </div>
         <p style={{ fontSize: '12px', color: 'var(--settings-text-dim)', marginBottom: '12px' }}>
-          DeepBot 需要 Python 环境来执行脚本和 Skill。
+          史丽慧小助理 需要 Python 环境来执行脚本和 Skill。
         </p>
 
         <div className="space-y-3">
@@ -288,7 +288,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
                 status.allInstalled ? 'text-green-700' : 'text-yellow-700'
               }`}>
                 {status.allInstalled 
-                  ? 'DeepBot 已准备就绪，可以正常使用所有功能。'
+                  ? '史丽慧小助理 已准备就绪，可以正常使用所有功能。'
                   : 'Python 未安装，某些功能可能无法使用。请安装 Python。'
                 }
               </p>

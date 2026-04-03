@@ -151,7 +151,7 @@ export class DingTalkStreamClient extends EventEmitter {
               type: 'CALLBACK',
             },
           ],
-          ua: 'deepbot-dingtalk-connector/1.0.0',
+          ua: 'slhbot-dingtalk-connector/1.0.0',
         }),
       });
       

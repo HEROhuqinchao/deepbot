@@ -61,7 +61,7 @@ async function testSlackCredentials(botToken, appToken, signingSecret) {
 }
 
 // 使用方式：
-// 1. 从 DeepBot 配置页面复制凭证
+// 1. 从 史丽慧小助理 配置页面复制凭证
 // 2. 修改下面的值并运行此脚本
 
 const BOT_TOKEN = 'xoxb-your-bot-token-here';

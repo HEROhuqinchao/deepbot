@@ -105,12 +105,12 @@ export function AppVersion({ initialUpdateInfo }: AppVersionProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
             <img
               src={iconUrl}
-              alt="DeepBot"
+              alt="史丽慧小助理"
               style={{ width: '48px', height: '48px', borderRadius: '10px' }}
             />
             <div>
               <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--settings-text)' }}>
-                DeepBot Terminal
+                史丽慧小助理
               </div>
               <div style={{ fontSize: '13px', color: 'var(--settings-text-dim)', marginTop: '2px' }}>
                 版本 {APP_VERSION}

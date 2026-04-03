@@ -1,6 +1,6 @@
 # Slack 机器人配置指南
 
-本文档介绍如何配置 DeepBot 的 Slack 连接器，使其能够通过 Slack 接收和发送消息。大约 5 ～ 10 分钟配置完成。
+本文档介绍如何配置 史丽慧小助理 的 Slack 连接器，使其能够通过 Slack 接收和发送消息。大约 5 ～ 10 分钟配置完成。
 
 ## 前置条件
 
@@ -64,9 +64,9 @@ Socket Mode 允许你的应用通过 WebSocket 接收事件，无需公网服务
 2. 在「App Credentials」部分找到「Signing Secret」
 3. 点击「Show」显示并记录
 
-### 6. 在 DeepBot 中配置
+### 6. 在 史丽慧小助理 中配置
 
-1. 打开 DeepBot 设置 → 外部通讯配置
+1. 打开 史丽慧小助理 设置 → 外部通讯配置
 2. 选择「Slack」标签页
 3. 填写配置信息：
    - **Bot Token**：`xoxb-` 开头的 OAuth Token

@@ -87,11 +87,11 @@ async function downloadSkillFromClawHub(slug: string, targetDir: string): Promis
   console.info(`[Skill Manager] 下载 Skill zip: ${downloadUrl}`);
 
   // 1. 使用统一的 downloadFile 工具下载
-  const tmpFile = path.join(os.tmpdir(), `deepbot-skill-${slug}-${Date.now()}.zip`);
+  const tmpFile = path.join(os.tmpdir(), `slhbot-skill-${slug}-${Date.now()}.zip`);
 
   try {
     const buffer = await downloadFile(downloadUrl, {
-      headers: { 'User-Agent': 'DeepBot-Skill-Manager' },
+      headers: { 'User-Agent': '史丽慧小助理-Skill-Manager' },
       timeout: 60000,
     });
 
@@ -120,7 +120,7 @@ async function extractZip(zipPath: string, targetDir: string): Promise<void> {
   const AdmZip = (await import('adm-zip')).default;
 
   // 创建临时解压目录
-  const tmpExtractDir = path.join(os.tmpdir(), `deepbot-skill-extract-${Date.now()}`);
+  const tmpExtractDir = path.join(os.tmpdir(), `slhbot-skill-extract-${Date.now()}`);
   ensureDirectoryExists(tmpExtractDir);
 
   try {

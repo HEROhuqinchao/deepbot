@@ -29,7 +29,7 @@ interface ToolConfigProps {
 }
 
 interface ImageGenerationConfig {
-  provider: 'deepbot' | 'gemini' | 'qwen';
+  provider: 'slhbot' | 'gemini' | 'qwen';
   model: string;
   apiUrl: string;
   apiKey: string;
@@ -66,7 +66,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
       ]);
       if (imageConfig) {
         // 兼容旧配置格式，添加默认 provider 字段
-        let provider: 'deepbot' | 'gemini' | 'qwen' = 'gemini';
+        let provider: 'slhbot' | 'gemini' | 'qwen' = 'gemini';
         if ((imageConfig as any).provider) {
           provider = (imageConfig as any).provider;
         } else if (imageConfig.model && imageConfig.model.includes('qwen-image')) {
@@ -115,7 +115,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
   };
 
   // 当提供商改变时，更新默认 API 地址和模型
-  const handleImageProviderChange = (newProvider: 'deepbot' | 'gemini' | 'qwen') => {
+  const handleImageProviderChange = (newProvider: 'slhbot' | 'gemini' | 'qwen') => {
     const preset = IMAGE_GENERATION_PROVIDER_PRESETS[newProvider];
 
     setImageGenConfig({
@@ -242,10 +242,10 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
             </label>
             <select
               value={imageGenConfig.provider}
-              onChange={(e) => handleImageProviderChange(e.target.value as 'deepbot' | 'gemini' | 'qwen')}
+              onChange={(e) => handleImageProviderChange(e.target.value as 'slhbot' | 'gemini' | 'qwen')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="deepbot">DeepBot（Nano banana 2）</option>
+              <option value="slhbot">史丽慧小助理（Nano banana 2）</option>
               <option value="qwen">Qwen Image</option>
             </select>
             <p className="mt-1 text-xs text-gray-500">
@@ -266,7 +266,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="mt-1 text-xs text-gray-500">
-              {imageGenConfig.provider === 'deepbot' && '无需魔法，直连 Nano Banana 2'}
+              {imageGenConfig.provider === 'slhbot' && '无需魔法，直连 Nano Banana 2'}
               {imageGenConfig.provider === 'qwen' && 'Qwen Image 图片生成 API 地址'}
               {imageGenConfig.provider === 'gemini' && '预设提供商的 API 地址（可修改）'}
             </p>
@@ -281,7 +281,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
               type="text"
               value={imageGenConfig.model}
               onChange={(e) => setImageGenConfig({ ...imageGenConfig, model: e.target.value })}
-              disabled={imageGenConfig.provider === 'deepbot'}
+              disabled={imageGenConfig.provider === 'slhbot'}
               placeholder={
                 imageGenConfig.provider === 'qwen'
                   ? 'qwen-image-2.0-pro'
@@ -290,7 +290,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
             <p className="mt-1 text-xs text-gray-500">
-              {(imageGenConfig.provider === 'gemini' || imageGenConfig.provider === 'deepbot') && '默认: gemini-3.1-flash-image-preview'}
+              {(imageGenConfig.provider === 'gemini' || imageGenConfig.provider === 'slhbot') && '默认: gemini-3.1-flash-image-preview'}
               {imageGenConfig.provider === 'qwen' && '推荐: qwen-image-2.0-pro（可选: qwen-image-2.0, qwen-image-max, qwen-image-plus）'}
             </p>
           </div>
@@ -315,7 +315,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
             />
             <p className="mt-1 text-xs text-gray-500">
               {imageGenConfig.provider === 'gemini' && '用于访问 Gemini API 的密钥'}
-              {imageGenConfig.provider === 'deepbot' && '使用工具专用的 DeepBot Token'}
+              {imageGenConfig.provider === 'slhbot' && '使用工具专用的 史丽慧小助理 Token'}
               {imageGenConfig.provider === 'qwen' && '用于访问 Qwen API 的密钥（DashScope API Key）'}
             </p>
           </div>
@@ -369,7 +369,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
             </p>
             <div className="space-y-2 mb-3">
               <div className="text-sm text-gray-700">
-                <strong>方式一：</strong>直接告诉 DeepBot 配置信息，它会自动写入 .env 文件
+                <strong>方式一：</strong>直接告诉 史丽慧小助理 配置信息，它会自动写入 .env 文件
               </div>
               <div className="bg-white border border-gray-200 rounded p-2 text-xs font-mono text-gray-800">
                 帮我配置 imap-smtp-email-chinese skill，邮箱是 your@163.com，授权码是 xxxx，使用 163 邮箱

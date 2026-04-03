@@ -1,7 +1,7 @@
 {
-  "name": "deepbot",
+  "name": "slhbot",
   "version": "0.4.0",
-  "description": "DeepBot - 系统级 AI 助手，专注企业生产提效",
+  "description": "史丽慧小助理 - 系统级 AI 助手，专注企业生产提效",
   "main": "dist-electron/main/index.js",
   "author": "K Luo",
   "license": "MIT",
@@ -36,8 +36,8 @@
     "build:web-server": "tsc -p tsconfig.server.json && node scripts/copy-templates-web.js",
     "build:web-renderer": "vite build --mode web --outDir dist-web",
     "start:web": "node dist-server/index.js",
-    "docker:build": "docker build -t deepbot:latest .",
-    "docker:build:multi": "docker buildx build --platform linux/amd64,linux/arm64 -t deepbot:latest --push .",
+    "docker:build": "docker build -t slhbot:latest .",
+    "docker:build:multi": "docker buildx build --platform linux/amd64,linux/arm64 -t slhbot:latest --push .",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f"
@@ -110,12 +110,12 @@
   },
   "packageManager": "pnpm@10.23.0",
   "build": {
-    "appId": "com.deepbot.app",
-    "productName": "DeepBot Terminal",
+    "appId": "com.slhbot.app",
+    "productName": "史丽慧小助理",
     "icon": "icon.png",
     "publish": {
       "provider": "generic",
-      "url": "https://glint-mvt.com/deepbot/downloads"
+      "url": "https://glint-mvt.com/slhbot/downloads"
     },
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/",
@@ -155,7 +155,7 @@
     "mac": {
       "icon": "icon.png",
       "category": "public.app-category.productivity",
-      "artifactName": "DeepBot-Terminal-${version}-mac-${arch}.${ext}",
+      "artifactName": "slhbot-${version}-mac-${arch}.${ext}",
       "target": [
         {
           "target": "dmg",
@@ -207,13 +207,13 @@
       "allowElevation": true,
       "perMachine": false,
       "runAfterFinish": true,
-      "shortcutName": "DeepBot Terminal",
-      "uninstallDisplayName": "DeepBot Terminal",
+      "shortcutName": "史丽慧小助理",
+      "uninstallDisplayName": "史丽慧小助理",
       "deleteAppDataOnUninstall": false,
       "differentialPackage": false,
       "packElevateHelper": false,
       "artifactName": "${productName}-Setup-${version}.${ext}",
-      "guid": "com.deepbot.app",
+      "guid": "com.slhbot.app",
       "warningsAsErrors": false,
       "displayLanguageSelector": false,
       "installerLanguages": [

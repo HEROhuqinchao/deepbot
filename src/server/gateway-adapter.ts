@@ -580,7 +580,7 @@ export class GatewayAdapter extends EventEmitter {
       const settings = store.getWorkspaceSettings();
       
       // 创建临时目录（在工作目录下）
-      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+      const tempDir = path.join(settings.workspaceDir, '.slhbot', 'temp', 'uploads');
       ensureDirectoryExists(tempDir);
       
       // 生成唯一文件名
@@ -692,7 +692,7 @@ export class GatewayAdapter extends EventEmitter {
       const settings = store.getWorkspaceSettings();
       
       // 验证文件路径在临时目录内
-      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+      const tempDir = path.join(settings.workspaceDir, '.slhbot', 'temp', 'uploads');
       const normalizedPath = path.normalize(filePath);
       const normalizedTempDir = path.normalize(tempDir);
       

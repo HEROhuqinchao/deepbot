@@ -25,7 +25,7 @@
 10. [附录](#附录)
 
 ## 简介
-本文件面向 DeepBot 的 Web 搜索工具，系统性阐述其基于 Tavily API 的网络搜索能力（通过 Skill 扩展接入），以及与之配套的网页内容抓取与内容提取能力。文档涵盖以下主题：
+本文件面向 史丽慧小助理 的 Web 搜索工具，系统性阐述其基于 Tavily API 的网络搜索能力（通过 Skill 扩展接入），以及与之配套的网页内容抓取与内容提取能力。文档涵盖以下主题：
 - 搜索查询处理、结果获取与内容提取的完整流程
 - 工具的 API 接口、参数配置与搜索策略
 - 结果处理与“缓存”机制（以会话与工具结果裁剪为主）
@@ -128,7 +128,7 @@ participant API as "第三方搜索服务"
 participant WF as "Web Fetch 工具"
 UI->>WS : 调用工具query, enableSearch?
 WS->>CFG : 读取提供商/模型/API 地址/API Key
-alt Provider=Gemini/DeepBot
+alt Provider=Gemini/史丽慧小助理
 WS->>API : 调用 Gemini APIGoogle Search
 API-->>WS : 返回答案与来源
 else Provider=Qwen
@@ -151,7 +151,7 @@ WS-->>UI : 返回 Markdown 结果答案+来源
 ### Web Search 工具（Qwen/Gemini/Tavily Skill）
 - 功能要点
   - 参数校验与长度限制（最大约 10K 字符）
-  - 支持提供商切换：gemini/deepbot（Gemini）、qwen（enable_search）、其他（通过 Skill 扩展）
+  - 支持提供商切换：gemini/slhbot（Gemini）、qwen（enable_search）、其他（通过 Skill 扩展）
   - 结果格式：Markdown 文本，包含“搜索结果”和“参考来源”
   - 错误处理：统一捕获并返回结构化错误信息
 - 关键流程（Qwen/Gemini）
@@ -167,7 +167,7 @@ Start(["开始"]) --> LoadCfg["读取工具配置"]
 LoadCfg --> Validate["校验参数与长度限制"]
 Validate --> ChooseProv{"选择提供商"}
 ChooseProv --> |Qwen| CallQwen["调用 Qwen APIenable_search"]
-ChooseProv --> |Gemini/DeepBot| CallGemini["调用 Gemini APIGoogle Search"]
+ChooseProv --> |Gemini/史丽慧小助理| CallGemini["调用 Gemini APIGoogle Search"]
 ChooseProv --> |Tavily Skill| UseSkill["通过 Skill 获取结构化结果"]
 CallQwen --> ParseQwen["解析回答与来源"]
 CallGemini --> ParseGemini["解析回答与来源"]
@@ -240,7 +240,7 @@ BuildMsg --> End(["结束"])
 
 ### 工具配置与持久化
 - 前端配置页面
-  - 支持提供商选择（deepbot/qwen/gemini）
+  - 支持提供商选择（slhbot/qwen/gemini）
   - 自动填充默认模型与基础地址
   - 保存配置到后端
 - 默认提供商预设
@@ -286,9 +286,9 @@ WebSearchToolConfig --> DefaultConfigs : "使用默认预设"
 - 安装与配置流程
   - 在聊天界面的 [skill] 中搜索「Tavily Search」并安装
   - 访问 app.tavily.com 注册账号并获取 API Key
-  - 在对话中告知 DeepBot 已配置好 API Key
+  - 在对话中告知 史丽慧小助理 已配置好 API Key
 - 作用
-  - 为 DeepBot 提供高质量、结构化的搜索结果，降低幻觉风险
+  - 为 史丽慧小助理 提供高质量、结构化的搜索结果，降低幻觉风险
   - 支持深度搜索与快速搜索，免费额度满足日常使用
 
 **章节来源**
@@ -376,7 +376,7 @@ REG --> WF
 - [tool-config.ts:73-116](file://src/main/database/tool-config.ts#L73-L116)
 
 ## 结论
-DeepBot 的 Web 搜索工具提供了灵活的搜索能力：既可以直接调用 Qwen/Gemini 的网络搜索能力，也支持通过 Skill 扩展接入 Tavily 等第三方搜索引擎。配合 Web Fetch 工具，用户可以获得从“搜索—抓取—提取—格式化”的完整链路体验。通过合理的参数配置、超时与取消机制、以及安全与性能优化策略，可以在保证稳定性的同时提升搜索结果的质量与效率。
+史丽慧小助理 的 Web 搜索工具提供了灵活的搜索能力：既可以直接调用 Qwen/Gemini 的网络搜索能力，也支持通过 Skill 扩展接入 Tavily 等第三方搜索引擎。配合 Web Fetch 工具，用户可以获得从“搜索—抓取—提取—格式化”的完整链路体验。通过合理的参数配置、超时与取消机制、以及安全与性能优化策略，可以在保证稳定性的同时提升搜索结果的质量与效率。
 
 ## 附录
 - 代码示例路径（以文件与行号定位）

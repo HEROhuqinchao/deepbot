@@ -27,10 +27,10 @@
 10. [附录](#附录)
 
 ## 简介
-本文件面向 DeepBot 的 WebSocket 集成功能，系统性阐述 WebSocket 服务器的创建与配置、连接管理、消息路由与状态维护；深入解析 WebSocketManager 的设计与实现（连接池管理、消息广播、客户端状态跟踪）；说明 WebSocket 与 Gateway 的集成机制（消息适配与双向通信）；覆盖连接建立、心跳检测、断线重连与错误恢复；提供 API 使用示例与最佳实践，并讨论性能优化与连接数限制。
+本文件面向 史丽慧小助理 的 WebSocket 集成功能，系统性阐述 WebSocket 服务器的创建与配置、连接管理、消息路由与状态维护；深入解析 WebSocketManager 的设计与实现（连接池管理、消息广播、客户端状态跟踪）；说明 WebSocket 与 Gateway 的集成机制（消息适配与双向通信）；覆盖连接建立、心跳检测、断线重连与错误恢复；提供 API 使用示例与最佳实践，并讨论性能优化与连接数限制。
 
 ## 项目结构
-DeepBot 的 WebSocket 集成位于服务端模块，核心文件如下：
+史丽慧小助理 的 WebSocket 集成位于服务端模块，核心文件如下：
 - 服务器入口与启动：src/server/index.ts
 - WebSocket 管理器：src/server/websocket-manager.ts
 - Gateway 适配器：src/server/gateway-adapter.ts
@@ -362,7 +362,7 @@ RI["事件分发(index.ts)"] --> WS
 - [src/main/gateway-message.ts:246-283](file://src/main/gateway-message.ts#L246-L283)
 
 ## 结论
-DeepBot 的 WebSocket 集成通过清晰的分层设计实现了稳定的连接管理、消息路由与状态维护。WebSocketManager 作为桥梁，将 Gateway 的内部事件以统一协议广播至客户端；GatewayAdapter 在 Web 模式下提供虚拟窗口与事件适配；消息与连接器处理器保障了队列、流式输出与错误恢复。配合心跳、断线重连与超时配置，整体具备良好的可靠性与扩展性。
+史丽慧小助理 的 WebSocket 集成通过清晰的分层设计实现了稳定的连接管理、消息路由与状态维护。WebSocketManager 作为桥梁，将 Gateway 的内部事件以统一协议广播至客户端；GatewayAdapter 在 Web 模式下提供虚拟窗口与事件适配；消息与连接器处理器保障了队列、流式输出与错误恢复。配合心跳、断线重连与超时配置，整体具备良好的可靠性与扩展性。
 
 ## 附录
 

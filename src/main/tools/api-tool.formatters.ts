@@ -387,7 +387,7 @@ export function formatApprovePairingResult(
     `  • 配对码: ${pairingCode}\n` +
     `  • 连接器: ${connectorName}\n` +
     `  • 用户 ID: ${record.userId}\n\n` +
-    `⚠️ 注意：用户现在可以通过该连接器与 DeepBot 进行私聊`;
+    `⚠️ 注意：用户现在可以通过该连接器与 史丽慧小助理 进行私聊`;
 }
 
 /**

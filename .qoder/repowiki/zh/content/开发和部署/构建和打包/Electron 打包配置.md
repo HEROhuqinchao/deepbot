@@ -23,10 +23,10 @@
 10. [附录](#附录)
 
 ## 简介
-本文件面向 DeepBot Electron 应用的打包与分发，系统性解析 package.json 中的 build 字段配置、跨平台打包策略（macOS、Windows、Linux）、文件过滤规则、签名与公证、沙箱权限、asar 压缩、图标与安装器定制，以及构建脚本与自定义打包流程。同时提供各平台打包命令与参数说明，帮助开发者在不同环境下稳定产出可分发的应用包。
+本文件面向 史丽慧小助理 Electron 应用的打包与分发，系统性解析 package.json 中的 build 字段配置、跨平台打包策略（macOS、Windows、Linux）、文件过滤规则、签名与公证、沙箱权限、asar 压缩、图标与安装器定制，以及构建脚本与自定义打包流程。同时提供各平台打包命令与参数说明，帮助开发者在不同环境下稳定产出可分发的应用包。
 
 ## 项目结构
-DeepBot 的打包相关配置集中在 package.json 的 build 字段中，并通过一系列脚本实现跨平台构建、签名与公证流程。关键目录与文件如下：
+史丽慧小助理 的打包相关配置集中在 package.json 的 build 字段中，并通过一系列脚本实现跨平台构建、签名与公证流程。关键目录与文件如下：
 - 构建产物输出：release 目录（由 build.directories.output 指定）
 - 打包钩子：scripts/after-pack.js、scripts/after-sign.js
 - 环境变量加载与平台选择：scripts/load-env-build.js
@@ -366,7 +366,7 @@ R["src/main/browser/agent-browser-wrapper.ts"] --> P
 - [package.json:211-232](file://package.json#L211-L232)
 
 ## 结论
-DeepBot 的打包配置以 electron-builder 为核心，结合自定义钩子与环境变量加载脚本，实现了跨平台、可定制且可审计的分发流程。macOS 强化了签名与公证，Windows 提供丰富的安装器定制能力，文件过滤规则有效控制产物体积。通过 dist:mac:local 等命令，可在本地快速验证与调试。建议在 CI 环境中统一管理 .env，确保公证与签名流程稳定可靠。
+史丽慧小助理 的打包配置以 electron-builder 为核心，结合自定义钩子与环境变量加载脚本，实现了跨平台、可定制且可审计的分发流程。macOS 强化了签名与公证，Windows 提供丰富的安装器定制能力，文件过滤规则有效控制产物体积。通过 dist:mac:local 等命令，可在本地快速验证与调试。建议在 CI 环境中统一管理 .env，确保公证与签名流程稳定可靠。
 
 [本节为总结性内容，无需特定文件引用]
 

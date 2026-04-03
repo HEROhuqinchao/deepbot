@@ -11,7 +11,7 @@ import { showToast } from '../../utils/toast';
 import { ApiKeyHelpModal } from './ApiKeyHelpModal';
 
 interface WebSearchToolConfig {
-  provider: 'deepbot' | 'qwen' | 'gemini';
+  provider: 'slhbot' | 'qwen' | 'gemini';
   model: string;
   apiUrl: string;
   apiKey: string;
@@ -49,7 +49,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
     }
   };
 
-  const handleProviderChange = (newProvider: 'deepbot' | 'qwen' | 'gemini') => {
+  const handleProviderChange = (newProvider: 'slhbot' | 'qwen' | 'gemini') => {
     const preset = WEB_SEARCH_PROVIDER_PRESETS[newProvider];
     setConfig({
       ...config,
@@ -94,10 +94,10 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
         <label className="block text-sm font-medium text-gray-700 mb-2">提供商</label>
         <select
           value={config.provider}
-          onChange={(e) => handleProviderChange(e.target.value as 'deepbot' | 'qwen' | 'gemini')}
+          onChange={(e) => handleProviderChange(e.target.value as 'slhbot' | 'qwen' | 'gemini')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="deepbot">DeepBot（Gemini 3）</option>
+          <option value="slhbot">史丽慧小助理（Gemini 3）</option>
           <option value="qwen">Qwen</option>
         </select>
       </div>
@@ -115,7 +115,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="mt-1 text-xs text-gray-500">
-          {config.provider === 'deepbot' && '无需魔法，直连 Gemini 3'}
+          {config.provider === 'slhbot' && '无需魔法，直连 Gemini 3'}
           {config.provider === 'qwen' && '预设提供商的 API 地址（可修改）'}
           {config.provider === 'gemini' && '预设提供商的 API 地址（可修改）'}
         </p>
@@ -130,13 +130,13 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           type="text"
           value={config.model}
           onChange={(e) => setConfig({ ...config, model: e.target.value })}
-          disabled={config.provider === 'deepbot'}
+          disabled={config.provider === 'slhbot'}
           placeholder={config.provider === 'qwen' ? 'qwen3.5-plus' : 'gemini-3-flash-preview'}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
         />
         <p className="mt-1 text-xs text-gray-500">
           {config.provider === 'qwen' && '默认: qwen3.5-plus（可选: qwen-plus, qwen-turbo, qwen-max 等）'}
-          {(config.provider === 'gemini' || config.provider === 'deepbot') && '默认: gemini-3-flash-preview'}
+          {(config.provider === 'gemini' || config.provider === 'slhbot') && '默认: gemini-3-flash-preview'}
         </p>
       </div>
 
@@ -159,7 +159,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="mt-1 text-xs text-gray-500">
-          {config.provider === 'deepbot' && '使用工具专用的 DeepBot Token'}
+          {config.provider === 'slhbot' && '使用工具专用的 史丽慧小助理 Token'}
           {config.provider === 'qwen' && 'Qwen API Key（可以与主模型使用相同的 Key）'}
           {config.provider === 'gemini' && 'Google Gemini API Key'}
         </p>

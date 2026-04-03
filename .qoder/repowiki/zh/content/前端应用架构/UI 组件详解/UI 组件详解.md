@@ -33,10 +33,10 @@
 10. [附录](#附录)
 
 ## 简介
-本文件面向 DeepBot 的 UI 组件系统，围绕聊天窗口、消息气泡、消息输入等核心组件进行深入解析。内容覆盖组件属性接口、事件处理与状态管理、组件间通信机制、数据传递方式、定制与扩展指南、响应式设计与样式系统、可访问性与用户体验优化等方面，帮助开发者快速理解并高效扩展 UI 能力。
+本文件面向 史丽慧小助理 的 UI 组件系统，围绕聊天窗口、消息气泡、消息输入等核心组件进行深入解析。内容覆盖组件属性接口、事件处理与状态管理、组件间通信机制、数据传递方式、定制与扩展指南、响应式设计与样式系统、可访问性与用户体验优化等方面，帮助开发者快速理解并高效扩展 UI 能力。
 
 ## 项目结构
-DeepBot 的渲染端采用 React + TypeScript 构建，UI 组件集中在 src/renderer/components 目录，样式位于 src/renderer/styles，主题与平台能力通过 hooks 与工具模块提供，类型定义位于 src/types，常量位于 src/shared。
+史丽慧小助理 的渲染端采用 React + TypeScript 构建，UI 组件集中在 src/renderer/components 目录，样式位于 src/renderer/styles，主题与平台能力通过 hooks 与工具模块提供，类型定义位于 src/types，常量位于 src/shared。
 
 ```mermaid
 graph TB
@@ -435,7 +435,7 @@ FileUploader --> API : "调用"
 - [FileUploader.tsx](file://src/renderer/components/FileUploader.tsx)
 
 ## 结论
-DeepBot UI 组件系统以 ChatWindow 为核心，结合 MessageBubble、MessageInput 与上传组件，形成完整的聊天交互闭环；通过统一 API 适配器实现跨环境一致性；借助样式系统与主题钩子提供一致的终端风格与良好可访问性。组件间通过 props 与事件实现松耦合通信，配合批量更新与分页加载等优化策略，兼顾性能与用户体验。
+史丽慧小助理 UI 组件系统以 ChatWindow 为核心，结合 MessageBubble、MessageInput 与上传组件，形成完整的聊天交互闭环；通过统一 API 适配器实现跨环境一致性；借助样式系统与主题钩子提供一致的终端风格与良好可访问性。组件间通过 props 与事件实现松耦合通信，配合批量更新与分页加载等优化策略，兼顾性能与用户体验。
 
 [本节为总结性内容，无需列出具体文件来源]
 

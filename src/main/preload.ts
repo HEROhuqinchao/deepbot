@@ -72,7 +72,7 @@ const IPC_CHANNELS = {
 /**
  * 暴露给渲染进程的 API
  */
-contextBridge.exposeInMainWorld('deepbot', {
+contextBridge.exposeInMainWorld('slhbot', {
   // 发送消息
   sendMessage: (content: string, sessionId?: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SEND_MESSAGE, { content, sessionId });

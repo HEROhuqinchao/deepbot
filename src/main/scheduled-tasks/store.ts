@@ -26,15 +26,15 @@ export class TaskStore {
 
   private constructor(dbPath?: string) {
     // Docker 模式：使用 DB_DIR 环境变量，fallback 到 /data/db
-    // 普通模式：默认 ~/.deepbot/scheduled-tasks.db
+    // 普通模式：默认 ~/.slhbot/scheduled-tasks.db
     const dbDir = getDbDir();
     const defaultPath = isDockerMode()
       ? join(dbDir, 'scheduled-tasks.db')
-      : join(homedir(), '.deepbot', 'scheduled-tasks.db');
+      : join(homedir(), '.slhbot', 'scheduled-tasks.db');
     const path = dbPath || defaultPath;
 
     // 确保目录存在
-    const dir = isDockerMode() ? dbDir : join(homedir(), '.deepbot');
+    const dir = isDockerMode() ? dbDir : join(homedir(), '.slhbot');
     ensureDirectoryExists(dir);
 
     // 🔥 检查并清理孤立的 WAL 锁文件

@@ -36,12 +36,12 @@ export function getDefaultWorkspaceSettings(): WorkspaceSettings {
 
   return {
     workspaceDir: homedir(), // 默认工作目录为用户主目录
-    scriptDir: join(homedir(), '.deepbot', 'scripts'),
+    scriptDir: join(homedir(), '.slhbot', 'scripts'),
     skillDirs: [join(homedir(), '.agents', 'skills')],
     defaultSkillDir: join(homedir(), '.agents', 'skills'),
-    imageDir: join(homedir(), '.deepbot', 'generated-images'),
-    memoryDir: join(homedir(), '.deepbot', 'memory'),
-    sessionDir: join(homedir(), '.deepbot', 'sessions'), // session 目录
+    imageDir: join(homedir(), '.slhbot', 'generated-images'),
+    memoryDir: join(homedir(), '.slhbot', 'memory'),
+    sessionDir: join(homedir(), '.slhbot', 'sessions'), // session 目录
   };
 }
 

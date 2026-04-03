@@ -6,18 +6,18 @@
 
 ```bash
 # 运行安装脚本
-bash ~/.deepbot/tools/email-tool/install.sh
+bash ~/.slhbot/tools/email-tool/install.sh
 
 # 或手动安装
-mkdir -p ~/.deepbot/tools/email-tool
-cd ~/.deepbot/tools/email-tool
+mkdir -p ~/.slhbot/tools/email-tool
+cd ~/.slhbot/tools/email-tool
 pnpm init -y
 pnpm add nodemailer
 ```
 
 ### 2. 配置邮箱
 
-创建配置文件 `~/.deepbot/tools/email-tool/config.json`：
+创建配置文件 `~/.slhbot/tools/email-tool/config.json`：
 
 ```json
 {
@@ -30,7 +30,7 @@ pnpm add nodemailer
 }
 ```
 
-### 3. 在 DeepBot 中使用
+### 3. 在 史丽慧小助理 中使用
 
 直接对 AI 说：
 
@@ -83,7 +83,7 @@ AI 会自动调用邮件工具发送邮件。
 **解决方法**：运行安装脚本或手动安装依赖
 
 ```bash
-cd ~/.deepbot/tools/email-tool
+cd ~/.slhbot/tools/email-tool
 pnpm add nodemailer
 ```
 
@@ -92,8 +92,8 @@ pnpm add nodemailer
 **解决方法**：创建配置文件
 
 ```bash
-cp ~/.deepbot/tools/email-tool/config.example.json ~/.deepbot/tools/email-tool/config.json
-vim ~/.deepbot/tools/email-tool/config.json
+cp ~/.slhbot/tools/email-tool/config.example.json ~/.slhbot/tools/email-tool/config.json
+vim ~/.slhbot/tools/email-tool/config.json
 ```
 
 ### Q3: QQ 邮箱认证失败
@@ -127,7 +127,7 @@ vim ~/.deepbot/tools/email-tool/config.json
 
 ```typescript
 // 运行时动态加载 nodemailer
-const nodemailer = require('~/.deepbot/tools/email-tool/node_modules/nodemailer');
+const nodemailer = require('~/.slhbot/tools/email-tool/node_modules/nodemailer');
 ```
 
 这样 nodemailer 不会被打包到 Electron 应用中，只在需要时加载。
@@ -142,5 +142,5 @@ const nodemailer = require('~/.deepbot/tools/email-tool/node_modules/nodemailer'
 
 ```bash
 # 设置配置文件权限
-chmod 600 ~/.deepbot/tools/email-tool/config.json
+chmod 600 ~/.slhbot/tools/email-tool/config.json
 ```

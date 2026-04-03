@@ -4,7 +4,7 @@
 
 set -e
 
-TOOL_DIR="$HOME/.deepbot/tools/email-tool"
+TOOL_DIR="$HOME/.slhbot/tools/email-tool"
 
 echo "📧 安装邮件工具依赖..."
 echo ""
@@ -51,5 +51,5 @@ echo ""
 echo "下一步："
 echo "  1. 复制配置示例: cp config.example.json config.json"
 echo "  2. 编辑配置文件: vim config.json"
-echo "  3. 在 DeepBot 中使用邮件工具"
+echo "  3. 在 史丽慧小助理 中使用邮件工具"
 echo ""

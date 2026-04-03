@@ -17,8 +17,8 @@ class Logger {
   private level: LogLevel = LogLevel.INFO;
   private module: string;
   private enableFileLogging: boolean = false; // 默认不启用文件日志
-  private static logDir: string = expandUserPath('~/.deepbot/logs');
-  private static logFile: string = join(Logger.logDir, 'deepbot.log');
+  private static logDir: string = expandUserPath('~/.slhbot/logs');
+  private static logFile: string = join(Logger.logDir, 'slhbot.log');
   private static initialized: boolean = false;
 
   constructor(module: string, enableFileLogging: boolean = false) {
@@ -39,7 +39,7 @@ class Logger {
       }
       
       // 在应用启动时写入分隔符
-      const startupMessage = `\n=== DeepBot 启动 ${new Date().toISOString()} ===\n`;
+      const startupMessage = `\n=== 史丽慧小助理 启动 ${new Date().toISOString()} ===\n`;
       appendFileSync(Logger.logFile, startupMessage);
       
       Logger.initialized = true;

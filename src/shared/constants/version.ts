@@ -8,12 +8,12 @@ export const APP_VERSION = '0.4.0';
 /**
  * 应用名称
  */
-export const APP_NAME = 'DeepBot';
+export const APP_NAME = '史丽慧小助理';
 
 /**
  * 应用描述
  */
-export const APP_DESCRIPTION = 'DeepBot - 系统级 AI 助手，专注企业生产提效';
+export const APP_DESCRIPTION = '史丽慧小助理 - 系统级 AI 助手，专注企业生产提效';
 
 /**
  * 最大 Tab 数量限制

@@ -9,8 +9,8 @@
  * 提供商预设配置
  */
 export const PROVIDER_PRESETS = {
-  deepbot: {
-    name: 'DeepBot',
+  slhbot: {
+    name: '史丽慧小助理',
     baseUrl: 'https://www.im-director.com/api/llm-v1',
     defaultModelId: 'minimax-m2.5',
     defaultModelId2: 'minimax-m2.5',  // 快速模型
@@ -59,8 +59,8 @@ export const PROVIDER_PRESETS = {
  * 图片生成提供商预设配置
  */
 export const IMAGE_GENERATION_PROVIDER_PRESETS = {
-  deepbot: {
-    name: 'DeepBot（Nano banana 2）',
+  slhbot: {
+    name: '史丽慧小助理（Nano banana 2）',
     baseUrl: 'https://www.im-director.com/api/gemini-v1',
     defaultModelId: 'gemini-3.1-flash-image-preview',
   },
@@ -80,8 +80,8 @@ export const IMAGE_GENERATION_PROVIDER_PRESETS = {
  * Web 搜索提供商预设配置
  */
 export const WEB_SEARCH_PROVIDER_PRESETS = {
-  deepbot: {
-    name: 'DeepBot',
+  slhbot: {
+    name: '史丽慧小助理',
     baseUrl: 'https://www.im-director.com/api/gemini-v1',
     defaultModelId: 'gemini-3-flash-preview',
   },

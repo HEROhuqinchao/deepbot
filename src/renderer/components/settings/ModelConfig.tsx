@@ -11,7 +11,7 @@ import { showToast } from '../../utils/toast';
 import { ApiKeyHelpModal } from './ApiKeyHelpModal';
 
 interface ModelConfig {
-  providerType: 'deepbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom';
+  providerType: 'slhbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom';
   providerId: string;
   providerName: string;
   baseUrl: string;
@@ -45,7 +45,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
   const [isFirstTimeConfig, setIsFirstTimeConfig] = useState(false);
   const [isFromEnv, setIsFromEnv] = useState(false); // 当前配置是否来自环境变量
   const [showApiKeyHelp, setShowApiKeyHelp] = useState(false); // 显示 API Key 帮助模态框
-  const [showModelDropdown, setShowModelDropdown] = useState(false); // DeepBot 模型下拉菜单
+  const [showModelDropdown, setShowModelDropdown] = useState(false); // 史丽慧小助理 模型下拉菜单
 
   // 加载当前配置（防止 Strict Mode 重复执行）
   useEffect(() => {
@@ -84,7 +84,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
   };
 
   // 处理提供商类型变化
-  const handleProviderTypeChange = (providerType: 'deepbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom') => {
+  const handleProviderTypeChange = (providerType: 'slhbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom') => {
     const preset = PROVIDER_PRESETS[providerType];
     
     setConfig({
@@ -185,7 +185,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
                 模型未配置
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
-                <p>请配置 API 地址和密钥后才能使用 DeepBot。</p>
+                <p>请配置 API 地址和密钥后才能使用 史丽慧小助理。</p>
               </div>
             </div>
           </div>
@@ -206,10 +206,10 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
         </label>
         <select
           value={config.providerType}
-          onChange={(e) => handleProviderTypeChange(e.target.value as 'deepbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom')}
+          onChange={(e) => handleProviderTypeChange(e.target.value as 'slhbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="deepbot">DeepBot（推荐）</option>
+          <option value="slhbot">史丽慧小助理（推荐）</option>
           <option value="qwen">Qwen</option>
           <option value="deepseek">DeepSeek</option>
           <option value="gemini">Google Gemini</option>
@@ -265,7 +265,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           模型 ID（主模型） <span className="text-red-500">*</span>
         </label>
-        {config.providerType === 'deepbot' ? (
+        {config.providerType === 'slhbot' ? (
           <div style={{ position: 'relative' }}>
             <input
               type="text"
@@ -327,7 +327,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
           />
         )}
         <p className="mt-1 text-xs text-gray-500">
-          {config.providerType === 'deepbot' && '从列表选择或输入自定义模型 ID'}
+          {config.providerType === 'slhbot' && '从列表选择或输入自定义模型 ID'}
           {config.providerType === 'qwen' && '推荐: qwen-max（高质量）或 qwen-plus（平衡）'}
           {config.providerType === 'deepseek' && '推荐: deepseek-chat'}
           {config.providerType === 'gemini' && '推荐: gemini-3-pro-preview（高质量）或 gemini-3-flash-preview（快速）'}

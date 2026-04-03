@@ -160,7 +160,7 @@ export class DingTalkConnector implements Connector {
   private getTempUploadDir(): string {
     const store = SystemConfigStore.getInstance();
     const settings = store.getWorkspaceSettings();
-    const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+    const tempDir = path.join(settings.workspaceDir, '.slhbot', 'temp', 'uploads');
     ensureDirectoryExists(tempDir);
     return tempDir;
   }
@@ -285,14 +285,14 @@ export class DingTalkConnector implements Connector {
           const store = SystemConfigStore.getInstance();
           const record = store.getPairingRecordByUser('dingtalk', dingtalkMessage.sender.id);
           if (record?.approved) {
-            dingtalkMessage.systemContext = `[系统通知] 这是第一次有用户连接到 DeepBot。该用户已被自动设置为管理员。`;
+            dingtalkMessage.systemContext = `[系统通知] 这是第一次有用户连接到 史丽慧小助理。该用户已被自动设置为管理员。`;
             await this.connectorManager.handleIncomingMessage('dingtalk', dingtalkMessage);
             return;
           }
           
           await this.outbound.sendMessage({
             conversationId: dingtalkMessage.conversation.id,
-            content: `请使用配对码进行授权：${code}\n\n管理员可以使用以下命令批准：\ndeepbot pairing approve dingtalk ${code}`,
+            content: `请使用配对码进行授权：${code}\n\n管理员可以使用以下命令批准：\nslhbot pairing approve dingtalk ${code}`,
           });
         }
         return;
@@ -483,7 +483,7 @@ export class DingTalkConnector implements Connector {
   onPairingApproved(userId: string): void {
     this.outbound.sendMessage({
       conversationId: userId,
-      content: '✅ 授权完成，你可以开始和 DeepBot 对话了。\n\n发送「你能做什么」获取使用帮助。',
+      content: '✅ 授权完成，你可以开始和 史丽慧小助理 对话了。\n\n发送「你能做什么」获取使用帮助。',
     }).catch(() => {});
   }
   

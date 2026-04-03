@@ -224,7 +224,7 @@ ReturnErr --> Done
 ### 权限控制与安全检查
 - 路径白名单：仅允许访问工作目录、脚本目录、Skill 目录、图片目录、记忆目录、会话目录及其子目录
 - Docker 模式：跳过路径检查（容器内目录固定）
-- 临时文件删除：严格限定在工作目录下的 .deepbot/temp/uploads 内
+- 临时文件删除：严格限定在工作目录下的 .slhbot/temp/uploads 内
 - 图片读取：统一使用路径安全检查，防止越权访问
 
 章节来源
@@ -232,7 +232,7 @@ ReturnErr --> Done
 - [src/server/gateway-adapter.ts:645-720](file://src/server/gateway-adapter.ts#L645-L720)
 
 ### 存储策略
-- 临时目录：工作目录/.deepbot/temp/uploads，按需创建
+- 临时目录：工作目录/.slhbot/temp/uploads，按需创建
 - 文件命名：随机 ID + 原扩展名，避免冲突
 - 图片读取：将二进制内容转换为 Data URL 返回，便于前端直接渲染
 

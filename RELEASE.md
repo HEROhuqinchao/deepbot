@@ -1,4 +1,4 @@
-# DeepBot 发布指南
+# 史丽慧小助理 发布指南
 
 ## 📦 打包发布流程
 
@@ -26,10 +26,10 @@ pnpm run pack
 pnpm run dist:mac
 
 # 输出文件：
-# - release/DeepBot Matrix Terminal-0.1.0-arm64.dmg  (Apple Silicon)
-# - release/DeepBot Matrix Terminal-0.1.0-x64.dmg    (Intel)
-# - release/DeepBot Matrix Terminal-0.1.0-arm64-mac.zip
-# - release/DeepBot Matrix Terminal-0.1.0-mac.zip
+# - release/史丽慧小助理 Matrix Terminal-0.1.0-arm64.dmg  (Apple Silicon)
+# - release/史丽慧小助理 Matrix Terminal-0.1.0-x64.dmg    (Intel)
+# - release/史丽慧小助理 Matrix Terminal-0.1.0-arm64-mac.zip
+# - release/史丽慧小助理 Matrix Terminal-0.1.0-mac.zip
 ```
 
 **Windows**：
@@ -38,8 +38,8 @@ pnpm run dist:mac
 pnpm run dist:win
 
 # 输出文件：
-# - release/DeepBot Matrix Terminal Setup 0.1.0.exe  (安装包)
-# - release/DeepBot Matrix Terminal 0.1.0.exe        (便携版)
+# - release/史丽慧小助理 Matrix Terminal Setup 0.1.0.exe  (安装包)
+# - release/史丽慧小助理 Matrix Terminal 0.1.0.exe        (便携版)
 ```
 
 **Linux**：
@@ -48,8 +48,8 @@ pnpm run dist:win
 pnpm run dist:linux
 
 # 输出文件：
-# - release/DeepBot Matrix Terminal-0.1.0.AppImage
-# - release/deepbot-matrix-terminal_0.1.0_amd64.deb
+# - release/史丽慧小助理 Matrix Terminal-0.1.0.AppImage
+# - release/slhbot-matrix-terminal_0.1.0_amd64.deb
 ```
 
 **全平台**：
@@ -67,7 +67,7 @@ pnpm run dist
 **安装步骤**：
 1. 下载 `.dmg` 文件
 2. 双击打开
-3. 拖拽 DeepBot 到 Applications 文件夹
+3. 拖拽 史丽慧小助理 到 Applications 文件夹
 4. 首次运行需要在"系统偏好设置 > 安全性与隐私"中允许
 
 #### Windows
@@ -86,13 +86,13 @@ pnpm run dist
 
 **安装步骤（AppImage）**：
 ```bash
-chmod +x DeepBot-Matrix-Terminal-0.1.0.AppImage
-./DeepBot-Matrix-Terminal-0.1.0.AppImage
+chmod +x 史丽慧小助理-Matrix-Terminal-0.1.0.AppImage
+./史丽慧小助理-Matrix-Terminal-0.1.0.AppImage
 ```
 
 **安装步骤（deb）**：
 ```bash
-sudo dpkg -i deepbot-matrix-terminal_0.1.0_amd64.deb
+sudo dpkg -i slhbot-matrix-terminal_0.1.0_amd64.deb
 ```
 
 ### 4. 代码签名（可选，推荐）
@@ -172,7 +172,7 @@ pnpm add electron-updater
     "publish": {
       "provider": "github",
       "owner": "your-username",
-      "repo": "deepbot"
+      "repo": "slhbot"
     }
   }
 }

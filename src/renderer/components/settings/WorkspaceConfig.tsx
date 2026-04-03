@@ -351,7 +351,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">工作目录配置</h3>
         <p className="text-sm text-gray-500">
-          配置 DeepBot 的工作目录，所有文件操作将限制在工作目录及其子目录内
+          配置 史丽慧小助理 的工作目录，所有文件操作将限制在工作目录及其子目录内
         </p>
       </div>
 
@@ -444,7 +444,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             onChange={(e) => { setSettings({ ...settings, scriptDir: e.target.value }); markDirty('scriptDir'); }}
             disabled={isDocker}
             className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            placeholder="~/.deepbot/scripts"
+            placeholder="~/.slhbot/scripts"
           />
           {isElectron() && !isDocker && (
             <button onClick={() => handleBrowse('scriptDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">浏览</button>
@@ -455,7 +455,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           )}
         </div>
         <p className="text-xs text-gray-400">
-          默认：{defaultSettings.scriptDir || '~/.deepbot/scripts'}
+          默认：{defaultSettings.scriptDir || '~/.slhbot/scripts'}
         </p>
       </div>
 
@@ -474,7 +474,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             onChange={(e) => { setSettings({ ...settings, imageDir: e.target.value }); markDirty('imageDir'); }}
             disabled={isDocker}
             className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            placeholder="~/.deepbot/generated-images"
+            placeholder="~/.slhbot/generated-images"
           />
           {isElectron() && !isDocker && (
             <button onClick={() => handleBrowse('imageDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">浏览</button>
@@ -485,7 +485,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           )}
         </div>
         <p className="text-xs text-gray-400">
-          默认：{defaultSettings.imageDir || '~/.deepbot/generated-images'}
+          默认：{defaultSettings.imageDir || '~/.slhbot/generated-images'}
         </p>
       </div>
 
@@ -504,7 +504,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             onChange={(e) => { setSettings({ ...settings, memoryDir: e.target.value }); markDirty('memoryDir'); }}
             disabled={isDocker}
             className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            placeholder="~/.deepbot/memory"
+            placeholder="~/.slhbot/memory"
           />
           {isElectron() && !isDocker && (
             <button onClick={() => handleBrowse('memoryDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">浏览</button>
@@ -515,7 +515,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           )}
         </div>
         <p className="text-xs text-gray-400">
-          默认：{defaultSettings.memoryDir || '~/.deepbot/memory'}
+          默认：{defaultSettings.memoryDir || '~/.slhbot/memory'}
         </p>
       </div>
 
@@ -534,7 +534,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             onChange={(e) => { setSettings({ ...settings, sessionDir: e.target.value }); markDirty('sessionDir'); }}
             disabled={isDocker}
             className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            placeholder="~/.deepbot/sessions"
+            placeholder="~/.slhbot/sessions"
           />
           {isElectron() && !isDocker && (
             <button onClick={() => handleBrowse('sessionDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">浏览</button>
@@ -545,7 +545,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           )}
         </div>
         <p className="text-xs text-gray-400">
-          默认：{defaultSettings.sessionDir || '~/.deepbot/sessions'}
+          默认：{defaultSettings.sessionDir || '~/.slhbot/sessions'}
         </p>
       </div>
 

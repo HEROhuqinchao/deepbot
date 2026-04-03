@@ -30,7 +30,7 @@
 10. [附录](#附录)
 
 ## 简介
-本指南围绕 DeepBot 的 Vite 构建配置展开，系统性讲解以下主题：
+本指南围绕 史丽慧小助理 的 Vite 构建配置展开，系统性讲解以下主题：
 - 插件配置与入口切换机制
 - 路径别名与基础路径（base）策略
 - 开发服务器端口与热重载行为
@@ -303,7 +303,7 @@ EntryIdx --> Styles
 - [scripts/load-env-build.js:1-39](file://scripts/load-env-build.js#L1-L39)
 
 ## 结论
-本指南梳理了 DeepBot 的 Vite 构建配置，重点在于：
+本指南梳理了 史丽慧小助理 的 Vite 构建配置，重点在于：
 - 通过模式驱动实现 Web 与 Electron 的差异化构建
 - 利用插件与别名提升开发效率与部署灵活性
 - 依托 PostCSS 与 Tailwind 实现高效样式工程化

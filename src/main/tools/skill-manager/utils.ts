@@ -11,11 +11,11 @@ import { isFile, safeReadFile, isDirectory } from '../../../shared/utils/fs-util
  * 从仓库名称提取 Skill 名称
  * 
  * 例如：
- * - deepbot-skill-pdf-editor → pdf-editor
+ * - slhbot-skill-pdf-editor → pdf-editor
  * - pdf-editor → pdf-editor
  */
 export function extractSkillName(repoName: string): string {
-  const prefix = 'deepbot-skill-';
+  const prefix = 'slhbot-skill-';
   if (repoName.startsWith(prefix)) {
     return repoName.slice(prefix.length);
   }

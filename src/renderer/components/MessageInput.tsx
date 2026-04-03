@@ -27,7 +27,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   onStop,
   disabled = false,
   isGenerating = false,
-  userName = 'user',
+  userName = '史丽慧',
   disableStop = false,
   isConnectorTab = false,
 }, ref) => {
@@ -369,7 +369,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
 
       <div className="terminal-input-wrapper">
         {/* 提示符 */}
-        <div className="terminal-input-prompt">{userName}@deepbot:~$</div>
+        <div className="terminal-input-prompt">{userName}@slhbot:~$</div>
 
         {/* 输入框容器（包含图片预览、文本框和上传按钮） */}
         <div className="terminal-input-with-upload">

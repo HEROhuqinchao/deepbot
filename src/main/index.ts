@@ -1,5 +1,5 @@
 /**
- * DeepBot 主进程入口
+ * 史丽慧小助理 主进程入口
  * 
  * 职责：
  * - 创建 Electron 窗口
@@ -67,7 +67,7 @@ function createTray() {
   tray = new Tray(icon);
   
   // 🔥 设置托盘提示文字
-  tray.setToolTip('DeepBot Terminal');
+  tray.setToolTip('史丽慧小助理');
   
   // 🔥 创建托盘菜单
   const contextMenu = Menu.buildFromTemplate([
@@ -133,7 +133,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'DeepBot Terminal', // 🔥 设置窗口标题
+    title: '史丽慧小助理', // 🔥 设置窗口标题
     icon: windowIconPath, // 🔥 设置窗口图标
     backgroundColor: '#0a0e1a', // 🔥 设置背景色（深蓝黑色）
     titleBarStyle: 'hiddenInset', // 🔥 macOS 隐藏标题栏（保留交通灯按钮）
@@ -667,7 +667,7 @@ function registerIpcHandlers() {
       const settings = store.getWorkspaceSettings();
       
       // 创建临时目录（在工作目录下）
-      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+      const tempDir = path.join(settings.workspaceDir, '.slhbot', 'temp', 'uploads');
       ensureDirectoryExists(tempDir);
       
       // 生成唯一文件名
@@ -727,7 +727,7 @@ function registerIpcHandlers() {
       const settings = store.getWorkspaceSettings();
       
       // 创建临时目录（在工作目录下）
-      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+      const tempDir = path.join(settings.workspaceDir, '.slhbot', 'temp', 'uploads');
       ensureDirectoryExists(tempDir);
       
       // 生成唯一文件名
@@ -781,7 +781,7 @@ function registerIpcHandlers() {
       const settings = store.getWorkspaceSettings();
       
       // 验证文件路径在临时目录内
-      const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+      const tempDir = path.join(settings.workspaceDir, '.slhbot', 'temp', 'uploads');
       const normalizedPath = path.normalize(filePath);
       const normalizedTempDir = path.normalize(tempDir);
       
@@ -933,15 +933,15 @@ function registerIpcHandlers() {
       
       if (platform === 'darwin') {
         // macOS: 直接调用 Chrome 可执行文件，前台运行
-        const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+        const userDataDir = expandUserPath('~/.slhbot/browser-profile');
         const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
         command = `"${chromePath}" --remote-debugging-port=${port} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
       } else if (platform === 'win32') {
         // Windows
-        command = `start chrome --remote-debugging-port=${port} --user-data-dir=%USERPROFILE%\\.deepbot\\browser-profile --no-first-run --no-default-browser-check`;
+        command = `start chrome --remote-debugging-port=${port} --user-data-dir=%USERPROFILE%\\.slhbot\\browser-profile --no-first-run --no-default-browser-check`;
       } else {
         // Linux
-        const userDataDir = expandUserPath('~/.deepbot/browser-profile');
+        const userDataDir = expandUserPath('~/.slhbot/browser-profile');
         command = `google-chrome --remote-debugging-port=${port} --user-data-dir="${userDataDir}" --no-first-run --no-default-browser-check`;
       }
       
@@ -1308,7 +1308,7 @@ app.on('window-all-closed', () => {
  * 应用退出前清理
  */
 app.on('before-quit', async () => {
-  console.log('DeepBot 正在退出...');
+  console.log('史丽慧小助理 正在退出...');
   
   // 🔥 设置退出标志
   isQuitting = true;

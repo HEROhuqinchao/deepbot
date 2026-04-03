@@ -1,10 +1,10 @@
-# DeepBot 工具使用指南
+# 史丽慧小助理 工具使用指南
 
 ## 🔧 环境配置建议
 
 ### 推荐开发环境
 
-为了充分发挥 DeepBot 的能力，建议配置以下开发环境：
+为了充分发挥 史丽慧小助理 的能力，建议配置以下开发环境：
 
 #### 1. Python 环境
 
@@ -131,7 +131,7 @@ sudo apt-get install -y nodejs
 ``
 #### 3. 环境检查
 
-安装完成后，在 DeepBot 中执行环境检查：
+安装完成后，在 史丽慧小助理 中执行环境检查：
 1. 打开「系统配置」→「环境配置」
 2. 点击「检查环境」按钮
 3. 确认 Python 已正确安装
@@ -177,7 +177,7 @@ sudo apt-get install -y nodejs
 需要手动启动 Chrome 并开启远程调试：
 ```bash
 # macOS
-"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="~/.deepbot/browser-profile"
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="~/.slhbot/browser-profile"
 
 # Windows
 chrome.exe --remote-debugging-port=9222
@@ -427,7 +427,7 @@ google-chrome --remote-debugging-port=9222
 - `0 0 1 * *` - 每月 1 号 0:00
 
 ### 数据库路径
-`~/.deepbot/scheduled-tasks.db`（系统配置文件，不受工作目录限制）
+`~/.slhbot/scheduled-tasks.db`（系统配置文件，不受工作目录限制）
 
 ---
 
@@ -573,7 +573,7 @@ google-chrome --remote-debugging-port=9222
 // 用户说"解析这张图片"
 {
   "action": "analyze",
-  "imagePath": "~/.deepbot/temp/uploads/abc123.jpg"
+  "imagePath": "~/.slhbot/temp/uploads/abc123.jpg"
 }
 ```
 
@@ -583,7 +583,7 @@ google-chrome --remote-debugging-port=9222
 {
   "action": "generate",
   "prompt": "基于参考图的场景不变，去掉图上的人，重新再大厅中生成坐轮椅的人",
-  "referenceImages": ["~/.deepbot/temp/uploads/abc123.jpg"]
+  "referenceImages": ["~/.slhbot/temp/uploads/abc123.jpg"]
 }
 ```
 
@@ -594,8 +594,8 @@ google-chrome --remote-debugging-port=9222
   "action": "generate",
   "prompt": "基于参考图，去掉图1的所有人，保持场景，将图2的狗放到图1",
   "referenceImages": [
-    "~/.deepbot/temp/uploads/image1.jpg",
-    "~/.deepbot/temp/uploads/image2.png"
+    "~/.slhbot/temp/uploads/image1.jpg",
+    "~/.slhbot/temp/uploads/image2.png"
   ]
 }
 ```
@@ -633,7 +633,7 @@ google-chrome --remote-debugging-port=9222
 ```json
 {
   "prompt": "基于参考图的场景不变，去掉图上的人，重新再大厅中生成坐轮椅的人",
-  "referenceImages": ["~/.deepbot/temp/uploads/abc123.jpg"]
+  "referenceImages": ["~/.slhbot/temp/uploads/abc123.jpg"]
 }
 ```
 
@@ -969,7 +969,7 @@ cp ~/path/to/my\ file.txt ~/another/path/
 ```
 
 常见场景：
-- macOS 应用名（如 `"DeepBot Terminal.app"`）
+- macOS 应用名（如 `"史丽慧小助理 Terminal.app"`）
 - 用户下载的文件（如 `"report 2026.pdf"`）
 - 带版本号的路径（如 `"My Project v2"`）
 
@@ -1161,7 +1161,7 @@ cp ~/path/to/my\ file.txt ~/another/path/
 ```
 
 ### 权限要求
-需要在系统偏好设置中允许 DeepBot 控制 Calendar.app
+需要在系统偏好设置中允许 史丽慧小助理 控制 Calendar.app
 
 ---
 

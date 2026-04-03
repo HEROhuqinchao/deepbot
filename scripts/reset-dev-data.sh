@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# DeepBot 开发数据重置脚本
+# 史丽慧小助理 开发数据重置脚本
 # 用于模拟首次启动，删除所有配置和数据库
 
 set -e
 
-DEEPBOT_DIR="$HOME/.deepbot"
+DEEPBOT_DIR="$HOME/.slhbot"
 
-echo "🔄 重置 DeepBot 开发数据..."
+echo "🔄 重置 史丽慧小助理 开发数据..."
 echo ""
 
 # 检查目录是否存在
@@ -16,7 +16,7 @@ if [ ! -d "$DEEPBOT_DIR" ]; then
   exit 0
 fi
 
-echo "📂 DeepBot 数据目录: $DEEPBOT_DIR"
+echo "📂 史丽慧小助理 数据目录: $DEEPBOT_DIR"
 echo ""
 
 # 列出将要删除的文件
@@ -58,7 +58,7 @@ echo ""
 echo "✅ 重置完成！"
 echo ""
 echo "💡 提示："
-echo "  - 下次启动 DeepBot 将模拟首次使用"
+echo "  - 下次启动 史丽慧小助理 将模拟首次使用"
 echo "  - 需要重新配置大模型"
 echo "  - 所有定时任务和 Skill 配置将丢失"
 echo ""

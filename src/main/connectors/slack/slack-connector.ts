@@ -250,14 +250,14 @@ export class SlackConnector implements Connector {
         const store = SystemConfigStore.getInstance();
         const record = store.getPairingRecordByUser('slack', slackMessage.sender.id);
         if (record?.approved) {
-          slackMessage.systemContext = `[系统通知] 这是第一次有用户连接到 DeepBot。`;
+          slackMessage.systemContext = `[系统通知] 这是第一次有用户连接到 史丽慧小助理。`;
           await this.connectorManager.handleIncomingMessage('slack', slackMessage);
           return;
         }
         
         await this.outbound.sendMessage({
           conversationId: slackMessage.conversation.id,
-          content: `Please authorize with pairing code: ${code}\n\nAdmin can approve with: deepbot pairing approve slack ${code}`,
+          content: `Please authorize with pairing code: ${code}\n\nAdmin can approve with: slhbot pairing approve slack ${code}`,
         });
       }
       return;
@@ -497,7 +497,7 @@ export class SlackConnector implements Connector {
   onPairingApproved(userId: string): void {
     this.outbound.sendMessage({
       conversationId: userId,
-      content: '✅ Authorization complete! You can now chat with DeepBot.\n\nSend "help" to get started.',
+      content: '✅ Authorization complete! You can now chat with 史丽慧小助理.\n\nSend "help" to get started.',
     }).catch(() => {});
   }
   

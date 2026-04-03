@@ -162,7 +162,7 @@ export const feishuDocToolPlugin: ToolPlugin = {
     name: 'feishu_doc',
     version: '1.0.0',
     description: '操作飞书云文档：创建、读取、追加内容、更新块、删除块、获取所有块、插入丰富格式内容、插入嵌套块',
-    author: 'DeepBot',
+    author: '史丽慧小助理',
     category: 'network',
     tags: ['feishu', 'lark', 'doc', 'document'],
     requiresConfig: false,

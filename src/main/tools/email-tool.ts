@@ -4,8 +4,8 @@
  * 支持通过 SMTP 发送邮件，兼容所有主流邮件服务商
  * 
  * 配置文件位置：
- * - 用户级别: ~/.deepbot/tools/email-tool/config.json
- * - 项目级别: <workspace>/.deepbot/tools/email-tool/config.json
+ * - 用户级别: ~/.slhbot/tools/email-tool/config.json
+ * - 项目级别: <workspace>/.slhbot/tools/email-tool/config.json
  */
 
 import { Type } from '@sinclair/typebox';
@@ -76,8 +76,8 @@ interface EmailConfig {
 function loadEmailConfig(workspaceDir: string): EmailConfig {
   // 配置文件查找顺序：项目级别 > 用户级别
   const configPaths = [
-    join(workspaceDir, '.deepbot', 'tools', 'email-tool', 'config.json'),
-    join(homedir(), '.deepbot', 'tools', 'email-tool', 'config.json'),
+    join(workspaceDir, '.slhbot', 'tools', 'email-tool', 'config.json'),
+    join(homedir(), '.slhbot', 'tools', 'email-tool', 'config.json'),
   ];
   
   for (const configPath of configPaths) {
@@ -114,8 +114,8 @@ function loadEmailConfig(workspaceDir: string): EmailConfig {
   // 未找到配置文件
   throw new Error(
     '邮件工具未配置。请创建配置文件：\n' +
-    `  用户级别: ${join(homedir(), '.deepbot', 'tools', 'email-tool', 'config.json')}\n` +
-    `  项目级别: ${join(workspaceDir, '.deepbot', 'tools', 'email-tool', 'config.json')}\n\n` +
+    `  用户级别: ${join(homedir(), '.slhbot', 'tools', 'email-tool', 'config.json')}\n` +
+    `  项目级别: ${join(workspaceDir, '.slhbot', 'tools', 'email-tool', 'config.json')}\n\n` +
     '配置示例：\n' +
     '{\n' +
     '  "user": "your-email@example.com",\n' +
@@ -156,7 +156,7 @@ export const emailToolPlugin: ToolPlugin = {
     name: TOOL_NAMES.SEND_EMAIL,
     version: '1.0.0',
     description: '通过 SMTP 发送邮件。支持纯文本/HTML 邮件、附件、抄送、密送。兼容所有主流邮件服务商（QQ、Gmail、Outlook、163 等）',
-    author: 'DeepBot',
+    author: '史丽慧小助理',
     category: 'network',
     tags: ['email', 'smtp', 'communication'],
     requiresConfig: true,

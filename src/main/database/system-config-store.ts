@@ -40,15 +40,15 @@ export class SystemConfigStore {
 
   constructor(dbPath?: string) {
     // Docker 模式：优先读 DB_DIR 环境变量（本地调试用），fallback 到 /data/db（生产容器）
-    // 普通模式：默认 ~/.deepbot/system-config.db
+    // 普通模式：默认 ~/.slhbot/system-config.db
     const dbDir = getDbDir();
     const defaultPath = isDockerMode()
       ? join(dbDir, 'system-config.db')
-      : join(homedir(), '.deepbot', 'system-config.db');
+      : join(homedir(), '.slhbot', 'system-config.db');
     const path = dbPath || defaultPath;
 
     // 确保目录存在
-    const dir = isDockerMode() ? dbDir : join(homedir(), '.deepbot');
+    const dir = isDockerMode() ? dbDir : join(homedir(), '.slhbot');
     ensureDirectoryExists(dir);
 
     // 打开数据库
@@ -165,8 +165,8 @@ export class SystemConfigStore {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS name_config (
         id INTEGER PRIMARY KEY CHECK (id = 1),
-        agent_name TEXT NOT NULL DEFAULT 'matrix',
-        user_name TEXT NOT NULL DEFAULT 'user'
+        agent_name TEXT NOT NULL DEFAULT '秋念遥',
+        user_name TEXT NOT NULL DEFAULT '史丽慧'
       )
     `);
 

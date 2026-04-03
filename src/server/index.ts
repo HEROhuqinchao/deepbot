@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * DeepBot Web 服务器入口
+ * 史丽慧小助理 Web 服务器入口
  * 
  * 提供 HTTP API 和 WebSocket 服务
  */
 
 // 设置进程名称，方便在 ps/top 中识别
-process.title = 'deepbot';
+process.title = 'slhbot';
 
 import express from 'express';
 import { createServer } from 'http';
@@ -31,7 +31,7 @@ const PORT = parseInt(process.env.PORT || '3008');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 async function main(): Promise<void> {
-  console.log('🚀 启动 DeepBot Web 服务器...');
+  console.log('🚀 启动 史丽慧小助理 Web 服务器...');
   
   // 创建 Express 应用
   const app = express();
@@ -110,7 +110,7 @@ async function main(): Promise<void> {
   // 启动服务器
   server.listen(PORT, () => {
     console.log('');
-    console.log('✅ DeepBot Web 服务器启动成功！');
+    console.log('✅ 史丽慧小助理 Web 服务器启动成功！');
     console.log('');
     console.log(`📍 服务地址: http://localhost:${PORT}`);
     console.log(`🔌 WebSocket: ws://localhost:${PORT}/ws`);

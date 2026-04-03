@@ -76,8 +76,8 @@ export class ToolLoader {
    */
   private loadToolConfigs(): void {
     const configPaths = [
-      join(homedir(), '.deepbot', 'tools-config.json'),
-      join(this.workspaceDir, '.deepbot', 'tools-config.json'),
+      join(homedir(), '.slhbot', 'tools-config.json'),
+      join(this.workspaceDir, '.slhbot', 'tools-config.json'),
     ];
     
     for (const configPath of configPaths) {

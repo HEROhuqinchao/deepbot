@@ -66,8 +66,8 @@ export async function checkEmailToolConfig(workspaceDir: string): Promise<{
     
     // 配置文件查找顺序：项目级别 > 用户级别
     const configPaths = [
-      join(workspaceDir, '.deepbot', 'tools', 'email-tool', 'config.json'),
-      join(homedir(), '.deepbot', 'tools', 'email-tool', 'config.json'),
+      join(workspaceDir, '.slhbot', 'tools', 'email-tool', 'config.json'),
+      join(homedir(), '.slhbot', 'tools', 'email-tool', 'config.json'),
     ];
     
     for (const configPath of configPaths) {

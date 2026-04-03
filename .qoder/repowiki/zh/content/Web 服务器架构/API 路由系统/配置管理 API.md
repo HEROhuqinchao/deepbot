@@ -29,7 +29,7 @@
 10. [附录](#附录)
 
 ## 简介
-本文件面向 DeepBot 的配置管理 API，聚焦于两个核心路由：
+本文件面向 史丽慧小助理 的配置管理 API，聚焦于两个核心路由：
 - GET /api/config：获取系统配置快照
 - PUT /api/config：更新系统配置
 
@@ -329,7 +329,7 @@ SCS --> CT["config-types.ts"]
   - 示例（示意）
     - {
         "model": { "providerType":"qwen", "providerId":"qwen", "baseUrl":"...", "modelId":"qwen3.5-plus", "apiKey":"" },
-        "workspace": { "workspaceDir":"/home/user/.deepbot", "scriptDir":"...", "skillDirs":["..."], "defaultSkillDir":"...", "imageDir":"...", "memoryDir":"...", "sessionDir":"..." },
+        "workspace": { "workspaceDir":"/home/user/.slhbot", "scriptDir":"...", "skillDirs":["..."], "defaultSkillDir":"...", "imageDir":"...", "memoryDir":"...", "sessionDir":"..." },
         "names": { "agentName":"matrix", "userName":"user" },
         "connectors": [ { "connectorId":"feishu", "connectorName":"飞书", "config":{...}, "enabled":true } ],
         "imageGeneration": { "provider":"gemini", "model":"gemini-3.1-flash-image-preview", "apiUrl":"...", "apiKey":"" },

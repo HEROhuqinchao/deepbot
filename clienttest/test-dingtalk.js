@@ -38,7 +38,7 @@ async function testDingTalkCredentials(clientId, clientSecret) {
 }
 
 // 使用方式：
-// 1. 从 DeepBot 配置页面复制 Client ID 和 Client Secret
+// 1. 从 史丽慧小助理 配置页面复制 Client ID 和 Client Secret
 // 2. 修改下面的值并运行此脚本
 
 const CLIENT_ID = 'ding48xxxxxxxxxxxxxx';

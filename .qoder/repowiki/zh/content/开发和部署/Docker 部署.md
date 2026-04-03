@@ -29,7 +29,7 @@
 10. [附录](#附录)
 
 ## 简介
-本指南面向希望以 Docker 方式部署 DeepBot 的用户，系统讲解镜像构建流程（含多阶段与缓存优化）、Compose 服务编排（网络、卷、环境变量）、不同部署场景（单容器与多服务）、容器环境变量与数据持久化策略，并提供最佳实践、性能优化建议以及容器监控、日志与故障排除方法。
+本指南面向希望以 Docker 方式部署 史丽慧小助理 的用户，系统讲解镜像构建流程（含多阶段与缓存优化）、Compose 服务编排（网络、卷、环境变量）、不同部署场景（单容器与多服务）、容器环境变量与数据持久化策略，并提供最佳实践、性能优化建议以及容器监控、日志与故障排除方法。
 
 ## 项目结构
 与 Docker 部署直接相关的关键文件如下：
@@ -82,7 +82,7 @@ D --> H["环境变量<br/>DEEPBOT_DOCKER/PLAYWRIGHT_* 等"]
 - [src/main/database/system-config-store.ts:41-94](file://src/main/database/system-config-store.ts#L41-L94)
 
 ## 架构总览
-Docker 部署采用“单容器服务”模式，容器内运行 DeepBot Web 服务与浏览器自动化能力（Playwright）。Compose 通过卷挂载实现数据持久化，通过环境变量与 .env 文件注入用户配置。
+Docker 部署采用“单容器服务”模式，容器内运行 史丽慧小助理 Web 服务与浏览器自动化能力（Playwright）。Compose 通过卷挂载实现数据持久化，通过环境变量与 .env 文件注入用户配置。
 
 ```mermaid
 graph TB
@@ -97,8 +97,8 @@ V7["卷: DB_DIR → /data/db"]
 V8["卷: PLAYWRIGHT_CACHE_DIR → /ms-playwright"]
 end
 subgraph "容器"
-S["DeepBot 服务进程"]
-L["日志与配置<br/>~/.deepbot/logs (容器内)"]
+S["史丽慧小助理 服务进程"]
+L["日志与配置<br/>~/.slhbot/logs (容器内)"]
 end
 V1 --> S
 V2 --> S
@@ -155,7 +155,7 @@ Cmd --> End(["完成"])
 - [Dockerfile:1-122](file://Dockerfile#L1-L122)
 
 ### docker-compose.yml 服务编排
-- 服务名：deepbot
+- 服务名：slhbot
 - 镜像来源：基于 Dockerfile 构建，支持多架构平台（注释中给出 buildx 平台参数）
 - 端口映射：默认 3008→3008，可通过 PORT 覆盖
 - 环境变量：
@@ -218,7 +218,7 @@ end
 flowchart TD
 Env["环境变量注入<br/>DEEPBOT_DOCKER/NODE_ENV/PLAYWRIGHT_*"] --> Mode{"Docker 模式？"}
 Mode --> |是| DBPath["数据库目录: /data/db 或 DB_DIR"]
-Mode --> |否| HomeDB["数据库目录: ~/.deepbot"]
+Mode --> |否| HomeDB["数据库目录: ~/.slhbot"]
 Env --> Port["端口: PORT 或 3008"]
 Env --> PW["Playwright 路径: /ms-playwright"]
 DBPath --> Vol["卷挂载: /data/db → 宿主机 DB_DIR"]
@@ -267,7 +267,7 @@ end
 ### 数据库与配置持久化
 - 系统配置存储
   - Docker 模式：默认 /data/db/system-config.db，可通过 DB_DIR 覆盖
-  - 非 Docker 模式：默认 ~/.deepbot/system-config.db
+  - 非 Docker 模式：默认 ~/.slhbot/system-config.db
 - 环境配置
   - 通过 environment_config 表存储环境工具链（如 Python、Node 等）的安装状态、版本、路径与最后检查时间
 - Shell 环境变量回退
@@ -298,7 +298,7 @@ text error
 ### 日志与错误处理
 - 日志工具
   - 控制台输出带模块前缀，支持 DEBUG/INFO/WARN/ERROR 级别
-  - 可选启用文件日志（默认不启用），文件位于 ~/.deepbot/logs/deepbot.log
+  - 可选启用文件日志（默认不启用），文件位于 ~/.slhbot/logs/slhbot.log
   - 安全写入控制台，忽略 EPIPE（管道关闭）错误
 - 建议
   - 在容器中启用文件日志以便持久化查看
@@ -365,7 +365,7 @@ Dk --> PWBin["/ms-playwright"]
   - 检查宿主机目录权限，确保容器用户可读写
 - 日志未落盘
   - 在容器内启用文件日志（Logger.setFileLogging(true)），或在宿主机挂载日志目录
-  - 查看 ~/.deepbot/logs/deepbot.log（容器内路径）
+  - 查看 ~/.slhbot/logs/slhbot.log（容器内路径）
 
 **章节来源**
 - [docker-compose.yml:13-14](file://docker-compose.yml#L13-L14)
@@ -374,13 +374,13 @@ Dk --> PWBin["/ms-playwright"]
 - [src/shared/utils/logger.ts:24-49](file://src/shared/utils/logger.ts#L24-L49)
 
 ## 结论
-通过多阶段构建与运行时依赖精简、卷挂载与环境变量统一管理，DeepBot 的 Docker 部署实现了可复现、可扩展与易维护的目标。结合健康检查、日志与持久化策略，可在生产环境中稳定运行并快速定位问题。
+通过多阶段构建与运行时依赖精简、卷挂载与环境变量统一管理，史丽慧小助理 的 Docker 部署实现了可复现、可扩展与易维护的目标。结合健康检查、日志与持久化策略，可在生产环境中稳定运行并快速定位问题。
 
 ## 附录
 
 ### 不同部署场景示例
 - 单容器部署（推荐入门/演示）
-  - 使用 docker-compose.yml 的默认配置，仅启动 deepbot 服务
+  - 使用 docker-compose.yml 的默认配置，仅启动 slhbot 服务
   - 通过 .env 注入必要配置（如端口、API Key 等）
 - 多服务架构（高级）
   - 可在 Compose 中新增数据库服务（如 PostgreSQL/MySQL）与反向代理（Nginx/Traefik）

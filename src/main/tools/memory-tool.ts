@@ -13,7 +13,7 @@
  * - 备忘事项：其他重要信息
  * 
  * 配置文件位置：
- * - 记忆文件：从数据库配置读取（默认 ~/.deepbot/memory/memory.md）
+ * - 记忆文件：从数据库配置读取（默认 ~/.slhbot/memory/memory.md）
  * 
  * 最大长度：5000 字符
  */
@@ -34,7 +34,7 @@ import type { Gateway } from '../gateway';
 const MAX_MEMORY_LENGTH = 20000;
 
 /** 记忆文件模板 */
-const MEMORY_TEMPLATE = `# DeepBot 核心记忆
+const MEMORY_TEMPLATE = `# 史丽慧小助理 核心记忆
 
 ## 角色
 （暂无记录）
@@ -411,7 +411,7 @@ export const memoryToolPlugin: ToolPlugin = {
     name: TOOL_NAMES.MEMORY,
     version: '1.0.0',
     description: '管理智能体的核心记忆。支持读取和更新记忆，自动提炼和分类信息',
-    author: 'DeepBot',
+    author: '史丽慧小助理',
     category: 'system',
     tags: ['memory', 'context', 'learning'],
     requiresConfig: false,

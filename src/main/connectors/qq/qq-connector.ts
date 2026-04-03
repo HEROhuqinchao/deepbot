@@ -323,14 +323,14 @@ export class QQConnector implements Connector {
       const store = SystemConfigStore.getInstance();
       const record = store.getPairingRecordByUser('qq', qqMessage.sender.id);
       if (record?.approved) {
-        qqMessage.systemContext = `[系统通知] 这是第一次有用户连接到 DeepBot。`;
+        qqMessage.systemContext = `[系统通知] 这是第一次有用户连接到 史丽慧小助理。`;
         await this.connectorManager.handleIncomingMessage('qq', qqMessage);
         return;
       }
       
       await this.outbound.sendMessage({
         conversationId: qqMessage.conversation.id,
-        content: `请使用配对码进行授权：${code}\n\n管理员可以使用以下命令批准：\ndeepbot pairing approve qq ${code}`,
+        content: `请使用配对码进行授权：${code}\n\n管理员可以使用以下命令批准：\nslhbot pairing approve qq ${code}`,
       });
       return;
     }
@@ -567,7 +567,7 @@ export class QQConnector implements Connector {
   onPairingApproved(userId: string): void {
     this.outbound.sendMessage({
       conversationId: userId,
-      content: '✅ 授权完成，你可以开始和 DeepBot 对话了。\n\n发送「你能做什么」获取使用帮助。',
+      content: '✅ 授权完成，你可以开始和 史丽慧小助理 对话了。\n\n发送「你能做什么」获取使用帮助。',
     }).catch(() => {});
   }
   
@@ -754,8 +754,8 @@ class QQBotWSClient extends EventEmitter {
         shard: [0, 1],
         properties: {
           $os: process.platform,
-          $browser: 'DeepBot',
-          $device: 'DeepBot',
+          $browser: '史丽慧小助理',
+          $device: '史丽慧小助理',
         },
       },
     }));

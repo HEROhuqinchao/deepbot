@@ -24,8 +24,8 @@ export function ApiKeyHelpModal({ onClose }: ApiKeyHelpModalProps) {
         </div>
         <div style={{ padding: '14px 16px', overflowY: 'auto' }}>
           <div style={{ marginBottom: '12px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--settings-text)', marginBottom: '4px' }}>方式一：扫码获取 DeepBot Token</div>
-            <div style={{ fontSize: '11px', color: 'var(--settings-text-dim)', marginBottom: '8px' }}>选择 DeepBot 提供商时，扫码添加微信获取 Token</div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--settings-text)', marginBottom: '4px' }}>方式一：扫码获取 史丽慧小助理 Token</div>
+            <div style={{ fontSize: '11px', color: 'var(--settings-text-dim)', marginBottom: '8px' }}>选择 史丽慧小助理 提供商时，扫码添加微信获取 Token</div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <img src={qrcodeImg} alt="扫码添加微信" style={{ width: '140px', height: '140px', borderRadius: '6px' }} />
             </div>

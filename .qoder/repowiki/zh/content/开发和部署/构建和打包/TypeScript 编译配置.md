@@ -14,7 +14,7 @@
 - [src/types/window.d.ts](file://src/types/window.d.ts)
 - [src/types/ipc.ts](file://src/types/ipc.ts)
 - [src/types/index.d.ts](file://src/types/index.d.ts)
-- [src/types/deepbot-api.d.ts](file://src/types/deepbot-api.d.ts)
+- [src/types/slhbot-api.d.ts](file://src/types/slhbot-api.d.ts)
 </cite>
 
 ## 目录
@@ -30,10 +30,10 @@
 10. [附录](#附录)
 
 ## 简介
-本文件系统性梳理 DeepBot 项目的 TypeScript 编译配置，围绕根配置与三大子配置展开：主进程、渲染进程与服务器端。文档解释各配置的继承关系、模块解析策略、目标平台与严格模式设置，并结合项目实际入口与类型定义，说明编译选项、路径映射与类型声明处理方式，最后提供常见问题排查与性能优化建议。
+本文件系统性梳理 史丽慧小助理 项目的 TypeScript 编译配置，围绕根配置与三大子配置展开：主进程、渲染进程与服务器端。文档解释各配置的继承关系、模块解析策略、目标平台与严格模式设置，并结合项目实际入口与类型定义，说明编译选项、路径映射与类型声明处理方式，最后提供常见问题排查与性能优化建议。
 
 ## 项目结构
-DeepBot 采用多配置分层设计：
+史丽慧小助理 采用多配置分层设计：
 - 根配置 tsconfig.json 定义通用编译选项与基础包含/排除规则，作为所有子配置的基础。
 - 子配置分别覆盖主进程、渲染进程与服务器端的差异化需求，通过 extends 继承根配置。
 - package.json 中的脚本明确调用各配置进行编译与类型检查，体现配置的实际使用场景。
@@ -112,7 +112,7 @@ SE["src/server/index.ts"]
 WT["src/types/window.d.ts"]
 IPC["src/types/ipc.ts"]
 IDX["src/types/index.d.ts"]
-API["src/types/deepbot-api.d.ts"]
+API["src/types/slhbot-api.d.ts"]
 end
 R --> M
 R --> N
@@ -137,7 +137,7 @@ API --> RE
 - [src/types/window.d.ts:1-93](file://src/types/window.d.ts#L1-L93)
 - [src/types/ipc.ts:1-470](file://src/types/ipc.ts#L1-L470)
 - [src/types/index.d.ts:1-36](file://src/types/index.d.ts#L1-L36)
-- [src/types/deepbot-api.d.ts:1-12](file://src/types/deepbot-api.d.ts#L1-L12)
+- [src/types/slhbot-api.d.ts:1-12](file://src/types/slhbot-api.d.ts#L1-L12)
 
 ## 详细组件分析
 
@@ -190,7 +190,7 @@ Build --> End(["结束"])
 - [tsconfig.renderer.json:1-12](file://tsconfig.renderer.json#L1-L12)
 - [src/renderer/index.tsx:1-21](file://src/renderer/index.tsx#L1-L21)
 - [src/types/window.d.ts:1-93](file://src/types/window.d.ts#L1-L93)
-- [src/types/deepbot-api.d.ts:1-12](file://src/types/deepbot-api.d.ts#L1-L12)
+- [src/types/slhbot-api.d.ts:1-12](file://src/types/slhbot-api.d.ts#L1-L12)
 
 ### 服务器端编译配置（tsconfig.server.json）
 - 继承关系：继承根配置，统一严格模式与通用选项。
@@ -297,13 +297,13 @@ Root <|-- Server
   - declaration/declarationMap/sourceMap：生成声明与映射，便于 IDE 与调试。
   - resolveJsonModule：允许导入 .json，配合 Node 环境使用。
 - 类型声明处理
-  - 渲染进程：window.d.ts 与 deepbot-api.d.ts 为渲染进程提供全局类型与 API 类型，确保 preload 暴露的 API 在渲染侧可用。
+  - 渲染进程：window.d.ts 与 slhbot-api.d.ts 为渲染进程提供全局类型与 API 类型，确保 preload 暴露的 API 在渲染侧可用。
   - 主进程：ipc.ts 定义 IPC 通道与请求/响应类型，preload.ts 暴露 API，二者共同保障主/渲染类型安全。
   - 服务器端：index.d.ts 与相关类型文件为服务器端提供业务类型支撑。
 
 **章节来源**
 - [src/types/window.d.ts:1-93](file://src/types/window.d.ts#L1-L93)
-- [src/types/deepbot-api.d.ts:1-12](file://src/types/deepbot-api.d.ts#L1-L12)
+- [src/types/slhbot-api.d.ts:1-12](file://src/types/slhbot-api.d.ts#L1-L12)
 - [src/types/ipc.ts:1-470](file://src/types/ipc.ts#L1-L470)
 - [src/main/preload.ts:1-427](file://src/main/preload.ts#L1-L427)
 - [src/types/index.d.ts:1-36](file://src/types/index.d.ts#L1-L36)
@@ -380,14 +380,14 @@ Note over TSC,OUT : 服务器端编译完成
 - [package.json:19-20](file://package.json#L19-L20)
 
 ## 结论
-DeepBot 的 TypeScript 编译配置通过根配置统一基础选项，再以主进程、渲染进程、服务器端三个子配置覆盖差异化需求。继承关系清晰、模块解析与目标平台设置合理，配合类型声明与入口文件，形成稳定可靠的编译体系。遵循本文档的配置说明与最佳实践，可有效提升开发体验与构建质量。
+史丽慧小助理 的 TypeScript 编译配置通过根配置统一基础选项，再以主进程、渲染进程、服务器端三个子配置覆盖差异化需求。继承关系清晰、模块解析与目标平台设置合理，配合类型声明与入口文件，形成稳定可靠的编译体系。遵循本文档的配置说明与最佳实践，可有效提升开发体验与构建质量。
 
 ## 附录
 - 关键入口与类型文件
   - 主进程入口：src/main/index.ts
   - 渲染进程入口：src/renderer/index.tsx
   - 服务器入口：src/server/index.ts
-  - 类型声明：src/types/window.d.ts、src/types/ipc.ts、src/types/index.d.ts、src/types/deepbot-api.d.ts
+  - 类型声明：src/types/window.d.ts、src/types/ipc.ts、src/types/index.d.ts、src/types/slhbot-api.d.ts
   - 预加载桥接：src/main/preload.ts
 
 **章节来源**
@@ -397,5 +397,5 @@ DeepBot 的 TypeScript 编译配置通过根配置统一基础选项，再以主
 - [src/types/window.d.ts:1-93](file://src/types/window.d.ts#L1-L93)
 - [src/types/ipc.ts:1-470](file://src/types/ipc.ts#L1-L470)
 - [src/types/index.d.ts:1-36](file://src/types/index.d.ts#L1-L36)
-- [src/types/deepbot-api.d.ts:1-12](file://src/types/deepbot-api.d.ts#L1-L12)
+- [src/types/slhbot-api.d.ts:1-12](file://src/types/slhbot-api.d.ts#L1-L12)
 - [src/main/preload.ts:1-427](file://src/main/preload.ts#L1-L427)

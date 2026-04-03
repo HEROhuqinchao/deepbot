@@ -25,7 +25,7 @@
 10. [附录](#附录)
 
 ## 简介
-本指南面向使用 DeepBot 的开发者与运维人员，系统讲解基于 Docker 的容器化部署方案，涵盖多阶段构建流程、镜像优化策略、Compose 服务与网络配置、.dockerignore 过滤规则、容器化优势与适用场景、开发/生产差异化配置、以及完整的构建、运行与调试流程。同时说明环境变量与数据卷挂载的配置要点，帮助您在不同环境中稳定、高效地运行 DeepBot。
+本指南面向使用 史丽慧小助理 的开发者与运维人员，系统讲解基于 Docker 的容器化部署方案，涵盖多阶段构建流程、镜像优化策略、Compose 服务与网络配置、.dockerignore 过滤规则、容器化优势与适用场景、开发/生产差异化配置、以及完整的构建、运行与调试流程。同时说明环境变量与数据卷挂载的配置要点，帮助您在不同环境中稳定、高效地运行 史丽慧小助理。
 
 ## 项目结构
 与 Docker 相关的关键文件位于仓库根目录，配合项目内的脚本与工具函数实现容器化运行时的行为差异与数据持久化。
@@ -34,7 +34,7 @@
 graph TB
 A["Dockerfile<br/>多阶段构建"] --> B["运行阶段镜像<br/>Node + 运行时依赖"]
 A --> C["构建阶段镜像<br/>Node + pnpm + 构建产物"]
-D["docker-compose.yml<br/>服务定义/环境/卷/健康检查"] --> E["容器 deepbot"]
+D["docker-compose.yml<br/>服务定义/环境/卷/健康检查"] --> E["容器 slhbot"]
 F[".dockerignore<br/>构建过滤规则"] -.-> A
 G["package.json<br/>脚本与多架构构建入口"] -.-> A
 H["README.md<br/>Docker 部署说明"] -.-> D
@@ -91,7 +91,7 @@ V6["IMAGES_DIR<br/>/data/images"]
 V7["DB_DIR<br/>/data/db"]
 V8["PLAYWRIGHT_CACHE_DIR<br/>/ms-playwright"]
 end
-subgraph "容器 deepbot"
+subgraph "容器 slhbot"
 S1["服务端进程<br/>dist-server/server/index.js"]
 S2["前端静态资源<br/>dist-web"]
 S3["Docker 模式标志<br/>DEEPBOT_DOCKER=true"]
@@ -165,7 +165,7 @@ R7 --> End(["结束"])
 
 ### Docker Compose 服务定义与网络设置
 - 服务与镜像
-  - 使用本地 Dockerfile 构建镜像，镜像名为 deepbot:latest。
+  - 使用本地 Dockerfile 构建镜像，镜像名为 slhbot:latest。
   - 平台支持：注释中给出多架构构建示例（linux/amd64, linux/arm64），可结合 buildx 使用。
 - 端口映射
   - 通过环境变量 PORT 控制宿主机与容器端口映射，默认 3008。
@@ -189,7 +189,7 @@ R7 --> End(["结束"])
 sequenceDiagram
 participant U as "用户"
 participant DC as "docker-compose.yml"
-participant C as "容器 deepbot"
+participant C as "容器 slhbot"
 participant S as "服务端进程"
 participant H as "健康检查"
 U->>DC : 启动服务
@@ -280,7 +280,7 @@ F --> G
   - 查看日志：docker-compose logs -f。
   - 停止服务：docker-compose down。
 - 调试建议
-  - 进入容器：docker-compose exec deepbot bash。
+  - 进入容器：docker-compose exec slhbot bash。
   - 检查健康：curl http://localhost:PORT/health。
   - 查看 Playwright：确认 /ms-playwright 是否存在并包含 Chromium。
 
@@ -349,7 +349,7 @@ RU --> BR["Playwright 浏览器行为"]
 - [docker-compose.yml:59-63](file://docker-compose.yml#L59-L63)
 
 ## 结论
-通过多阶段构建与精简运行时依赖，DeepBot 的 Docker 镜像实现了体积与性能的平衡；借助 Compose 的环境变量与数据卷挂载，可在开发与生产环境之间无缝切换；运行时工具对 Docker 模式的适配确保了浏览器与数据目录的一致性。遵循本文提供的构建、运行与调试流程，可稳定地在各类 Linux 环境中部署 DeepBot。
+通过多阶段构建与精简运行时依赖，史丽慧小助理 的 Docker 镜像实现了体积与性能的平衡；借助 Compose 的环境变量与数据卷挂载，可在开发与生产环境之间无缝切换；运行时工具对 Docker 模式的适配确保了浏览器与数据目录的一致性。遵循本文提供的构建、运行与调试流程，可稳定地在各类 Linux 环境中部署 史丽慧小助理。
 
 ## 附录
 - 常用命令

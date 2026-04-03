@@ -255,7 +255,7 @@ export class FeishuConnector implements Connector {
   private getTempUploadDir(): string {
     const store = SystemConfigStore.getInstance();
     const settings = store.getWorkspaceSettings();
-    const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+    const tempDir = path.join(settings.workspaceDir, '.slhbot', 'temp', 'uploads');
     ensureDirectoryExists(tempDir);
     return tempDir;
   }
@@ -551,17 +551,17 @@ export class FeishuConnector implements Connector {
           const store = SystemConfigStore.getInstance();
           const record = store.getPairingRecordByUser('feishu', feishuMessage.sender.id);
           if (record?.approved) {
-            feishuMessage.systemContext = `[系统通知] 这是第一次有用户连接到 DeepBot。该用户已被自动设置为管理员。请在回复中告知用户：
+            feishuMessage.systemContext = `[系统通知] 这是第一次有用户连接到 史丽慧小助理。该用户已被自动设置为管理员。请在回复中告知用户：
 1. 他已被自动设置为管理员
-2. 作为管理员，他可以通过发送 "deepbot pairing approve feishu <配对码>" 来批准其他用户的配对请求
-3. 也可以在 DeepBot 桌面端的"系统管理 → 飞书 → Pairing 管理"界面中管理用户权限`;
+2. 作为管理员，他可以通过发送 "slhbot pairing approve feishu <配对码>" 来批准其他用户的配对请求
+3. 也可以在 史丽慧小助理 桌面端的"系统管理 → 飞书 → Pairing 管理"界面中管理用户权限`;
             await this.connectorManager.handleIncomingMessage('feishu', feishuMessage);
             return;
           }
 
           await this.outbound.sendMessage({
             conversationId: feishuMessage.conversation.id,
-            content: `请使用配对码进行授权：${code}\n\n管理员可以使用以下命令批准：\ndeepbot pairing approve feishu ${code}`,
+            content: `请使用配对码进行授权：${code}\n\n管理员可以使用以下命令批准：\nslhbot pairing approve feishu ${code}`,
           });
         }
         
@@ -811,7 +811,7 @@ export class FeishuConnector implements Connector {
     const receiveIdType = openId ? 'open_id' : 'chat_id';
     this.outbound.sendMessage({
       conversationId: target,
-      content: '✅ 授权完成，你可以开始和 DeepBot 对话了。\n\n发送「你能做什么」获取使用帮助。',
+      content: '✅ 授权完成，你可以开始和 史丽慧小助理 对话了。\n\n发送「你能做什么」获取使用帮助。',
       _receiveIdType: receiveIdType,
     }).catch(() => {});
   }
@@ -836,15 +836,15 @@ export class FeishuConnector implements Connector {
 
   /**
    * 处理管理员指令（在安全检查之前执行，允许管理员执行 pairing approve）
-   * 支持指令：deepbot pairing approve feishu <code>
+   * 支持指令：slhbot pairing approve feishu <code>
    * 权限验证：发送者必须在数据库中标记为 is_admin
    * @returns true 表示已处理该指令，调用方应直接 return
    */
   private async handleAdminCommand(message: FeishuIncomingMessage): Promise<boolean> {
     const text = (message.content.text || '').trim();
 
-    // 匹配 pairing approve 指令，格式：deepbot pairing approve feishu <code>
-    const approveMatch = text.match(/^deepbot\s+pairing\s+approve\s+feishu\s+(\S+)$/i);
+    // 匹配 pairing approve 指令，格式：slhbot pairing approve feishu <code>
+    const approveMatch = text.match(/^slhbot\s+pairing\s+approve\s+feishu\s+(\S+)$/i);
     if (!approveMatch) {
       return false;
     }
@@ -886,7 +886,7 @@ export class FeishuConnector implements Connector {
       store.approvePairingRecord(code);
       await this.outbound.sendMessage({
         conversationId: message.conversation.id,
-        content: `✅ 配对码 ${code} 已批准，用户现在可以使用 DeepBot 了。`,
+        content: `✅ 配对码 ${code} 已批准，用户现在可以使用 史丽慧小助理 了。`,
       });
       // 给被批准用户发送欢迎消息
       this.connectorManager.notifyPairingApproved('feishu', record.userId, record.openId);

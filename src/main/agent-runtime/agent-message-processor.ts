@@ -184,7 +184,7 @@ ${tailResponse}
       
       const store = SystemConfigStore.getInstance();
       const settings = store.getWorkspaceSettings();
-      const debugDir = path.join(settings.workspaceDir, '.deepbot', 'debug');
+      const debugDir = path.join(settings.workspaceDir, '.slhbot', 'debug');
       
       // 确保目录存在
       if (!fs.existsSync(debugDir)) {

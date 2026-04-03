@@ -12,7 +12,7 @@ const path = require('path');
 const os = require('os');
 
 // 数据库路径
-const dbPath = path.join(os.homedir(), '.deepbot', 'scheduled-tasks.db');
+const dbPath = path.join(os.homedir(), '.slhbot', 'scheduled-tasks.db');
 
 console.log('📂 数据库路径:', dbPath);
 
@@ -50,7 +50,7 @@ try {
   // 关闭数据库
   db.close();
   
-  console.log('\n💡 提示：重启 DeepBot 后生效');
+  console.log('\n💡 提示：重启 史丽慧小助理 后生效');
   
 } catch (error) {
   console.error('❌ 清理失败:', error.message);

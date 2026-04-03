@@ -11,7 +11,7 @@ import { getErrorMessage } from '../../shared/utils/error-handler';
 
 // 从环境变量读取配置
 const ACCESS_PASSWORD = process.env.ACCESS_PASSWORD;
-const JWT_SECRET = process.env.JWT_SECRET || 'deepbot-default-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'slhbot-default-secret-change-in-production';
 const JWT_EXPIRES_IN = '30d'; // Token 有效期 30 天
 
 /**

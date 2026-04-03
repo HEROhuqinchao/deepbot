@@ -1,4 +1,4 @@
-# DeepBot 工具使用指南
+# 史丽慧小助理 工具使用指南
 
 ## 📸 图片显示规则（重要）
 
@@ -310,7 +310,7 @@ URL: https://www.example.com
 ### scheduled_task
 **用途**: 创建、管理和执行定时任务
 
-**数据库路径**: `~/.deepbot/scheduled-tasks.db`（系统配置文件，不受工作目录限制）
+**数据库路径**: `~/.slhbot/scheduled-tasks.db`（系统配置文件，不受工作目录限制）
 
 **⚠️ 使用时机**
 
@@ -541,7 +541,7 @@ URL: https://www.example.com
 ## Skill Manager（Skill 管理工具）
 
 ### skill_manager
-**用途**: 搜索、安装、管理 DeepBot Skills
+**用途**: 搜索、安装、管理 史丽慧小助理 Skills
 
 **安装路径**: 使用 `api_get_config` 查询 `defaultSkillDir`
 
@@ -597,21 +597,21 @@ URL: https://www.example.com
 {
   "action": "install",
   "name": "split_4_image",
-  "repository": "file:///Users/jinyu/.deepbot/skills/split_4_image"
+  "repository": "file:///Users/jinyu/.slhbot/skills/split_4_image"
 }
 
 // 绝对路径
 {
   "action": "install",
   "name": "split_4_image",
-  "repository": "/Users/jinyu/.deepbot/skills/split_4_image"
+  "repository": "/Users/jinyu/.slhbot/skills/split_4_image"
 }
 
 // 用户目录
 {
   "action": "install",
   "name": "split_4_image",
-  "repository": "~/.deepbot/skills/split_4_image"
+  "repository": "~/.slhbot/skills/split_4_image"
 }
 ```
 
@@ -621,7 +621,7 @@ URL: https://www.example.com
 - 自动验证 SKILL.md 是否存在
 
 **返回结果包含**:
-- `installPath`: 安装路径（如 `/Users/username/.deepbot/skills/video-transcript-downloader`）
+- `installPath`: 安装路径（如 `/Users/username/.slhbot/skills/video-transcript-downloader`）
 - `skill`: Skill 信息
 - `dependencies`: 依赖列表
 
@@ -761,7 +761,7 @@ URL: https://www.example.com
 ```
 用户原始消息
 [参考图片路径]:
-~/.deepbot/temp/uploads/abc123.jpg
+~/.slhbot/temp/uploads/abc123.jpg
 ```
 
 **⚠️⚠️⚠️ 参考图片使用规则（极其重要）⚠️⚠️⚠️**
@@ -780,7 +780,7 @@ URL: https://www.example.com
 // 用户说"解析这张图片"
 {
   "action": "analyze",
-  "imagePath": "~/.deepbot/temp/uploads/abc123.jpg"
+  "imagePath": "~/.slhbot/temp/uploads/abc123.jpg"
 }
 ```
 
@@ -790,7 +790,7 @@ URL: https://www.example.com
 {
   "action": "generate",
   "prompt": "基于参考图的场景不变，去掉图上的人，重新再大厅中生成坐轮椅的人",
-  "referenceImages": ["~/.deepbot/temp/uploads/abc123.jpg"]
+  "referenceImages": ["~/.slhbot/temp/uploads/abc123.jpg"]
 }
 ```
 
@@ -801,8 +801,8 @@ URL: https://www.example.com
   "action": "generate",
   "prompt": "基于参考图，去掉图1的所有人，保持场景，将图2的狗放到图1",
   "referenceImages": [
-    "~/.deepbot/temp/uploads/image1.jpg",
-    "~/.deepbot/temp/uploads/image2.png"
+    "~/.slhbot/temp/uploads/image1.jpg",
+    "~/.slhbot/temp/uploads/image2.png"
   ]
 }
 ```
@@ -965,7 +965,7 @@ URL: https://www.example.com
 // 解析图片生成提示词
 {
   "action": "analyze",
-  "imagePath": "~/.deepbot/temp/uploads/abc123.jpg"
+  "imagePath": "~/.slhbot/temp/uploads/abc123.jpg"
 }
 
 // 基础文本生成图片（默认 4:3 横向，1K 分辨率）
@@ -976,22 +976,22 @@ URL: https://www.example.com
 // 使用单张参考图片风格
 {
   "prompt": "一座未来城市的天际线，霓虹灯闪烁",
-  "referenceImages": ["~/.deepbot/temp/uploads/style.jpg"]
+  "referenceImages": ["~/.slhbot/temp/uploads/style.jpg"]
 }
 
 // 使用多张参考图片（最多 5 张）
 {
   "prompt": "一个科技感十足的 Logo",
   "referenceImages": [
-    "~/.deepbot/temp/uploads/ref1.jpg",
-    "~/.deepbot/temp/uploads/ref2.jpg",
-    "~/.deepbot/temp/uploads/ref3.jpg"
+    "~/.slhbot/temp/uploads/ref1.jpg",
+    "~/.slhbot/temp/uploads/ref2.jpg",
+    "~/.slhbot/temp/uploads/ref3.jpg"
   ]
 }
 
 // 生成正方形图片
 {
-  "prompt": "一个科技感十足的 Logo，包含文字 'DeepBot'",
+  "prompt": "一个科技感十足的 Logo，包含文字 '史丽慧小助理'",
   "aspectRatio": "1:1",
   "resolution": "2K"
 }
@@ -1036,7 +1036,7 @@ URL: https://www.example.com
 **如何识别生成的图片路径**：
 - 工具返回结果中的 `path` 字段（通常是 `<imageDir>/generated-*.jpeg`）
 - **不是** `referenceImages` 参数中的路径
-- **不是** 用户上传的图片路径（`~/.deepbot/temp/uploads/`，系统临时目录）
+- **不是** 用户上传的图片路径（`~/.slhbot/temp/uploads/`，系统临时目录）
 
 **✅ 正确响应示例（无参考图）**:
 ```
@@ -1068,12 +1068,12 @@ URL: https://www.example.com
 ✅ 基于参考图生成成功！
 
 参考图：
-![参考图](~/.deepbot/temp/uploads/abc123.jpg)
+![参考图](~/.slhbot/temp/uploads/abc123.jpg)
 
 生成图：
-![生成的图片](~/.deepbot/generated-images/generated-1234567890.jpeg)
+![生成的图片](~/.slhbot/generated-images/generated-1234567890.jpeg)
 ```
-**错误原因**：不要显示参考图（`~/.deepbot/temp/uploads/` 路径），用户已经看过了。
+**错误原因**：不要显示参考图（`~/.slhbot/temp/uploads/` 路径），用户已经看过了。
 
 **❌ 错误示例 2（显示了参考图）**:
 ```
@@ -1088,14 +1088,14 @@ URL: https://www.example.com
 ```
 ✅ 图片生成成功！
 
-![生成的图片](~/.deepbot/temp/uploads/abc123.jpg)
+![生成的图片](~/.slhbot/temp/uploads/abc123.jpg)
 ```
 **错误原因**：显示的是上传的参考图路径，不是生成的图片路径。生成的图片路径应该是工具返回的 `path` 字段。
 
 **检查清单**：
 - [ ] 响应中只有一个 Markdown 图片语法
 - [ ] 图片路径是工具返回的 `path` 字段
-- [ ] 没有显示任何参考图路径（`~/.deepbot/temp/uploads/` 或用户指定的路径）
+- [ ] 没有显示任何参考图路径（`~/.slhbot/temp/uploads/` 或用户指定的路径）
 - [ ] 没有显示多张图片（只显示生成的新图）
 
 **错误处理**:
@@ -1298,7 +1298,7 @@ URL: https://www.example.com
 
 **⚠️ 权限要求**:
 - 系统偏好设置 > 安全性与隐私 > 隐私 > 自动化
-- 允许 DeepBot 控制 Calendar.app
+- 允许 史丽慧小助理 控制 Calendar.app
 
 ---
 
@@ -1512,7 +1512,7 @@ URL: https://www.example.com
 ## API（系统配置访问工具）
 
 ### api_get_config
-**用途**: 查询 DeepBot 的系统配置
+**用途**: 查询 史丽慧小助理 的系统配置
 
 **参数**:
 - `configType`: 配置类型

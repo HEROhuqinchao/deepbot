@@ -59,26 +59,26 @@ export const api = {
   },
 
   async getTabAgentName(tabId: string): Promise<{ success: boolean; agentName: string; userName: string; error?: string }> {
-    if (isElectron()) return (window as any).deepbot.getTabAgentName(tabId);
+    if (isElectron()) return (window as any).slhbot.getTabAgentName(tabId);
     const config = await webClient.getConfig();
-    return { success: true, agentName: config.names?.agentName || 'DeepBot', userName: config.names?.userName || '用户' };
+    return { success: true, agentName: config.names?.agentName || '史丽慧小助理', userName: config.names?.userName || '用户' };
   },
 
   // ==================== 系统设置 ====================
 
   async checkEnvironment(action: 'check' | 'get_status'): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.checkEnvironment(action);
+    if (isElectron()) return (window as any).slhbot.checkEnvironment(action);
     return webClient.post('/api/tools/environment-check', { action });
   },
 
   async getImageGenerationToolConfig(): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.getImageGenerationToolConfig();
+    if (isElectron()) return (window as any).slhbot.getImageGenerationToolConfig();
     const config = await webClient.getConfig();
     return config.imageGeneration || null;
   },
 
   async saveImageGenerationToolConfig(config: any): Promise<void> {
-    if (isElectron()) return (window as any).deepbot.saveImageGenerationToolConfig(config);
+    if (isElectron()) return (window as any).slhbot.saveImageGenerationToolConfig(config);
     await webClient.updateConfig({ imageGeneration: config });
   },
 
@@ -95,17 +95,17 @@ export const api = {
   },
 
   async getDisabledTools(): Promise<{ success: boolean; disabledTools?: string[]; error?: string }> {
-    if (isElectron()) return (window as any).deepbot.getDisabledTools();
+    if (isElectron()) return (window as any).slhbot.getDisabledTools();
     return { success: true, disabledTools: [] };
   },
 
   async saveDisabledTools(disabledTools: string[]): Promise<{ success: boolean; error?: string }> {
-    if (isElectron()) return (window as any).deepbot.saveDisabledTools(disabledTools);
+    if (isElectron()) return (window as any).slhbot.saveDisabledTools(disabledTools);
     return { success: true };
   },
 
   async getWorkspaceSettings(): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.getWorkspaceSettings();
+    if (isElectron()) return (window as any).slhbot.getWorkspaceSettings();
     const config = await webClient.getConfig();
     return {
       success: true,
@@ -114,7 +114,7 @@ export const api = {
   },
 
   async getDefaultWorkspaceSettings(): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.getDefaultWorkspaceSettings();
+    if (isElectron()) return (window as any).slhbot.getDefaultWorkspaceSettings();
     // Web 模式：从 getConfig 获取 isDocker 标识，并返回对应的默认路径
     const config = await webClient.getConfig();
     const isDocker = config.isDocker === true;
@@ -124,10 +124,10 @@ export const api = {
         isDocker: true,
         settings: {
           workspaceDir: '/data/workspace',
-          scriptDir: '/data/workspace/.deepbot/scripts',
+          scriptDir: '/data/workspace/.slhbot/scripts',
           skillDirs: ['/data/skills'],
           defaultSkillDir: '/data/skills',
-          imageDir: '/data/workspace/.deepbot/generated-images',
+          imageDir: '/data/workspace/.slhbot/generated-images',
           memoryDir: '/data/memory',
           sessionDir: '/data/sessions',
         }
@@ -136,18 +136,18 @@ export const api = {
     return {
       success: true,
       isDocker: false,
-      settings: { workspaceDir: '~/', scriptDir: '~/.deepbot/scripts', skillDirs: ['~/.agents/skills'], defaultSkillDir: '~/.agents/skills', imageDir: '~/.deepbot/generated-images', memoryDir: '~/.deepbot/memory', sessionDir: '~/.deepbot/sessions' }
+      settings: { workspaceDir: '~/', scriptDir: '~/.slhbot/scripts', skillDirs: ['~/.agents/skills'], defaultSkillDir: '~/.agents/skills', imageDir: '~/.slhbot/generated-images', memoryDir: '~/.slhbot/memory', sessionDir: '~/.slhbot/sessions' }
     };
   },
 
   async saveWorkspaceSettings(settings: any): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.saveWorkspaceSettings(settings);
+    if (isElectron()) return (window as any).slhbot.saveWorkspaceSettings(settings);
     await webClient.updateConfig({ workspace: settings });
     return { success: true, settings };
   },
 
   async addSkillDir(dir: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.addSkillDir(dir);
+    if (isElectron()) return (window as any).slhbot.addSkillDir(dir);
     const config = await webClient.getConfig();
     const currentSettings = config.workspace || {};
     const skillDirs = currentSettings.skillDirs || [];
@@ -161,7 +161,7 @@ export const api = {
   },
 
   async removeSkillDir(dir: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.removeSkillDir(dir);
+    if (isElectron()) return (window as any).slhbot.removeSkillDir(dir);
     const config = await webClient.getConfig();
     const currentSettings = config.workspace || {};
     const skillDirs = (currentSettings.skillDirs || []).filter((d: string) => d !== dir);
@@ -171,7 +171,7 @@ export const api = {
   },
 
   async setDefaultSkillDir(dir: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.setDefaultSkillDir(dir);
+    if (isElectron()) return (window as any).slhbot.setDefaultSkillDir(dir);
     const config = await webClient.getConfig();
     const currentSettings = config.workspace || {};
     const updatedSettings = { ...currentSettings, defaultSkillDir: dir };
@@ -180,82 +180,82 @@ export const api = {
   },
 
   async launchChromeWithDebug(port: number): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.launchChromeWithDebug(port);
+    if (isElectron()) return (window as any).slhbot.launchChromeWithDebug(port);
     return webClient.post('/api/tools/launch-chrome', { port });
   },
 
   async connectorGetAll(): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorGetAll();
+    if (isElectron()) return (window as any).slhbot.connectorGetAll();
     return webClient.get('/api/connectors');
   },
 
   async connectorGetConfig(connectorId: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorGetConfig(connectorId);
+    if (isElectron()) return (window as any).slhbot.connectorGetConfig(connectorId);
     return webClient.get(`/api/connectors/${connectorId}/config`);
   },
 
   async connectorSaveConfig(connectorId: string, config: any): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorSaveConfig(connectorId, config);
+    if (isElectron()) return (window as any).slhbot.connectorSaveConfig(connectorId, config);
     return webClient.post(`/api/connectors/${connectorId}/config`, config);
   },
 
   async connectorStart(connectorId: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorStart(connectorId);
+    if (isElectron()) return (window as any).slhbot.connectorStart(connectorId);
     return webClient.post(`/api/connectors/${connectorId}/start`, {});
   },
 
   async connectorStop(connectorId: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorStop(connectorId);
+    if (isElectron()) return (window as any).slhbot.connectorStop(connectorId);
     return webClient.post(`/api/connectors/${connectorId}/stop`, {});
   },
 
   async connectorHealthCheck(connectorId: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorHealthCheck(connectorId);
+    if (isElectron()) return (window as any).slhbot.connectorHealthCheck(connectorId);
     return webClient.get(`/api/connectors/${connectorId}/health`);
   },
 
   async connectorApprovePairing(pairingCode: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorApprovePairing(pairingCode);
+    if (isElectron()) return (window as any).slhbot.connectorApprovePairing(pairingCode);
     return webClient.post('/api/connectors/pairing/approve', { pairingCode });
   },
 
   async connectorSetAdminPairing(connectorId: string, userId: string, isAdmin: boolean): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorSetAdminPairing(connectorId, userId, isAdmin);
+    if (isElectron()) return (window as any).slhbot.connectorSetAdminPairing(connectorId, userId, isAdmin);
     return webClient.post(`/api/connectors/${connectorId}/pairing/${userId}/admin`, { isAdmin });
   },
 
   async connectorDeletePairing(connectorId: string, userId: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorDeletePairing(connectorId, userId);
+    if (isElectron()) return (window as any).slhbot.connectorDeletePairing(connectorId, userId);
     return webClient.delete(`/api/connectors/${connectorId}/pairing/${userId}`);
   },
 
   async scheduledTask(request: any): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.scheduledTask(request);
+    if (isElectron()) return (window as any).slhbot.scheduledTask(request);
     return webClient.post('/api/tasks', request);
   },
 
   // ==================== Tab 管理 ====================
 
   async getAllTabs(): Promise<{ success: boolean; tabs?: AgentTab[]; error?: string }> {
-    if (isElectron()) return (window as any).deepbot.getAllTabs();
+    if (isElectron()) return (window as any).slhbot.getAllTabs();
     const tabs = await webClient.getTabs();
     return { success: true, tabs };
   },
 
   async createTab(title?: string): Promise<{ success: boolean; tab?: AgentTab; error?: string }> {
-    if (isElectron()) return (window as any).deepbot.createTab(title);
+    if (isElectron()) return (window as any).slhbot.createTab(title);
     const tab = await webClient.createTab(title);
     return { success: true, tab };
   },
 
   async closeTab(tabId: string): Promise<{ success: boolean; error?: string }> {
-    if (isElectron()) return (window as any).deepbot.closeTab(tabId);
+    if (isElectron()) return (window as any).slhbot.closeTab(tabId);
     await webClient.closeTab(tabId);
     return { success: true };
   },
 
   async switchTab(tabId: string): Promise<{ success: boolean; error?: string }> {
-    if (isElectron()) return (window as any).deepbot.switchTab(tabId);
+    if (isElectron()) return (window as any).slhbot.switchTab(tabId);
     // 切换 Tab 时确保已订阅（防漏订阅）
     this.subscribeTab(tabId);
     return { success: true };
@@ -277,123 +277,123 @@ export const api = {
   // ==================== 消息管理 ====================
 
   async sendMessage(content: string, sessionId?: string): Promise<void> {
-    if (isElectron()) return (window as any).deepbot.sendMessage(content, sessionId);
+    if (isElectron()) return (window as any).slhbot.sendMessage(content, sessionId);
     return webClient.sendMessage(sessionId || 'default', content);
   },
 
   async stopGeneration(sessionId?: string): Promise<void> {
-    if (isElectron()) return (window as any).deepbot.stopGeneration(sessionId);
+    if (isElectron()) return (window as any).slhbot.stopGeneration(sessionId);
     await webClient.post('/api/tabs/stop-generation', { sessionId });
   },
 
   // ==================== Connector 管理 ====================
 
   async connectorGetPairingRecords(): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorGetPairingRecords();
+    if (isElectron()) return (window as any).slhbot.connectorGetPairingRecords();
     return webClient.get('/api/connectors/pairing');
   },
 
   // ==================== 文件管理 ====================
 
   async uploadFile(fileName: string, dataUrl: string, fileSize: number, fileType: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.uploadFile(fileName, dataUrl, fileSize, fileType);
+    if (isElectron()) return (window as any).slhbot.uploadFile(fileName, dataUrl, fileSize, fileType);
     return webClient.post('/api/files/upload', { fileName, dataUrl, fileSize, fileType });
   },
 
   async uploadImage(fileName: string, dataUrl: string, fileSize: number): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.uploadImage(fileName, dataUrl, fileSize);
+    if (isElectron()) return (window as any).slhbot.uploadImage(fileName, dataUrl, fileSize);
     return webClient.post('/api/files/upload-image', { fileName, dataUrl, fileSize });
   },
 
   async readImage(filePath: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.readImage(filePath);
+    if (isElectron()) return (window as any).slhbot.readImage(filePath);
     return webClient.get(`/api/files/read-image?path=${encodeURIComponent(filePath)}`);
   },
 
   // 用系统默认应用打开本地文件（仅 Electron）
   // Web 模式返回 { success: false }，由前端降级处理
   async openPath(filePath: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.openPath(filePath);
+    if (isElectron()) return (window as any).slhbot.openPath(filePath);
     return { success: false, error: 'web' };
   },
 
   // 打开文件夹选择对话框（仅 Electron）
   async selectFolder(): Promise<{ success: boolean; path?: string; canceled?: boolean; error?: string }> {
-    if (isElectron()) return (window as any).deepbot.selectFolder();
+    if (isElectron()) return (window as any).slhbot.selectFolder();
     return { success: false, error: 'web' };
   },
 
   async deleteTempFile(filePath: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.deleteTempFile(filePath);
+    if (isElectron()) return (window as any).slhbot.deleteTempFile(filePath);
     return webClient.delete(`/api/files/temp?path=${encodeURIComponent(filePath)}`);
   },
 
   // ==================== Skill 管理 ====================
 
   async skillManager(request: any): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.skillManager(request);
+    if (isElectron()) return (window as any).slhbot.skillManager(request);
     return webClient.post('/api/skills', request);
   },
 
   // ==================== 事件监听 ====================
 
   onTabCreated(callback: (data: { tab: AgentTab }) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onTabCreated(callback);
+    if (isElectron()) return (window as any).slhbot.onTabCreated(callback);
     return this._registerWebEvent('tab:created', callback);
   },
 
   onTabUpdated(callback: (data: { tabId: string; title: string }) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onTabUpdated(callback);
+    if (isElectron()) return (window as any).slhbot.onTabUpdated(callback);
     return this._registerWebEvent('tab:updated', callback);
   },
 
   onTabMessagesCleared(callback: (data: { tabId: string }) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onTabMessagesCleared(callback);
+    if (isElectron()) return (window as any).slhbot.onTabMessagesCleared(callback);
     return this._registerWebEvent('tab:messages-cleared', callback);
   },
 
   onTabHistoryLoaded(callback: (data: { tabId: string; messages: Message[] }) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onTabHistoryLoaded(callback);
+    if (isElectron()) return (window as any).slhbot.onTabHistoryLoaded(callback);
     return this._registerWebEvent('tab:history-loaded', callback);
   },
 
   onNameConfigUpdate(callback: (config: any) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onNameConfigUpdate(callback);
+    if (isElectron()) return (window as any).slhbot.onNameConfigUpdate(callback);
     return this._registerWebEvent('name-config:update', callback);
   },
 
   onModelConfigUpdate(callback: () => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onModelConfigUpdate(callback);
+    if (isElectron()) return (window as any).slhbot.onModelConfigUpdate(callback);
     return this._registerWebEvent('model-config:update', callback);
   },
 
   onPendingCountUpdate(callback: (data: { pendingCount: number }) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onPendingCountUpdate(callback);
+    if (isElectron()) return (window as any).slhbot.onPendingCountUpdate(callback);
     return this._registerWebEvent('pending-count:update', callback);
   },
 
   onClearAllMessages(callback: () => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onClearAllMessages(callback);
+    if (isElectron()) return (window as any).slhbot.onClearAllMessages(callback);
     return this._registerWebEvent('clear-all-messages', callback);
   },
 
   onClearChat(callback: (data: { sessionId: string }) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onClearChat?.(callback) || (() => {});
+    if (isElectron()) return (window as any).slhbot.onClearChat?.(callback) || (() => {});
     return this._registerWebEvent('clear-chat', callback);
   },
 
   onMessageStream(callback: (chunk: any) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onMessageStream(callback);
+    if (isElectron()) return (window as any).slhbot.onMessageStream(callback);
     return this._registerWebEvent('message:stream', callback);
   },
 
   onExecutionStepUpdate(callback: (data: any) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onExecutionStepUpdate?.(callback) || (() => {});
+    if (isElectron()) return (window as any).slhbot.onExecutionStepUpdate?.(callback) || (() => {});
     return this._registerWebEvent('execution-step:update', callback);
   },
 
   onMessageError(callback: (error: any) => void): () => void {
-    if (isElectron()) return (window as any).deepbot.onMessageError(callback);
+    if (isElectron()) return (window as any).slhbot.onMessageError(callback);
     return this._registerWebEvent('message:error', callback);
   },
 

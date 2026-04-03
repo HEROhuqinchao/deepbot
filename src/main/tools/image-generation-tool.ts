@@ -20,7 +20,7 @@ import { generateImageWithQwen } from './providers/qwen-provider';
 import { expandPath, getMimeType } from './providers/image-utils';
 
 // 默认输出目录
-const DEFAULT_OUTPUT_DIR = join(homedir(), '.deepbot', 'generated-images');
+const DEFAULT_OUTPUT_DIR = join(homedir(), '.slhbot', 'generated-images');
 
 /**
  * 获取工具配置（完全从数据库读取，不使用默认值）
@@ -55,7 +55,7 @@ function getToolConfig(configStore: SystemConfigStore): {
   if (dbConfig.provider === 'qwen' || (!dbConfig.provider && dbConfig.model.includes('qwen-image'))) {
     provider = 'qwen';
   }
-  // deepbot 提供商走 gemini 逻辑，无需特殊处理
+  // slhbot 提供商走 gemini 逻辑，无需特殊处理
   
   return {
     apiKey: dbConfig.apiKey,
@@ -104,7 +104,7 @@ const ImageGenerationSchema = Type.Object({
     description: '参考图片路径列表（可选，最多5张）。用于风格参考或图片编辑。按顺序使用',
   })),
   outputPath: Type.Optional(Type.String({
-    description: '输出文件路径（可选）。默认保存到 ~/.deepbot/generated-images/',
+    description: '输出文件路径（可选）。默认保存到 ~/.slhbot/generated-images/',
   })),
 });
 
