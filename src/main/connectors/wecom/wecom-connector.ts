@@ -91,26 +91,39 @@ export class WeComConnector implements Connector {
     }
     
     console.log('[WeComConnector] 🚀 开始启动企业微信连接器...');
+    console.log('[WeComConnector]   Corp ID:', this.connectorConfig.corpId.substring(0, 10) + '...');
+    console.log('[WeComConnector]   Agent ID:', this.connectorConfig.agentId);
+    console.log('[WeComConnector]   Require Pairing:', this.connectorConfig.requirePairing);
     
-    // 初始化 WebSocket 客户端
-    this.wsClient = new WeComWSClient({
-      corpId: this.connectorConfig.corpId,
-      agentId: this.connectorConfig.agentId,
-      secret: this.connectorConfig.secret,
-    });
-    
-    // 注册消息回调
-    this.wsClient.on('message', (data: any) => {
-      this.handleIncomingMessage(data).catch((error) => {
-        console.error('[WeComConnector] ❌ 处理消息失败:', error);
+    try {
+      // 初始化 WebSocket 客户端
+      this.wsClient = new WeComWSClient({
+        corpId: this.connectorConfig.corpId,
+        agentId: this.connectorConfig.agentId,
+        secret: this.connectorConfig.secret,
       });
-    });
-    
-    // 启动连接
-    await this.wsClient.start();
-    this.isStarted = true;
-    
-    console.log('[WeComConnector] ✅ 连接器已启动');
+      
+      // 注册消息回调
+      this.wsClient.on('message', (data: any) => {
+        this.handleIncomingMessage(data).catch((error) => {
+          console.error('[WeComConnector] ❌ 处理消息失败:', error);
+        });
+      });
+      
+      // 注册错误回调
+      this.wsClient.on('error', (error: any) => {
+        console.error('[WeComConnector] ❌ WebSocket 客户端错误:', error);
+      });
+      
+      // 启动连接
+      await this.wsClient.start();
+      this.isStarted = true;
+      
+      console.log('[WeComConnector] ✅ 连接器已启动');
+    } catch (error) {
+      console.error('[WeComConnector] ❌ 启动失败:', error);
+      throw error;
+    }
   }
   
   async stop(): Promise<void> {

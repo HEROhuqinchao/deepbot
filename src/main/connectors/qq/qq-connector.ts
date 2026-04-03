@@ -90,25 +90,37 @@ export class QQConnector implements Connector {
     }
     
     console.log('[QQConnector] 🚀 开始启动 QQ 机器人连接器...');
+    console.log('[QQConnector]   App ID:', this.connectorConfig.appId);
+    console.log('[QQConnector]   Require Pairing:', this.connectorConfig.requirePairing);
     
-    // 初始化 WebSocket 客户端
-    this.wsClient = new QQBotWSClient({
-      appId: this.connectorConfig.appId,
-      appSecret: this.connectorConfig.appSecret,
-    });
-    
-    // 注册消息回调
-    this.wsClient.on('message', (data: any) => {
-      this.handleIncomingMessage(data).catch((error) => {
-        console.error('[QQConnector] ❌ 处理消息失败:', error);
+    try {
+      // 初始化 WebSocket 客户端
+      this.wsClient = new QQBotWSClient({
+        appId: this.connectorConfig.appId,
+        appSecret: this.connectorConfig.appSecret,
       });
-    });
-    
-    // 启动连接
-    await this.wsClient.start();
-    this.isStarted = true;
-    
-    console.log('[QQConnector] ✅ 连接器已启动');
+      
+      // 注册消息回调
+      this.wsClient.on('message', (data: any) => {
+        this.handleIncomingMessage(data).catch((error) => {
+          console.error('[QQConnector] ❌ 处理消息失败:', error);
+        });
+      });
+      
+      // 注册错误回调
+      this.wsClient.on('error', (error: any) => {
+        console.error('[QQConnector] ❌ WebSocket 客户端错误:', error);
+      });
+      
+      // 启动连接
+      await this.wsClient.start();
+      this.isStarted = true;
+      
+      console.log('[QQConnector] ✅ 连接器已启动');
+    } catch (error) {
+      console.error('[QQConnector] ❌ 启动失败:', error);
+      throw error;
+    }
   }
   
   async stop(): Promise<void> {

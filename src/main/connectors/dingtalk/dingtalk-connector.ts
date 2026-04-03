@@ -89,25 +89,37 @@ export class DingTalkConnector implements Connector {
     }
     
     console.log('[DingTalkConnector] 🚀 开始启动钉钉连接器...');
+    console.log('[DingTalkConnector]   Client ID:', this.connectorConfig.clientId.substring(0, 8) + '...');
+    console.log('[DingTalkConnector]   Require Pairing:', this.connectorConfig.requirePairing);
     
-    // 初始化 Stream 客户端
-    this.streamClient = new DingTalkStreamClient({
-      clientId: this.connectorConfig.clientId,
-      clientSecret: this.connectorConfig.clientSecret,
-    });
-    
-    // 注册消息回调
-    this.streamClient.on('message', (data: any) => {
-      this.handleIncomingMessage(data).catch((error) => {
-        console.error('[DingTalkConnector] ❌ 处理消息失败:', error);
+    try {
+      // 初始化 Stream 客户端
+      this.streamClient = new DingTalkStreamClient({
+        clientId: this.connectorConfig.clientId,
+        clientSecret: this.connectorConfig.clientSecret,
       });
-    });
-    
-    // 启动连接
-    await this.streamClient.start();
-    this.isStarted = true;
-    
-    console.log('[DingTalkConnector] ✅ 连接器已启动');
+      
+      // 注册消息回调
+      this.streamClient.on('message', (data: any) => {
+        this.handleIncomingMessage(data).catch((error) => {
+          console.error('[DingTalkConnector] ❌ 处理消息失败:', error);
+        });
+      });
+      
+      // 注册错误回调
+      this.streamClient.on('error', (error: any) => {
+        console.error('[DingTalkConnector] ❌ Stream 客户端错误:', error);
+      });
+      
+      // 启动连接
+      await this.streamClient.start();
+      this.isStarted = true;
+      
+      console.log('[DingTalkConnector] ✅ 连接器已启动');
+    } catch (error) {
+      console.error('[DingTalkConnector] ❌ 启动失败:', error);
+      throw error;
+    }
   }
   
   async stop(): Promise<void> {

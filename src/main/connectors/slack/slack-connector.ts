@@ -89,25 +89,38 @@ export class SlackConnector implements Connector {
     }
     
     console.log('[SlackConnector] 🚀 开始启动 Slack 连接器...');
+    console.log('[SlackConnector]   Bot Token:', this.connectorConfig.botToken.substring(0, 10) + '...');
+    console.log('[SlackConnector]   App Token:', this.connectorConfig.appToken.substring(0, 10) + '...');
+    console.log('[SlackConnector]   Require Pairing:', this.connectorConfig.requirePairing);
     
-    // 初始化 Socket Mode 客户端
-    this.wsClient = new SlackSocketClient({
-      appToken: this.connectorConfig.appToken,
-      botToken: this.connectorConfig.botToken,
-    });
-    
-    // 注册消息回调
-    this.wsClient.on('message', (data: any) => {
-      this.handleIncomingMessage(data).catch((error) => {
-        console.error('[SlackConnector] ❌ 处理消息失败:', error);
+    try {
+      // 初始化 Socket Mode 客户端
+      this.wsClient = new SlackSocketClient({
+        appToken: this.connectorConfig.appToken,
+        botToken: this.connectorConfig.botToken,
       });
-    });
-    
-    // 启动连接
-    await this.wsClient.start();
-    this.isStarted = true;
-    
-    console.log('[SlackConnector] ✅ 连接器已启动');
+      
+      // 注册消息回调
+      this.wsClient.on('message', (data: any) => {
+        this.handleIncomingMessage(data).catch((error) => {
+          console.error('[SlackConnector] ❌ 处理消息失败:', error);
+        });
+      });
+      
+      // 注册错误回调
+      this.wsClient.on('error', (error: any) => {
+        console.error('[SlackConnector] ❌ Socket 客户端错误:', error);
+      });
+      
+      // 启动连接
+      await this.wsClient.start();
+      this.isStarted = true;
+      
+      console.log('[SlackConnector] ✅ 连接器已启动');
+    } catch (error) {
+      console.error('[SlackConnector] ❌ 启动失败:', error);
+      throw error;
+    }
   }
   
   async stop(): Promise<void> {

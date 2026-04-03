@@ -77,6 +77,9 @@ export class DingTalkStreamClient extends EventEmitter {
    */
   private async fetchAccessToken(): Promise<void> {
     try {
+      console.log('[DingTalkStream] 🔄 正在获取 AccessToken...');
+      console.log('[DingTalkStream]   Client ID:', this.config.clientId.substring(0, 8) + '...');
+      
       const response = await fetch('https://api.dingtalk.com/v1.0/oauth2/accessToken', {
         method: 'POST',
         headers: {
@@ -90,12 +93,17 @@ export class DingTalkStreamClient extends EventEmitter {
       
       const data = await response.json() as any;
       
+      console.log('[DingTalkStream] 📥 API 响应:', JSON.stringify(data, null, 2));
+      
       if (data.code !== 0 || !data.accessToken) {
-        throw new Error(data.message || '获取 AccessToken 失败');
+        const errorMsg = data.message || `获取 AccessToken 失败 (code: ${data.code})`;
+        console.error('[DingTalkStream] ❌ API 返回错误:', errorMsg);
+        throw new Error(errorMsg);
       }
       
       this.accessToken = data.accessToken;
       console.log('[DingTalkStream] ✅ AccessToken 获取成功');
+      console.log('[DingTalkStream]   过期时间:', data.expireIn, '秒');
     } catch (error) {
       console.error('[DingTalkStream] ❌ 获取 AccessToken 失败:', error);
       throw error;
