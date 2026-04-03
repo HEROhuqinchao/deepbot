@@ -121,6 +121,16 @@ export function savePairingRecord(
   userName?: string,
   openId?: string
 ): void {
+  // 安全检查：确保必要参数有效
+  if (!connectorId || !userId || !pairingCode) {
+    console.warn('[connector-config] savePairingRecord: 参数无效', { 
+      connectorId, 
+      userId: typeof userId === 'string' ? userId.substring(0, 30) + '...' : typeof userId,
+      pairingCode 
+    });
+    return;
+  }
+  
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO connector_pairing 
     (connector_id, user_id, pairing_code, approved, created_at, user_name, open_id)
@@ -128,7 +138,12 @@ export function savePairingRecord(
   `);
 
   stmt.run(connectorId, userId, pairingCode, Date.now(), userName ?? null, openId ?? null);
-  console.info('[SystemConfigStore] ✅ Pairing 记录已保存:', { connectorId, userId, pairingCode, userName, openId });
+  console.info('[SystemConfigStore] ✅ Pairing 记录已保存:', { 
+    connectorId, 
+    userId: userId.substring(0, 30) + '...', 
+    pairingCode, 
+    userName 
+  });
 }
 
 /**
@@ -167,6 +182,15 @@ export function getPairingRecordByUser(
   userId: string
 ): { pairingCode: string; approved: boolean } | null {
   try {
+    // 安全检查：确保参数有效
+    if (!connectorId || !userId) {
+      console.warn('[connector-config] getPairingRecordByUser: 参数无效', { 
+        connectorId, 
+        userId: typeof userId === 'string' ? userId.substring(0, 30) + '...' : typeof userId 
+      });
+      return null;
+    }
+    
     const stmt = db.prepare(`
       SELECT pairing_code, approved FROM connector_pairing 
       WHERE connector_id = ? AND user_id = ?

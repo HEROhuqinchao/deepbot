@@ -172,13 +172,49 @@ export class DingTalkConnector implements Connector {
     try {
       // 解析钉钉消息格式
       // 参考: https://open.dingtalk.com/document/orgapp/receive-message
-      const senderId = event.senderId || event.sender?.senderId;
-      const senderName = event.senderNick || event.sender?.senderNick || `用户_${senderId?.slice(-8)}`;
-      const conversationId = event.conversationId || event.chatId;
-      const conversationType = event.conversationType || 'p2p';
-      const messageId = event.messageId || event.msgId;
-      const msgType = event.msgType || event.messageType || 'text';
-      const content = event.content || event.text || '';
+      // 钉钉 Stream 模式消息字段：
+      // - senderId: 发送者 LWCP ID (格式: $:LWCP_v1:$xxx) - 用于标识用户
+      // - senderStaffId: 发送者员工 ID - 用于单聊消息回复
+      // - senderNick: 发送者昵称
+      // - conversationId: 会话 ID
+      // - conversationType: "1" = 单聊, "2" = 群聊
+      // - msgId: 消息 ID
+      // - msgtype: 消息类型
+      // - text.content: 文本内容
+      
+      const senderId = event.senderId; // LWCP ID，用于标识用户
+      const senderStaffId = event.senderStaffId; // 员工 ID，用于单聊回复
+      const senderName = event.senderNick || `用户_${(senderId || '').slice(-8)}`;
+      
+      // 判断会话类型
+      const conversationType = event.conversationType === '2' ? 'group' : 'p2p';
+      
+      // 用于回复的会话 ID：
+      // - 单聊：使用 senderStaffId（员工 ID）
+      // - 群聊：使用 conversationId
+      let replyConversationId: string;
+      if (conversationType === 'group') {
+        replyConversationId = event.conversationId || event.openThreadId;
+      } else {
+        // 单聊必须使用 senderStaffId，不能用 senderId
+        replyConversationId = senderStaffId || senderId;
+      }
+      
+      const messageId = event.msgId || event.messageId;
+      const msgType = event.msgtype || event.msgType || 'text';
+      const content = event.text?.content || event.content || event.text || '';
+      
+      console.log('[DingTalkConnector] 📩 解析消息:', {
+        senderId: senderId?.substring(0, 30) + '...',
+        senderStaffId,
+        senderName,
+        conversationId: replyConversationId?.substring(0, 20) + '...',
+        conversationType,
+        messageId,
+        msgType,
+        content: content?.substring(0, 50),
+        rawConversationType: event.conversationType,
+      });
       
       // 构建内部消息格式
       const dingtalkMessage: DingTalkIncomingMessage = {
@@ -187,10 +223,11 @@ export class DingTalkConnector implements Connector {
         sender: {
           id: senderId,
           name: senderName,
+          staffId: senderStaffId, // 保存员工 ID 用于回复
         },
         conversation: {
-          id: conversationId,
-          type: conversationType === 'group' ? 'group' : 'p2p',
+          id: replyConversationId,
+          type: conversationType,
         },
         content: {
           type: msgType === 'picture' ? 'image' : msgType === 'file' ? 'file' : 'text',
@@ -198,7 +235,7 @@ export class DingTalkConnector implements Connector {
         },
         mentions: {
           isBotMentioned: this.checkBotMention(event),
-          mentionList: event.atUserIds || [],
+          mentionList: event.atUsers?.map((u: any) => u.dingtalkId || u.userId) || [],
         },
         raw: event,
       };
@@ -273,9 +310,13 @@ export class DingTalkConnector implements Connector {
    * 检查是否 @ 了机器人
    */
   private checkBotMention(event: any): boolean {
-    const atUserIds = event.atUserIds || [];
-    const atMobiles = event.atMobiles || [];
-    return atUserIds.length > 0 || atMobiles.length > 0 || event.isInAtList === true;
+    // 钉钉消息格式：
+    // - atUsers: 数组，包含被 @ 用户信息
+    // - isInAtList: 是否在 @ 列表中
+    const atUsers = event.atUsers || [];
+    const isInAtList = event.isInAtList === true;
+    // 如果有 atUsers 且不为空，或者 isInAtList 为 true，则表示机器人被 @
+    return atUsers.length > 0 || isInAtList;
   }
   
   /**
@@ -285,7 +326,10 @@ export class DingTalkConnector implements Connector {
     // 私聊：根据配置决定是否需要配对授权
     if (message.conversation.type === 'p2p') {
       if (this.connectorConfig.requirePairing !== true) {
-        this.autoApproveUser(message.sender.id, message.sender.name);
+        // 确保 sender.id 有效
+        if (message.sender.id) {
+          this.autoApproveUser(message.sender.id, message.sender.name);
+        }
         return true;
       }
       return this.pairing!.verifyPairingCode(message.sender.id);
@@ -303,6 +347,12 @@ export class DingTalkConnector implements Connector {
    * 自动批准用户
    */
   private autoApproveUser(userId: string, userName?: string): void {
+    // 安全检查：确保 userId 有效
+    if (!userId || typeof userId !== 'string') {
+      console.warn('[DingTalkConnector] autoApproveUser: userId 无效', { userId });
+      return;
+    }
+    
     const store = SystemConfigStore.getInstance();
     if (store.getPairingRecordByUser('dingtalk', userId)) return;
     
@@ -316,7 +366,10 @@ export class DingTalkConnector implements Connector {
       store.setAdminPairing('dingtalk', userId, true);
     }
     
-    console.log('[DingTalkConnector] 🔓 免配对模式：用户已自动加入', { userId, userName });
+    console.log('[DingTalkConnector] 🔓 免配对模式：用户已自动加入', { 
+      userId: userId.substring(0, 30) + '...', 
+      userName 
+    });
   }
   
   // ========== 消息发送 ==========

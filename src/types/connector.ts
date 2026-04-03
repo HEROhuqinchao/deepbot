@@ -227,9 +227,10 @@ export interface DingTalkIncomingMessage {
   messageId: string;
   timestamp: number;
   sender: {
-    id: string;
+    id: string;           // LWCP ID (格式: $:LWCP_v1:$xxx)
     name: string;
     avatar?: string;
+    staffId?: string;     // 员工 ID，用于单聊消息回复
   };
   conversation: {
     id: string;
