@@ -41,7 +41,7 @@ async function testDingTalkCredentials(clientId, clientSecret) {
 // 1. 从 DeepBot 配置页面复制 Client ID 和 Client Secret
 // 2. 修改下面的值并运行此脚本
 
-const CLIENT_ID = 'ding48tgyrmczmj3hfzt';
-const CLIENT_SECRET = 'Fu7L2jCvwY_purCA6rT2UdRRe2DUD_qjhMUKQLHAt9sjTgBvhVrFYls_DiSYEZgu';
+const CLIENT_ID = 'ding48xxxxxxxxxxxxxx';
+const CLIENT_SECRET = 'Fu7L2jCvwY_purCA6rT2UdRRexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 
 testDingTalkCredentials(CLIENT_ID, CLIENT_SECRET);
