@@ -8,6 +8,8 @@ import type {
   SaveModelConfigResponse,
   TestModelConfigRequest,
   TestModelConfigResponse,
+  FetchModelsRequest,
+  FetchModelsResponse,
 } from '../../types/ipc';
 import type { Gateway } from '../gateway';
 import { getErrorMessage } from '../../shared/utils/error-handler';
@@ -124,100 +126,104 @@ export function registerModelConfigHandlers(): void {
           apiKeyLength: request.config.apiKey?.length,
         });
 
-        // 验证必要参数
         if (!request.config.apiKey) {
           throw new Error('API Key 不能为空');
         }
-
         if (!request.config.baseUrl) {
           throw new Error('API 地址不能为空');
         }
-
         if (!request.config.modelId) {
           throw new Error('模型 ID 不能为空');
         }
 
-        // 动态导入 pi-ai（ESM 模块）
-        // eslint-disable-next-line no-eval
-        const piAI = await eval('import("@mariozechner/pi-ai")');
-        
-        // 创建测试模型（根据 API 类型）
         const apiType = request.config.apiType || 'openai-completions';
-        const model = apiType === 'google-generative-ai' ? {
-          api: 'google-generative-ai' as const,
-          id: request.config.modelId,
-          name: request.config.modelId, // 使用 modelId 作为名称
-          provider: request.config.providerId,
-          input: ['text', 'image'] as const,
-          reasoning: false,
-          baseUrl: request.config.baseUrl,
-          contextWindow: 32768,
-          maxTokens: 8192,
-          cost: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        } : {
-          api: 'openai-completions' as const,
-          id: request.config.modelId,
-          name: request.config.modelId, // 使用 modelId 作为名称
-          provider: request.config.providerId,
-          input: ['text'] as const,
-          reasoning: false,
-          baseUrl: request.config.baseUrl,
-          contextWindow: 8192,
-          maxTokens: 8192,
-          cost: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        };
+        const baseUrl = request.config.baseUrl.replace(/\/$/, '');
 
-        console.log('[ModelConfigHandler] 创建的模型配置:', model);
-        
-        // 发送测试请求
-        const response = await piAI.complete({
-          model,
-          messages: [
-            { role: 'user', content: 'Hello' }
-          ],
-          temperature: 0.7,
-          apiKey: request.config.apiKey, // 直接传递 apiKey，而不是 getApiKey 函数
-        });
-        
-        // 读取响应（验证连接）
-        let hasContent = false;
-        for await (const chunk of response) {
-          if (typeof chunk === 'string' && chunk.length > 0) {
-            hasContent = true;
-            console.log('[ModelConfigHandler] 收到响应内容，长度:', chunk.length);
-            break;
+        if (apiType === 'google-generative-ai') {
+          const url = `${baseUrl}/models/${request.config.modelId}:generateContent?key=${request.config.apiKey}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: 'Hello' }] }],
+            }),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error?.message || `请求失败 (${res.status})`);
+          }
+        } else {
+          const url = `${baseUrl}/chat/completions`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${request.config.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: request.config.modelId,
+              messages: [{ role: 'user', content: 'Hello' }],
+              max_tokens: 2,
+            }),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error?.message || `请求失败 (${res.status})`);
+          }
+          const data = await res.json();
+          if (!data.choices || data.choices.length === 0) {
+            throw new Error('API 返回空响应');
           }
         }
-        
-        if (!hasContent) {
-          throw new Error('API 返回空响应');
-        }
-        
+
         console.log('[ModelConfigHandler] ✅ 测试连接成功');
-        return {
-          success: true,
-        };
+        return { success: true };
       } catch (error) {
         console.error('[ModelConfigHandler] 测试模型配置失败:', error);
-        
-        let errorMessage = '连接测试失败';
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        }
-        
         return {
           success: false,
-          error: errorMessage,
+          error: error instanceof Error ? error.message : '连接测试失败',
+        };
+      }
+    }
+  );
+
+  // 获取远程模型列表（通过主进程代理，避免 CORS）
+  registerIpcHandler<FetchModelsRequest, FetchModelsResponse>(
+    'model-config:fetch-models',
+    async (_event, request): Promise<FetchModelsResponse> => {
+      try {
+        if (!request.apiKey) {
+          throw new Error('API Key 不能为空');
+        }
+        if (!request.baseUrl) {
+          throw new Error('API 地址不能为空');
+        }
+        const modelsUrl = request.baseUrl.replace(/\/$/, '') + '/models';
+        const res = await fetch(modelsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${request.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!res.ok) {
+          const errText = await res.text().catch(() => '');
+          throw new Error(`请求失败 (${res.status}): ${errText}`);
+        }
+        const data = await res.json();
+        const models = (data?.data || [])
+          .filter((m: any) => m?.id && typeof m.id === 'string')
+          .sort((a: any, b: any) => a.id.localeCompare(b.id));
+        return {
+          success: true,
+          models,
+        };
+      } catch (error) {
+        console.error('[ModelConfigHandler] 获取模型列表失败:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : '获取模型列表失败',
         };
       }
     }

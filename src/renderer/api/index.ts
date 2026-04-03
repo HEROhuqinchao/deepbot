@@ -58,6 +58,49 @@ export const api = {
     return { success: true };
   },
 
+  async fetchModels(baseUrl: string, apiKey: string): Promise<any> {
+    if (isElectron()) return (window as any).electron.ipcRenderer.invoke('model-config:fetch-models', { baseUrl, apiKey });
+    // Web 模式：直接前端请求（依赖服务端 CORS）
+    const res = await fetch(baseUrl.replace(/\/$/, '') + '/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`请求失败 (${res.status}): ${errText}`);
+    }
+    const data = await res.json();
+    return {
+      success: true,
+      models: (data?.data || []).filter((m: any) => m?.id && typeof m.id === 'string'),
+    };
+  },
+
+  async testModelConfig(config: any): Promise<any> {
+    if (isElectron()) return (window as any).electron.ipcRenderer.invoke('model-config:test', { config });
+    // Web 模式：直接前端发一个简单 completion 测试
+    const res = await fetch(config.baseUrl.replace(/\/$/, '') + '/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: config.modelId,
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `请求失败 (${res.status})`);
+    }
+    return { success: true };
+  },
+
   async getTabAgentName(tabId: string): Promise<{ success: boolean; agentName: string; userName: string; error?: string }> {
     if (isElectron()) return (window as any).slhbot.getTabAgentName(tabId);
     const config = await webClient.getConfig();

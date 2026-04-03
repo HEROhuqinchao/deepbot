@@ -43,6 +43,7 @@ export const IPC_CHANNELS = {
   GET_MODEL_CONFIG: 'model-config:get',
   SAVE_MODEL_CONFIG: 'model-config:save',
   TEST_MODEL_CONFIG: 'model-config:test',
+  FETCH_MODELS: 'model-config:fetch-models',
   
   // 图片读取
   READ_IMAGE: 'image:read',
@@ -262,6 +263,17 @@ export interface TestModelConfigRequest {
 
 export interface TestModelConfigResponse {
   success: boolean;
+  error?: string;
+}
+
+export interface FetchModelsRequest {
+  baseUrl: string;
+  apiKey: string;
+}
+
+export interface FetchModelsResponse {
+  success: boolean;
+  models?: Array<{ id: string; object?: string; created?: number; owned_by?: string }>;
   error?: string;
 }
 
