@@ -32,13 +32,7 @@ jobs:
         run: pnpm install
 
       - name: Build and Package Mac
-        run: pnpm run dist:mac
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: pnpm run dist:mac:local
 
       - name: Upload Mac artifacts
         uses: actions/upload-artifact@v4
@@ -69,9 +63,6 @@ jobs:
 
       - name: Build and Package Windows
         run: pnpm run dist:win
-        env:
-          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
