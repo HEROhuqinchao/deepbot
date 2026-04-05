@@ -173,13 +173,8 @@
         }
       ],
       "identity": null,
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "signIgnore": [
-        "\\.json$"
-      ],
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
     },
     "win": {
       "icon": "icon.png",
