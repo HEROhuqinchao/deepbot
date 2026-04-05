@@ -33,6 +33,8 @@ jobs:
 
       - name: Build and Package Mac
         run: pnpm run dist:mac:local
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload Mac artifacts
         uses: actions/upload-artifact@v4

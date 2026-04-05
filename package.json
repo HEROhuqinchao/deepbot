@@ -121,7 +121,11 @@
       "mirror": "https://npmmirror.com/mirrors/electron/",
       "cache": "~/Library/Caches/electron"
     },
-    "asar": false,
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/agent-browser/bin/**/*",
+      "node_modules/playwright-core/**/*"
+    ],
     "afterPack": "scripts/after-pack.js",
     "afterSign": "scripts/after-sign.js",
     "compression": "normal",
