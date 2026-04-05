@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       upstream_repo:
-        description: '上游仓库地址 (默认: git@github.com:kevinluosl/deepbot)'
+        description: '上游仓库地址 (默认: kevinluosl/deepbot)'
         required: false
-        default: 'git@github.com:kevinluosl/deepbot'
+        default: 'kevinluosl/deepbot'
       upstream_branch:
         description: '上游分支 (默认: main)'
         required: false
@@ -38,7 +38,7 @@ jobs:
 
       - name: Add upstream remote
         run: |
-          UPSTREAM_REPO="${{ github.event.inputs.upstream_repo || 'git@github.com:kevinluosl/deepbot' }}"
+          UPSTREAM_REPO="${{ github.event.inputs.upstream_repo || 'kevinluosl/deepbot' }}"
           git remote add upstream "https://github.com/${UPSTREAM_REPO}.git" || true
           git fetch upstream
 
