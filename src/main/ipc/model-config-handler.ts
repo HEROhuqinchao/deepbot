@@ -36,6 +36,24 @@ function getConfigStore(): SystemConfigStore {
   return configStore;
 }
 
+interface ApiErrorResponse {
+  error?: {
+    message?: string;
+  };
+}
+
+interface ChatCompletionResponse {
+  choices?: unknown[];
+}
+
+interface ModelItem {
+  id?: string;
+}
+
+interface ModelsResponse {
+  data?: ModelItem[];
+}
+
 /**
  * 注册模型配置 IPC 处理器
  */
@@ -47,7 +65,7 @@ export function registerModelConfigHandlers(): void {
       try {
         const store = getConfigStore();
         const config = store.getModelConfig();
-        
+
         return {
           success: true,
           config: config || undefined,
@@ -68,38 +86,38 @@ export function registerModelConfigHandlers(): void {
     async (event, request): Promise<SaveModelConfigResponse> => {
       try {
         const store = getConfigStore();
-        
-        // 🔥 从模型映射表推断上下文窗口大小
+
+        // 从模型映射表推断上下文窗口大小
         const { getContextWindowFromModelId } = await import('../utils/model-info-fetcher');
         const inferredContextWindow = getContextWindowFromModelId(request.config.modelId);
-        
+
         // 如果用户没有手动设置，使用推断值
         const contextWindow = request.config.contextWindow || inferredContextWindow;
-        
+
         console.log('[ModelConfigHandler] 上下文窗口:', {
           modelId: request.config.modelId,
           inferred: inferredContextWindow,
           userProvided: request.config.contextWindow,
           final: contextWindow,
         });
-        
+
         // 保存配置
         const configToSave = {
           ...request.config,
           contextWindow,
           lastFetched: Date.now(),
         };
-        
+
         store.saveModelConfig(configToSave);
-        
-        // 🔥 重新加载 Gateway 的模型配置
+
+        // 重新加载 Gateway 的模型配置
         if (gatewayInstance) {
           await gatewayInstance.reloadModelConfig();
         }
-        
-        // 🔥 通知前端配置已更新
+
+        // 通知前端配置已更新
         event.sender.send('model-config:updated', { success: true });
-        
+
         return {
           success: true,
         };
@@ -137,7 +155,7 @@ export function registerModelConfigHandlers(): void {
         }
 
         const apiType = request.config.apiType || 'openai-completions';
-        const baseUrl = request.config.baseUrl.replace(/\/$/, '');
+        const baseUrl = request.config.baseUrl.replace(/\/+$/, '');
 
         if (apiType === 'google-generative-ai') {
           const url = `${baseUrl}/models/${request.config.modelId}:generateContent?key=${request.config.apiKey}`;
@@ -149,7 +167,7 @@ export function registerModelConfigHandlers(): void {
             }),
           });
           if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
+            const err = await res.json().catch(() => ({})) as ApiErrorResponse;
             throw new Error(err.error?.message || `请求失败 (${res.status})`);
           }
         } else {
@@ -167,16 +185,16 @@ export function registerModelConfigHandlers(): void {
             }),
           });
           if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
+            const err = await res.json().catch(() => ({})) as ApiErrorResponse;
             throw new Error(err.error?.message || `请求失败 (${res.status})`);
           }
-          const data = await res.json();
+          const data = await res.json() as ChatCompletionResponse;
           if (!data.choices || data.choices.length === 0) {
             throw new Error('API 返回空响应');
           }
         }
 
-        console.log('[ModelConfigHandler] ✅ 测试连接成功');
+        console.log('[ModelConfigHandler] 测试连接成功');
         return { success: true };
       } catch (error) {
         console.error('[ModelConfigHandler] 测试模型配置失败:', error);
@@ -199,7 +217,7 @@ export function registerModelConfigHandlers(): void {
         if (!request.baseUrl) {
           throw new Error('API 地址不能为空');
         }
-        const modelsUrl = request.baseUrl.replace(/\/$/, '') + '/models';
+        const modelsUrl = request.baseUrl.replace(/\/+$/, '') + '/models';
         const res = await fetch(modelsUrl, {
           method: 'GET',
           headers: {
@@ -211,10 +229,10 @@ export function registerModelConfigHandlers(): void {
           const errText = await res.text().catch(() => '');
           throw new Error(`请求失败 (${res.status}): ${errText}`);
         }
-        const data = await res.json();
+        const data = await res.json() as ModelsResponse;
         const models = (data?.data || [])
-          .filter((m: any) => m?.id && typeof m.id === 'string')
-          .sort((a: any, b: any) => a.id.localeCompare(b.id));
+          .filter((m: ModelItem): m is ModelItem & { id: string } => !!m?.id && typeof m.id === 'string')
+          .sort((a, b) => a.id.localeCompare(b.id));
         return {
           success: true,
           models,
@@ -229,5 +247,5 @@ export function registerModelConfigHandlers(): void {
     }
   );
 
-  console.info('[ModelConfigHandler] ✅ 模型配置 IPC 处理器已注册');
+  console.info('[ModelConfigHandler] 模型配置 IPC 处理器已注册');
 }
