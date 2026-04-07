@@ -109,13 +109,5 @@ ENV PATH="/data/scripts/bin:/data/scripts/npm-global/bin:$PATH"
 # Web server 端口
 EXPOSE 3000
 
-# 创建启动脚本
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-# 启动服务\n\
-exec node dist-server/server/index.js\n\
-' > /app/start.sh && chmod +x /app/start.sh
-
 # 启动命令
-CMD ["/app/start.sh"]
+CMD ["node", "dist-server/server/index.js"]

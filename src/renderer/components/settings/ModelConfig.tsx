@@ -30,14 +30,14 @@ interface ModelConfigProps {
 
 export function ModelConfig({ onClose }: ModelConfigProps) {
   const [config, setConfig] = useState<ModelConfig>({
-    providerType: 'qwen',
-    providerId: 'qwen',
-    providerName: '通义千问',
-    baseUrl: PROVIDER_PRESETS.qwen.baseUrl,
-    modelId: PROVIDER_PRESETS.qwen.defaultModelId,
-    modelId2: PROVIDER_PRESETS.qwen.defaultModelId2,  // 设置快速模型默认值
-    modelName: PROVIDER_PRESETS.qwen.defaultModelId,
-    apiType: PROVIDER_PRESETS.qwen.apiType,
+    providerType: 'deepbot',
+    providerId: 'deepbot',
+    providerName: 'DeepBot',
+    baseUrl: PROVIDER_PRESETS.deepbot.baseUrl,
+    modelId: PROVIDER_PRESETS.deepbot.defaultModelId,
+    modelId2: PROVIDER_PRESETS.deepbot.defaultModelId2,  // 设置快速模型默认值
+    modelName: PROVIDER_PRESETS.deepbot.defaultModelId,
+    apiType: PROVIDER_PRESETS.deepbot.apiType,
     apiKey: '',
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -65,7 +65,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
         // 确保 providerType 和 apiType 字段存在（兼容旧数据）
         const loadedConfig = {
           ...actualResult.config,
-          providerType: actualResult.config.providerType || 'qwen',
+          providerType: actualResult.config.providerType || 'deepbot',
           apiType: actualResult.config.apiType || 'openai-completions',
         };
         setConfig(loadedConfig);
