@@ -65,7 +65,7 @@ export class AgentInitializer {
     console.log('✅ Agent 实例创建完成');
     
     // 使用串行工具执行，避免并发工具调用导致的依赖问题
-    agent.setToolExecution('sequential');
+    agent.state.toolExecution = 'sequential';
     
     return { agent, tools };
   }
@@ -123,7 +123,7 @@ export class AgentInitializer {
       const systemPrompt = await buildSystemPrompt(promptParams, this.sessionId);
       
       // 更新 Agent 的系统提示词
-      agent.setSystemPrompt(systemPrompt);
+      agent.state.systemPrompt = systemPrompt;
       
       return systemPrompt;
     } catch (error) {
@@ -131,7 +131,7 @@ export class AgentInitializer {
       
       // 使用最小提示词作为降级
       const fallbackPrompt = '你是 DEEPBOT MATRIX TERMINAL，一个运行在桌面的 AI 助手。';
-      agent.setSystemPrompt(fallbackPrompt);
+      agent.state.systemPrompt = fallbackPrompt;
       
       return fallbackPrompt;
     }
@@ -173,7 +173,7 @@ export class AgentInitializer {
     console.log('✅ Agent 实例已重新创建');
     
     // 使用串行工具执行
-    agent.setToolExecution('sequential');
+    agent.state.toolExecution = 'sequential';
     
     return agent;
   }

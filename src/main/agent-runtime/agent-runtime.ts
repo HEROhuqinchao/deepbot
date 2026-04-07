@@ -443,7 +443,7 @@ export class AgentRuntime {
     // 检查是否卡在 streaming 状态
     if (agent.state.isStreaming) {
       console.warn('[AgentRuntime] ⚠️ 检测到 Agent 卡在 streaming 状态，重置...');
-      agent.state.isStreaming = false;
+      agent.reset();
     }
     
     // 🔥 如果 MessageHandler 认为还在生成，但实际上可能已经卡住了
@@ -546,7 +546,7 @@ export class AgentRuntime {
       try {
         // 清空消息历史，重置内部状态
         this.instanceManager.agent.state.messages = [];
-        this.instanceManager.agent.state.isStreaming = false;
+        this.instanceManager.agent.reset();
         
         console.log('[AgentRuntime] 🔄 Agent 状态已重置');
       } catch (error) {
