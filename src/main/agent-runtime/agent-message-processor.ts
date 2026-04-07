@@ -10,6 +10,7 @@
 
 import { callAI } from '../utils/ai-client';
 import { getErrorMessage } from '../../shared/utils/error-handler';
+import { estimateTextTokens } from '../utils/token-estimator';
 import type { AgentRuntimeConfig, AgentInstanceManager } from './types';
 import { MessageHandler } from './message-handler';
 import { wrapToolWithAbortSignal, OperationTracker } from '../tools/tool-abort';
@@ -277,37 +278,32 @@ ${tailResponse}
       
       const conversationRounds = Math.min(userMessageCount, assistantMessageCount);
       
-      // 简单的 token 估算函数（4 个字符 ≈ 1 token）
-      const estimateStringTokens = (text: string): number => {
-        return Math.ceil(text.length / 4);
-      };
-      
       // 计算系统提示词 token
-      const systemPromptTokens = estimateStringTokens(actualSystemPrompt);
+      const systemPromptTokens = estimateTextTokens(actualSystemPrompt);
       
       // 计算所有消息的 token（包括工具调用）
       let messagesTokens = 0;
       for (const msg of messages) {
         if (typeof msg.content === 'string') {
-          messagesTokens += estimateStringTokens(msg.content);
+          messagesTokens += estimateTextTokens(msg.content);
         } else if (Array.isArray(msg.content)) {
           for (const part of msg.content) {
             if (typeof part === 'string') {
-              messagesTokens += estimateStringTokens(part);
+              messagesTokens += estimateTextTokens(part);
             } else if (typeof part === 'object' && part) {
               // 对于对象类型的内容（如 toolCall、toolResult），序列化后计算
-              messagesTokens += estimateStringTokens(JSON.stringify(part));
+              messagesTokens += estimateTextTokens(JSON.stringify(part));
             }
           }
         }
       }
       
       // 计算新消息的 token
-      const newMessageTokens = estimateStringTokens(enhancedContent);
+      const newMessageTokens = estimateTextTokens(enhancedContent);
       
       // 计算工具定义的 token
       const toolsJson = JSON.stringify(actualTools);
-      const toolsTokens = estimateStringTokens(toolsJson);
+      const toolsTokens = estimateTextTokens(toolsJson);
       
       // 总 token = 系统提示词 + 历史消息 + 新消息 + 工具定义
       const totalTokens = systemPromptTokens + messagesTokens + newMessageTokens + toolsTokens;

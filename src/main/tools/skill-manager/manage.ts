@@ -90,7 +90,7 @@ export function listInstalledSkills(
             
             console.log(`[Skill Manager] 自动注册 Skill: ${dir}`);
           } catch (error) {
-            console.warn(`[Skill Manager] 无法解析 Skill: ${dir}`, error);
+            console.warn(`[Skill Manager] ⚠️ 跳过无效 Skill: ${dir}（${error instanceof Error ? error.message : '未知错误'}）`);
           }
         }
       }

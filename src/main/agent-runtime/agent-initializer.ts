@@ -64,6 +64,25 @@ export class AgentInitializer {
     
     console.log('✅ Agent 实例创建完成');
     
+    // 拦截 fetch 请求，记录 API 错误响应（只拦截一次）
+    if (!(globalThis.fetch as any).__deepbotIntercepted) {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = async (input: any, init?: any) => {
+        const response = await originalFetch(input, init);
+        const url = typeof input === 'string' ? input : input?.url || '';
+        if (!response.ok && (url.includes('chat/completions') || url.includes(this.model.baseUrl || ''))) {
+          console.error(`🌐 API 错误: ${response.status} ${response.statusText} - ${url}`);
+          try {
+            const cloned = response.clone();
+            const errorText = await cloned.text();
+            console.error(`🌐 错误详情: ${errorText.substring(0, 1000)}`);
+          } catch (_e) { /* 忽略 */ }
+        }
+        return response;
+      };
+      (globalThis.fetch as any).__deepbotIntercepted = true;
+    }
+    
     // 使用串行工具执行，避免并发工具调用导致的依赖问题
     agent.state.toolExecution = 'sequential';
     
