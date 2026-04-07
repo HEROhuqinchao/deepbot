@@ -76,6 +76,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 移除 PEP 668 限制标记，允许 pip install --user 正常工作
 RUN rm -f /usr/lib/python*/EXTERNALLY-MANAGED
 
+# 创建 python -> python3 软链接
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+
 WORKDIR /app
 
 # 从构建阶段复制产物（只复制生产依赖）

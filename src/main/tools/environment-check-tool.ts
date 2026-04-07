@@ -46,13 +46,14 @@ function checkCommand(command: string): { installed: boolean; version?: string; 
       env: { ...process.env, PATH: fullPath },
     }).trim();
 
-    // 检查路径（Windows 使用 where，Unix 使用 which）
-    const pathCommand = isWindows ? 'where' : 'which';
+    // 检查路径（Windows 使用 where，Unix 使用 command -v）
+    const pathCommand = isWindows ? 'where' : 'command -v';
     const pathOutput = execSync(`${pathCommand} ${command}`, { 
       encoding: 'utf-8',
       timeout: TIMEOUTS.COMMAND_EXECUTION_TIMEOUT,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...process.env, PATH: fullPath },
+      shell: isWindows ? undefined : '/bin/sh',
     }).trim();
 
     return {
