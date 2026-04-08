@@ -23,9 +23,9 @@ interface WebSearchToolConfigProps {
 
 export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
   const [config, setConfig] = useState<WebSearchToolConfig>({
-    provider: 'qwen',
-    model: WEB_SEARCH_PROVIDER_PRESETS.qwen.defaultModelId,
-    apiUrl: WEB_SEARCH_PROVIDER_PRESETS.qwen.baseUrl,
+    provider: 'deepbot',
+    model: WEB_SEARCH_PROVIDER_PRESETS.deepbot.defaultModelId,
+    apiUrl: WEB_SEARCH_PROVIDER_PRESETS.deepbot.baseUrl,
     apiKey: '',
   });
   const [isSaving, setIsSaving] = useState(false);

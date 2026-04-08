@@ -10,9 +10,29 @@ import { getContextWindowFromModelId } from './model-info-fetcher';
 /**
  * Token 估算常量
  */
-const CHARS_PER_TOKEN = 4;           // 平均 4 个字符 = 1 token
 const IMAGE_TOKEN_ESTIMATE = 2000;   // 图片约 2000 tokens
 const DEFAULT_CONTEXT_WINDOW = 32000; // 默认上下文窗口（32K）
+
+/**
+ * 估算文本的 token 数量（区分中英文）
+ * 
+ * 中文/日文/韩文字符平均 1.5 token/字符
+ * 英文/数字/符号平均 0.25 token/字符（4 字符 = 1 token）
+ * 
+ * @param text - 文本内容
+ * @returns 估算的 token 数量
+ */
+export function estimateTextTokens(text: string): number {
+  if (!text) return 0;
+  
+  // 用正则统计 CJK 字符数量（比逐字符遍历更快）
+  const cjkMatches = text.match(/[\u4E00-\u9FFF\u3400-\u4DBF\u3040-\u30FF\uAC00-\uD7AF\uFF00-\uFFEF]/g);
+  const cjkChars = cjkMatches ? cjkMatches.length : 0;
+  const otherChars = text.length - cjkChars;
+  
+  // 中文 1.5 token/字符，英文 0.25 token/字符
+  return Math.ceil(cjkChars * 1.5 + otherChars / 4);
+}
 
 /**
  * 估算单条消息的 token 数量
@@ -29,7 +49,7 @@ export function estimateTokens(message: AgentMessage): number {
     
     // 字符串内容
     if (typeof content === 'string') {
-      return Math.ceil(content.length / CHARS_PER_TOKEN);
+      return estimateTextTokens(content);
     }
     
     // 数组内容（文本 + 图片）
@@ -37,7 +57,7 @@ export function estimateTokens(message: AgentMessage): number {
       let tokens = 0;
       for (const block of content) {
         if (block.type === 'text') {
-          tokens += Math.ceil(block.text.length / CHARS_PER_TOKEN);
+          tokens += estimateTextTokens(block.text);
         } else if (block.type === 'image') {
           tokens += IMAGE_TOKEN_ESTIMATE;
         }
@@ -55,14 +75,14 @@ export function estimateTokens(message: AgentMessage): number {
     if (Array.isArray(message.content)) {
       for (const block of message.content) {
         if (block.type === 'text') {
-          tokens += Math.ceil(block.text.length / CHARS_PER_TOKEN);
+          tokens += estimateTextTokens(block.text);
         } else if (block.type === 'thinking') {
-          tokens += Math.ceil(block.thinking.length / CHARS_PER_TOKEN);
+          tokens += estimateTextTokens(block.thinking);
         } else if (block.type === 'toolCall') {
           // 工具调用：估算参数 JSON 的大小
           try {
             const argsStr = JSON.stringify(block.arguments ?? {});
-            tokens += Math.ceil(argsStr.length / CHARS_PER_TOKEN);
+            tokens += estimateTextTokens(argsStr);
           } catch {
             tokens += 32; // 默认 32 tokens
           }
@@ -80,7 +100,7 @@ export function estimateTokens(message: AgentMessage): number {
     if (Array.isArray(message.content)) {
       for (const block of message.content) {
         if (block.type === 'text') {
-          tokens += Math.ceil(block.text.length / CHARS_PER_TOKEN);
+          tokens += estimateTextTokens(block.text);
         } else if (block.type === 'image') {
           tokens += IMAGE_TOKEN_ESTIMATE;
         }

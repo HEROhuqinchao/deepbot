@@ -228,12 +228,9 @@ export class Gateway {
     // AI 连接缓存已清除，将在下次调用时重新建立
     
     // 检查是否需要发送欢迎消息（首次配置模型的场景）
-    // Web 模式下不自动发送，等待 WebSocket 首次连接时触发
-    if (!this.isWebMode) {
-      this.tabManager.checkAndSendWelcomeMessage().catch(error => {
-        console.error('[Gateway] ❌ 检查欢迎消息失败:', getErrorMessage(error));
-      });
-    }
+    this.tabManager.checkAndSendWelcomeMessage().catch(error => {
+      console.error('[Gateway] ❌ 检查欢迎消息失败:', getErrorMessage(error));
+    });
   }
 
   /**
