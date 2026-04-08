@@ -1,6 +1,6 @@
 {
   "name": "deepbot",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "DeepBot - 系统级 AI 助手，专注企业生产提效",
   "main": "dist-electron/main/index.js",
   "author": "K Luo",
@@ -23,6 +23,8 @@
     "pack": "pnpm run build && electron-builder --dir",
     "dist": "pnpm run build && electron-builder",
     "dist:mac": "node scripts/load-env-build.js --mac",
+    "dist:mac:x64": "node scripts/load-env-build.js --mac --x64",
+    "dist:mac:arm64": "node scripts/load-env-build.js --mac --arm64",
     "dist:mac:local": "pnpm run build && electron-builder --mac --config.mac.identity=null --config.mac.notarize=false",
     "dist:win": "node scripts/load-env-build.js --win",
     "reset-dev": "bash scripts/reset-dev-data.sh",
