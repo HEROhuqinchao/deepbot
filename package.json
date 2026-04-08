@@ -1,6 +1,6 @@
 {
   "name": "deepbot",
-  "version": "0.4.1",
+  "version": "0.4.0",
   "description": "DeepBot - 系统级 AI 助手，专注企业生产提效",
   "main": "dist-electron/main/index.js",
   "author": "K Luo",
@@ -206,7 +206,7 @@
       "publisherName": "Kevin Luo",
       "verifyUpdateCodeSignature": false,
       "requestedExecutionLevel": "asInvoker",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "DeepBot-Terminal-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -221,7 +221,7 @@
       "deleteAppDataOnUninstall": false,
       "differentialPackage": false,
       "packElevateHelper": true,
-      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "artifactName": "DeepBot-Terminal-Setup-${version}.${ext}",
       "guid": "com.deepbot.app",
       "warningsAsErrors": false,
       "displayLanguageSelector": false,

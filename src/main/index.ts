@@ -1201,6 +1201,7 @@ function registerIpcHandlers() {
   // 安装更新并重启
   ipcMain.handle('update:install', async () => {
     if (!process.env.VITE_DEV_SERVER_URL) {
+      isQuitting = true;
       autoUpdater.quitAndInstall();
     }
   });
