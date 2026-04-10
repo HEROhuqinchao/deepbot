@@ -217,7 +217,7 @@ export const browserToolPlugin: ToolPlugin = {
             // Docker 模式：强制使用 headless Chromium（Playwright），CDP 端口 9222
             // 非 Docker 模式：连接用户系统 Chrome，CDP 端口 9222
             const cdpPort = 9222;
-            const cdpOptions = { port: cdpPort };
+            const cdpOptions = { url: `http://localhost:${cdpPort}` };
             const dockerMode = isDockerMode();
             
             const params = args as {
@@ -244,8 +244,8 @@ export const browserToolPlugin: ToolPlugin = {
               throw err;
             }
             
-            // 创建 wrapper（使用 sessionId 和 CDP 选项）
-            const wrapper = new AgentBrowserWrapper(sessionId, cdpOptions);
+            // 创建 wrapper（浏览器 session 固定为 default，所有 Tab 共享同一个浏览器实例）
+            const wrapper = new AgentBrowserWrapper('default', cdpOptions);
             
             // 尝试连接，如果失败则自动启动浏览器
             try {

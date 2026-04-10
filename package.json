@@ -126,7 +126,9 @@
     "asar": true,
     "asarUnpack": [
       "node_modules/**/*.node",
-      "node_modules/agent-browser/bin/**/*"
+      "node_modules/agent-browser/bin/**/*",
+      "src/renderer/assets/s-logo-*.png",
+      "node.exe"
     ],
     "afterPack": "scripts/after-pack.js",
     "afterSign": "scripts/after-sign.js",

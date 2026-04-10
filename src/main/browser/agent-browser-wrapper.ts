@@ -145,7 +145,7 @@ export class AgentBrowserWrapper {
     const fullCommand = `${agentBrowserCmd} ${sessionFlag} ${cdpFlag} ${command} ${jsonFlag}`.trim().replace(/\s+/g, ' ');
     
     // 🔧 设置环境变量：让 agent-browser 使用 Electron 内置的 Node.js
-    const env = {
+    const env: Record<string, string | undefined> = {
       ...process.env,
       NODE: process.execPath,
       PATH: process.env.PATH || (process.platform === 'win32'
@@ -160,8 +160,11 @@ export class AgentBrowserWrapper {
     if (process.env.NODE_ENV !== 'development' && !process.env.VITE_DEV_SERVER_URL && !process.env.DEEPBOT_DOCKER) {
       const resourcesPath = process.resourcesPath || process.cwd();
       const appDir = join(resourcesPath, 'app');
-      // asar 模式下 app 目录不存在，fallback 到 resources 目录
-      const nodeDir = existsSync(appDir) ? appDir : resourcesPath;
+      const appUnpackedDir = join(resourcesPath, 'app.asar.unpacked');
+      // asar 模式下优先使用 app.asar.unpacked，非 asar 模式使用 app
+      const nodeDir = existsSync(appUnpackedDir) ? appUnpackedDir 
+        : existsSync(appDir) ? appDir 
+        : resourcesPath;
       const sep = process.platform === 'win32' ? ';' : ':';
       
       if (process.platform === 'win32') {
@@ -169,7 +172,7 @@ export class AgentBrowserWrapper {
         if (existsSync(nodeExePath)) {
           env.PATH = `${nodeDir}${sep}${env.PATH}`;
         } else {
-          logger.error('❌ node.exe 不存在，浏览器工具将无法工作。请重新安装应用。');
+          logger.error(`❌ node.exe 不存在: ${nodeExePath}`);
         }
       } else {
         const nodeWrapperPath = join(nodeDir, 'node');

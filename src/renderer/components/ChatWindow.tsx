@@ -9,7 +9,7 @@ import { MessageInput, MessageInputRef } from './MessageInput'; // 🔥 导入 M
 import type { AgentTab } from '../../types/agent-tab';
 import { MAX_TABS } from '../../shared/constants/version';
 import { api } from '../api'; // 🔥 使用统一 API 适配器
-import { isElectron } from '../utils/platform'; // 🔥 平台检测
+import { isElectron, isMacOS } from '../utils/platform'; // 🔥 平台检测
 
 interface ChatWindowProps {
   messages: Message[];
@@ -336,8 +336,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
 
   return (
     <div className="terminal-container flex flex-col h-screen">
-      {/* 窗口控制栏 - 仅 Electron 版本需要，为系统原生按钮预留空间 */}
-      {isElectronEnv && (
+      {/* 窗口控制栏 - 仅 macOS Electron 需要，为交通灯按钮预留空间 */}
+      {isElectronEnv && isMacOS() && (
         <div className="window-titlebar">
           {/* 系统原生的三色按钮会显示在这里 */}
         </div>

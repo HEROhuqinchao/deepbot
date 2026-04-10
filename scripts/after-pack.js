@@ -19,14 +19,26 @@ exports.default = async function(context) {
 
   // ========== 修复和优化 asar ==========
   const asarPath = path.join(resourcesDir, 'app.asar');
+  let asarTmpDir = null; // 保留临时目录供 Windows 提取依赖用
   if (fs.existsSync(asarPath)) {
-    await fixAndOptimizeAsar(asarPath, platform);
+    asarTmpDir = await fixAndOptimizeAsar(asarPath, platform);
   }
 
   // ========== 清理 unpacked 中的跨平台文件 ==========
   const unpackedDir = path.join(resourcesDir, 'app.asar.unpacked');
   if (fs.existsSync(unpackedDir)) {
     cleanCrossPlatformFiles(unpackedDir, platform);
+  }
+
+  // ========== Windows: 从 asar 临时目录提取 agent-browser 依赖到 unpacked ==========
+  if (platform === 'win32' && asarTmpDir) {
+    const unpackedDirWin = path.join(resourcesDir, 'app.asar.unpacked');
+    extractAgentBrowserDeps(asarTmpDir, unpackedDirWin);
+  }
+  
+  // 清理 asar 临时目录
+  if (asarTmpDir && fs.existsSync(asarTmpDir)) {
+    fs.rmSync(asarTmpDir, { recursive: true, force: true });
   }
 
   // ========== macOS: 创建 node 包装脚本 ==========
@@ -60,6 +72,7 @@ exec "$ELECTRON_PATH" "$@"
 
 /**
  * 修复和优化 asar 包
+ * @returns {string|null} 临时目录路径（供后续步骤复用），调用方负责清理
  */
 async function fixAndOptimizeAsar(asarPath, platform) {
   try {
@@ -97,9 +110,11 @@ async function fixAndOptimizeAsar(asarPath, platform) {
       console.log('✅ asar 无需修改\n');
     }
 
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    // 返回临时目录，由调用方决定何时清理
+    return tmpDir;
   } catch (error) {
     console.error('⚠️ 优化 asar 失败:', error.message);
+    return null;
   }
 }
 
@@ -160,4 +175,122 @@ function cleanCrossPlatformFiles(baseDir, platform) {
   }
 
   return cleaned;
+}
+
+
+/**
+ * Windows: 从已解压的 asar 临时目录提取 agent-browser 依赖树到 unpacked 目录
+ * 
+ * node.exe 无法读取 asar 内的文件，需要把 daemon 运行所需的
+ * 完整依赖树提取到 app.asar.unpacked 目录。
+ * 
+ * @param {string} asarTmpDir - fixAndOptimizeAsar 返回的已解压临时目录
+ * @param {string} unpackedDir - app.asar.unpacked 目录
+ */
+function extractAgentBrowserDeps(asarTmpDir, unpackedDir) {
+  console.log('\n📦 Windows: 提取 agent-browser 依赖树...');
+  
+  const topNm = path.join(asarTmpDir, 'node_modules');
+  const nodeModulesDst = path.join(unpackedDir, 'node_modules');
+  
+  if (!fs.existsSync(topNm)) {
+    console.log('   ⚠️ node_modules 不存在，跳过');
+    return;
+  }
+  
+  // 动态收集 agent-browser 的完整依赖树
+  const depsToExtract = new Set();
+  
+  function resolvePackage(name, fromDir) {
+    let dir = fromDir;
+    while (true) {
+      const candidate = path.join(dir, 'node_modules', name);
+      if (fs.existsSync(path.join(candidate, 'package.json'))) {
+        return candidate;
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+    return null;
+  }
+  
+  function getTopLevelPkgName(absPath) {
+    const rel = path.relative(topNm, absPath);
+    if (rel.startsWith('..')) return null;
+    const parts = rel.split(path.sep);
+    if (parts[0].startsWith('@')) {
+      return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : null;
+    }
+    return parts[0] || null;
+  }
+  
+  function resolveDeps(pkgDir) {
+    const pkgJsonPath = path.join(pkgDir, 'package.json');
+    if (!fs.existsSync(pkgJsonPath)) return;
+    
+    let pkg;
+    try { pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8')); }
+    catch { return; }
+    
+    for (const dep of Object.keys(pkg.dependencies || {})) {
+      const resolved = resolvePackage(dep, pkgDir);
+      if (!resolved) continue;
+      
+      const topPkg = getTopLevelPkgName(resolved);
+      if (topPkg && !depsToExtract.has(topPkg)) {
+        depsToExtract.add(topPkg);
+        resolveDeps(resolved);
+      }
+    }
+    
+    // 扫描嵌套 node_modules
+    const nestedNm = path.join(pkgDir, 'node_modules');
+    if (fs.existsSync(nestedNm)) {
+      scanNestedNm(nestedNm);
+    }
+  }
+  
+  function scanNestedNm(nmDir) {
+    let entries;
+    try { entries = fs.readdirSync(nmDir); } catch { return; }
+    
+    for (const entry of entries) {
+      if (entry === '.bin') continue;
+      const fullPath = path.join(nmDir, entry);
+      
+      if (entry.startsWith('@')) {
+        try {
+          for (const sub of fs.readdirSync(fullPath)) {
+            if (fs.existsSync(path.join(fullPath, sub, 'package.json'))) {
+              resolveDeps(path.join(fullPath, sub));
+            }
+          }
+        } catch {}
+      } else if (fs.existsSync(path.join(fullPath, 'package.json'))) {
+        resolveDeps(fullPath);
+      }
+    }
+  }
+  
+  // 从 agent-browser 开始递归
+  const abDir = path.join(topNm, 'agent-browser');
+  depsToExtract.add('agent-browser');
+  resolveDeps(abDir);
+  
+  // 复制到 unpacked 目录
+  let copied = 0;
+  for (const dep of depsToExtract) {
+    const srcDir = path.join(topNm, dep);
+    const dstDir = path.join(nodeModulesDst, dep);
+    
+    if (!fs.existsSync(srcDir)) continue;
+    if (fs.existsSync(dstDir)) continue;
+    
+    fs.mkdirSync(path.dirname(dstDir), { recursive: true });
+    fs.cpSync(srcDir, dstDir, { recursive: true });
+    copied++;
+  }
+  
+  console.log(`   ✅ 提取了 ${copied} 个依赖包（共 ${depsToExtract.size} 个）`);
 }
