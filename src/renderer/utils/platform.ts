@@ -24,3 +24,11 @@ export function isWeb(): boolean {
 export function getPlatform(): 'electron' | 'web' {
   return isElectron() ? 'electron' : 'web';
 }
+
+/**
+ * 检查是否在 macOS 上运行
+ */
+export function isMacOS(): boolean {
+  return navigator.platform?.toUpperCase().includes('MAC') || 
+         navigator.userAgent?.includes('Macintosh');
+}

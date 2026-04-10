@@ -101,6 +101,7 @@ export class AgentBrowserWrapper {
     const resourcesPath = process.resourcesPath || process.cwd();
     const possiblePaths = [
       join(resourcesPath, 'app', 'node_modules', 'agent-browser', 'bin', executableName),
+      join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'agent-browser', 'bin', executableName),
       join(resourcesPath, 'node_modules', 'agent-browser', 'bin', executableName),
       join(process.cwd(), 'node_modules', 'agent-browser', 'bin', executableName),
     ];
@@ -144,7 +145,7 @@ export class AgentBrowserWrapper {
     const fullCommand = `${agentBrowserCmd} ${sessionFlag} ${cdpFlag} ${command} ${jsonFlag}`.trim().replace(/\s+/g, ' ');
     
     // 🔧 设置环境变量：让 agent-browser 使用 Electron 内置的 Node.js
-    const env = {
+    const env: Record<string, string | undefined> = {
       ...process.env,
       NODE: process.execPath,
       PATH: process.env.PATH || (process.platform === 'win32'
@@ -159,24 +160,31 @@ export class AgentBrowserWrapper {
     if (process.env.NODE_ENV !== 'development' && !process.env.VITE_DEV_SERVER_URL && !process.env.DEEPBOT_DOCKER) {
       const resourcesPath = process.resourcesPath || process.cwd();
       const appDir = join(resourcesPath, 'app');
+      const appUnpackedDir = join(resourcesPath, 'app.asar.unpacked');
+      // asar 模式下优先使用 app.asar.unpacked，非 asar 模式使用 app
+      const nodeDir = existsSync(appUnpackedDir) ? appUnpackedDir 
+        : existsSync(appDir) ? appDir 
+        : resourcesPath;
       const sep = process.platform === 'win32' ? ';' : ':';
       
       if (process.platform === 'win32') {
-        const nodeExePath = join(appDir, 'node.exe');
+        const nodeExePath = join(nodeDir, 'node.exe');
         if (existsSync(nodeExePath)) {
-          env.PATH = `${appDir}${sep}${env.PATH}`;
+          env.PATH = `${nodeDir}${sep}${env.PATH}`;
         } else {
-          logger.error('❌ node.exe 不存在，浏览器工具将无法工作。请重新安装应用。');
+          logger.error(`❌ node.exe 不存在: ${nodeExePath}`);
         }
       } else {
-        const nodeWrapperPath = join(appDir, 'node');
+        const nodeWrapperPath = join(nodeDir, 'node');
         if (!existsSync(nodeWrapperPath)) {
           try {
             const { writeFileSync, chmodSync } = require('fs');
+            // asar 模式下 nodeDir 是 Resources/，非 asar 是 Resources/app/
+            const relMacOS = nodeDir === resourcesPath ? '../MacOS' : '../../MacOS';
             const wrapperScript = `#!/bin/bash
 export ELECTRON_RUN_AS_NODE=1
 SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
-ELECTRON_PATH="$SCRIPT_DIR/../../MacOS/$(basename "${process.execPath}")"
+ELECTRON_PATH="$SCRIPT_DIR/${relMacOS}/$(basename "${process.execPath}")"
 exec "$ELECTRON_PATH" "$@"
 `;
             writeFileSync(nodeWrapperPath, wrapperScript);
@@ -186,7 +194,7 @@ exec "$ELECTRON_PATH" "$@"
           }
         }
         if (existsSync(nodeWrapperPath)) {
-          env.PATH = `${appDir}${sep}${env.PATH}`;
+          env.PATH = `${nodeDir}${sep}${env.PATH}`;
         }
       }
     }

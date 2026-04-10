@@ -54,7 +54,7 @@ function createTray() {
   
   const iconPath = process.env.VITE_DEV_SERVER_URL
     ? path.join(__dirname, `../../src/renderer/assets/${iconFileName}`)
-    : path.join(process.resourcesPath, `app/src/renderer/assets/${iconFileName}`);
+    : path.join(process.resourcesPath, `app.asar.unpacked/src/renderer/assets/${iconFileName}`);
   
   // 🔥 创建托盘图标
   const icon = nativeImage.createFromPath(iconPath);
@@ -128,7 +128,7 @@ function createWindow() {
   
   const windowIconPath = process.env.VITE_DEV_SERVER_URL
     ? path.join(__dirname, `../../src/renderer/assets/${iconFileName}`)
-    : path.join(process.resourcesPath, `app/src/renderer/assets/${iconFileName}`);
+    : path.join(process.resourcesPath, `app.asar.unpacked/src/renderer/assets/${iconFileName}`);
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -136,8 +136,10 @@ function createWindow() {
     title: 'DeepBot Terminal', // 🔥 设置窗口标题
     icon: windowIconPath, // 🔥 设置窗口图标
     backgroundColor: '#0a0e1a', // 🔥 设置背景色（深蓝黑色）
-    titleBarStyle: 'hiddenInset', // 🔥 macOS 隐藏标题栏（保留交通灯按钮）
-    trafficLightPosition: { x: 15, y: 15 }, // 🔥 macOS 交通灯位置
+    ...(process.platform === 'darwin' ? {
+      titleBarStyle: 'hiddenInset' as const, // macOS 隐藏标题栏（保留交通灯按钮）
+      trafficLightPosition: { x: 15, y: 15 }, // macOS 交通灯位置
+    } : {}),
     webPreferences: {
       preload: path.join(__dirname, '../main/preload.js'), // 修正路径
       contextIsolation: true,
@@ -1201,6 +1203,7 @@ function registerIpcHandlers() {
   // 安装更新并重启
   ipcMain.handle('update:install', async () => {
     if (!process.env.VITE_DEV_SERVER_URL) {
+      isQuitting = true;
       autoUpdater.quitAndInstall();
     }
   });

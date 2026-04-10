@@ -64,8 +64,27 @@ export class AgentInitializer {
     
     console.log('✅ Agent 实例创建完成');
     
+    // 拦截 fetch 请求，记录 API 错误响应（只拦截一次）
+    if (!(globalThis.fetch as any).__deepbotIntercepted) {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = async (input: any, init?: any) => {
+        const response = await originalFetch(input, init);
+        const url = typeof input === 'string' ? input : input?.url || '';
+        if (!response.ok && (url.includes('chat/completions') || url.includes(this.model.baseUrl || ''))) {
+          console.error(`🌐 API 错误: ${response.status} ${response.statusText} - ${url}`);
+          try {
+            const cloned = response.clone();
+            const errorText = await cloned.text();
+            console.error(`🌐 错误详情: ${errorText.substring(0, 1000)}`);
+          } catch (_e) { /* 忽略 */ }
+        }
+        return response;
+      };
+      (globalThis.fetch as any).__deepbotIntercepted = true;
+    }
+    
     // 使用串行工具执行，避免并发工具调用导致的依赖问题
-    agent.setToolExecution('sequential');
+    agent.state.toolExecution = 'sequential';
     
     return { agent, tools };
   }
@@ -123,7 +142,7 @@ export class AgentInitializer {
       const systemPrompt = await buildSystemPrompt(promptParams, this.sessionId);
       
       // 更新 Agent 的系统提示词
-      agent.setSystemPrompt(systemPrompt);
+      agent.state.systemPrompt = systemPrompt;
       
       return systemPrompt;
     } catch (error) {
@@ -131,7 +150,7 @@ export class AgentInitializer {
       
       // 使用最小提示词作为降级
       const fallbackPrompt = '你是 DEEPBOT MATRIX TERMINAL，一个运行在桌面的 AI 助手。';
-      agent.setSystemPrompt(fallbackPrompt);
+      agent.state.systemPrompt = fallbackPrompt;
       
       return fallbackPrompt;
     }
@@ -173,7 +192,7 @@ export class AgentInitializer {
     console.log('✅ Agent 实例已重新创建');
     
     // 使用串行工具执行
-    agent.setToolExecution('sequential');
+    agent.state.toolExecution = 'sequential';
     
     return agent;
   }

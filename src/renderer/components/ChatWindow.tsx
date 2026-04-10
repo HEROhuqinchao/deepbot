@@ -9,7 +9,7 @@ import { MessageInput, MessageInputRef } from './MessageInput'; // 🔥 导入 M
 import type { AgentTab } from '../../types/agent-tab';
 import { MAX_TABS } from '../../shared/constants/version';
 import { api } from '../api'; // 🔥 使用统一 API 适配器
-import { isElectron } from '../utils/platform'; // 🔥 平台检测
+import { isElectron, isMacOS } from '../utils/platform'; // 🔥 平台检测
 
 interface ChatWindowProps {
   messages: Message[];
@@ -54,6 +54,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [autoScroll, setAutoScroll] = useState(true); // 🔥 是否自动滚动
   const programScrollingRef = useRef(false); // 🔥 程序是否正在滚动（避免误判）
   const lastScrollHeightRef = useRef(0); // 🔥 记录上次滚动高度
+  const [loadingText, setLoadingText] = useState('Processing'); // 加载状态文本
+  const [isDragOver, setIsDragOver] = useState(false); // 拖拽悬停状态
+  const dragCounterRef = useRef(0); // 拖拽计数器（处理子元素触发的 enter/leave）
   
   // 🔥 分页加载优化：初始只显示最近 20 条消息
   const [displayCount, setDisplayCount] = useState(20);
@@ -148,6 +151,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
       }
     }
   }, [messages.length, isInitializing]);
+
+  // 监听加载状态变化（processing / checking）
+  useEffect(() => {
+    const unsubscribe = api.onLoadingStatus((data: { status: string }) => {
+      if (data.status === 'checking') {
+        setLoadingText('Checking Result');
+      } else {
+        setLoadingText('Processing');
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  // isLoading 变为 true 时重置为默认文本
+  useEffect(() => {
+    if (isLoading) {
+      setLoadingText('Processing');
+    }
+  }, [isLoading]);
   
   // 🔥 监听 Tab 消息清除事件，重新显示初始化状态（仅 default Tab）
   useEffect(() => {
@@ -314,10 +336,61 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   // 🔥 判断是否为 Electron 环境（Web 版本不需要标题栏）
   const isElectronEnv = isElectron();
 
+  // 拖拽事件处理
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer?.types.includes('Files')) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0 && messageInputRef.current) {
+      messageInputRef.current.handleDroppedFiles(files);
+    }
+  };
+
   return (
-    <div className="terminal-container flex flex-col h-screen">
-      {/* 窗口控制栏 - 仅 Electron 版本需要，为系统原生按钮预留空间 */}
-      {isElectronEnv && (
+    <div
+      className="terminal-container flex flex-col h-screen"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* 拖拽遮罩 */}
+      {isDragOver && (
+        <div className="drop-overlay">
+          <div className="drop-overlay-content">
+            <span className="drop-overlay-icon">📎</span>
+            <span className="drop-overlay-text">释放以上传文件</span>
+          </div>
+        </div>
+      )}
+      {/* 窗口控制栏 - 仅 macOS Electron 需要，为交通灯按钮预留空间 */}
+      {isElectronEnv && isMacOS() && (
         <div className="window-titlebar">
           {/* 系统原生的三色按钮会显示在这里 */}
         </div>
@@ -467,7 +540,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             {isLoading && (
               <div className="terminal-line">
                 <span className="terminal-message" style={{ marginLeft: '0' }}>
-                  Processing
+                  {loadingText}
                   <span className="terminal-loading">
                     <span className="terminal-loading-dot" />
                     <span className="terminal-loading-dot" />

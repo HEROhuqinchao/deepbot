@@ -1,6 +1,6 @@
 {
   "name": "deepbot",
-  "version": "0.4.0",
+  "version": "0.4.3",
   "description": "DeepBot - 系统级 AI 助手，专注企业生产提效",
   "main": "dist-electron/main/index.js",
   "author": "K Luo",
@@ -23,6 +23,8 @@
     "pack": "pnpm run build && electron-builder --dir",
     "dist": "pnpm run build && electron-builder",
     "dist:mac": "node scripts/load-env-build.js --mac",
+    "dist:mac:x64": "node scripts/load-env-build.js --mac --x64",
+    "dist:mac:arm64": "node scripts/load-env-build.js --mac --arm64",
     "dist:mac:local": "pnpm run build && electron-builder --mac --config.mac.identity=null --config.mac.notarize=false",
     "dist:win": "node scripts/load-env-build.js --win",
     "reset-dev": "bash scripts/reset-dev-data.sh",
@@ -45,9 +47,9 @@
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@larksuiteoapi/node-sdk": "^1.59.0",
-    "@mariozechner/pi-agent-core": "^0.62.0",
-    "@mariozechner/pi-ai": "^0.62.0",
-    "@mariozechner/pi-coding-agent": "0.62.0",
+    "@mariozechner/pi-agent-core": "^0.65.2",
+    "@mariozechner/pi-ai": "^0.65.2",
+    "@mariozechner/pi-coding-agent": "0.65.2",
     "@mozilla/readability": "^0.6.0",
     "@sinclair/typebox": "^0.34.48",
     "@types/adm-zip": "^0.5.8",
@@ -121,7 +123,13 @@
       "mirror": "https://npmmirror.com/mirrors/electron/",
       "cache": "~/Library/Caches/electron"
     },
-    "asar": false,
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/**/*.node",
+      "node_modules/agent-browser/bin/**/*",
+      "src/renderer/assets/s-logo-*.png",
+      "node.exe"
+    ],
     "afterPack": "scripts/after-pack.js",
     "afterSign": "scripts/after-sign.js",
     "compression": "normal",
@@ -206,7 +214,7 @@
       "publisherName": "Kevin Luo",
       "verifyUpdateCodeSignature": false,
       "requestedExecutionLevel": "asInvoker",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "DeepBot-Terminal-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -221,7 +229,7 @@
       "deleteAppDataOnUninstall": false,
       "differentialPackage": false,
       "packElevateHelper": true,
-      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "artifactName": "DeepBot-Terminal-Setup-${version}.${ext}",
       "guid": "com.deepbot.app",
       "warningsAsErrors": false,
       "displayLanguageSelector": false,

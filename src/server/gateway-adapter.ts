@@ -192,6 +192,14 @@ export class GatewayAdapter extends EventEmitter {
         });
         break;
       }
+      
+      case 'loading-status': {
+        // 加载状态变化 - 转发到 WebSocket
+        this.emit('loading-status', {
+          status: data.status
+        });
+        break;
+      }
     }
   }
   
@@ -293,6 +301,11 @@ export class GatewayAdapter extends EventEmitter {
     
     // 更新模型配置
     if (updates.model) {
+      // 推断上下文窗口大小（和 Electron 模式逻辑一致）
+      if (!updates.model.contextWindow && updates.model.modelId) {
+        const { getContextWindowFromModelId } = await import('../main/utils/model-info-fetcher');
+        updates.model.contextWindow = getContextWindowFromModelId(updates.model.modelId);
+      }
       store.saveModelConfig(updates.model);
       await this.gateway.reloadModelConfig();
     }

@@ -34,41 +34,49 @@ export function parseSkillMetadata(skillDir: string): SkillMetadata {
   
   const content = safeReadFile(skillMdPath);
   
-  // 解析 YAML frontmatter
-  const frontmatterMatch = content.match(/^---\n([\s\S]+?)\n---/);
+  // 解析 YAML frontmatter（兼容 \r\n 换行和各种格式）
+  const frontmatterMatch = content.match(/^---\s*[\r\n]+([\s\S]+?)[\r\n]+---/);
   if (!frontmatterMatch) {
     throw new Error('SKILL.md 缺少 YAML frontmatter');
   }
   
   const frontmatter = frontmatterMatch[1];
   
-  // 简单的 YAML 解析（只支持基本格式）
+  // 简单的 YAML 解析（支持多行值：如果某行不含 ":"，拼接到上一个 key 的值）
   const metadata: SkillMetadata = {
     name: '',
     description: '',
   };
   
-  const lines = frontmatter.split('\n');
+  const lines = frontmatter.split(/\r?\n/);
+  let lastKey = '';
   for (const line of lines) {
-    const [key, ...valueParts] = line.split(':');
-    const value = valueParts.join(':').trim();
-    
-    if (key === 'name') {
-      metadata.name = value;
-    } else if (key === 'description') {
-      metadata.description = value;
-    } else if (key === 'version') {
-      metadata.version = value;
-    } else if (key === 'author') {
-      metadata.author = value;
-    } else if (key === 'repository') {
-      metadata.repository = value;
-    } else if (key === 'tags') {
-      // 解析数组 [tag1, tag2]
-      const tagsMatch = value.match(/\[(.*?)\]/);
-      if (tagsMatch) {
-        metadata.tags = tagsMatch[1].split(',').map((t: string) => t.trim());
+    const colonIndex = line.indexOf(':');
+    if (colonIndex > 0 && /^[a-zA-Z_]/.test(line.trim())) {
+      // 新的 key: value 行
+      const key = line.substring(0, colonIndex).trim();
+      const value = line.substring(colonIndex + 1).trim();
+      lastKey = key;
+      
+      if (key === 'name') {
+        metadata.name = value.replace(/^["']|["']$/g, '');
+      } else if (key === 'description') {
+        metadata.description = value.replace(/^["']|["']$/g, '');
+      } else if (key === 'version') {
+        metadata.version = value;
+      } else if (key === 'author') {
+        metadata.author = value;
+      } else if (key === 'repository') {
+        metadata.repository = value;
+      } else if (key === 'tags') {
+        const tagsMatch = value.match(/\[(.*?)\]/);
+        if (tagsMatch) {
+          metadata.tags = tagsMatch[1].split(',').map((t: string) => t.trim());
+        }
       }
+    } else if (lastKey === 'description' && line.trim()) {
+      // 多行 description，拼接到已有值
+      metadata.description += ' ' + line.trim().replace(/["']$/g, '');
     }
   }
   

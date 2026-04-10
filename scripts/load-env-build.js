@@ -25,13 +25,22 @@ if (fs.existsSync(envPath)) {
   console.warn('⚠️  未找到 .env 文件，Apple 公证可能失败');
 }
 
-// 获取打包平台参数（--mac / --win / --linux）
-const platform = process.argv[2] || '--mac';
+// 获取打包平台和架构参数（如 --mac --x64 / --mac --arm64）
+const args = process.argv.slice(2);
+const platform = args.length > 0 ? args.join(' ') : '--mac';
+
+// 如果指定了单一架构，覆盖 target 中的 arch 配置
+let archOverride = '';
+if (args.includes('--x64') && !args.includes('--arm64')) {
+  archOverride = ' --config.mac.target.0.arch=x64 --config.mac.target.1.arch=x64';
+} else if (args.includes('--arm64') && !args.includes('--x64')) {
+  archOverride = ' --config.mac.target.0.arch=arm64 --config.mac.target.1.arch=arm64';
+}
 
 // 执行构建和打包
-const buildCmd = platform === '--win'
-  ? `node scripts/download-node-win.js && pnpm run build && electron-builder ${platform}`
-  : `pnpm run build && electron-builder ${platform}`;
+const buildCmd = args.includes('--win')
+  ? `node scripts/download-node-win.js && pnpm run build && electron-builder ${platform}${archOverride}`
+  : `pnpm run build && electron-builder ${platform}${archOverride}`;
 
 console.log(`\n🚀 开始打包: ${buildCmd}\n`);
 
