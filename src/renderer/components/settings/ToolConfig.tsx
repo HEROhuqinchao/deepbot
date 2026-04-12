@@ -315,7 +315,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
             />
             <p className="mt-1 text-xs text-gray-500">
               {imageGenConfig.provider === 'gemini' && '用于访问 Gemini API 的密钥'}
-              {imageGenConfig.provider === 'deepbot' && '使用工具专用的 DeepBot Token'}
+              {imageGenConfig.provider === 'deepbot' && '点击「如何获取」获得 API Key，或使用自己的 Gemini API Key'}
               {imageGenConfig.provider === 'qwen' && '用于访问 Qwen API 的密钥（DashScope API Key）'}
             </p>
           </div>

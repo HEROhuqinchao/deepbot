@@ -159,7 +159,7 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="mt-1 text-xs text-gray-500">
-          {config.provider === 'deepbot' && '使用工具专用的 DeepBot Token'}
+          {config.provider === 'deepbot' && '点击「如何获取」获得 API Key，或使用自己的 Gemini API Key'}
           {config.provider === 'qwen' && 'Qwen API Key（可以与主模型使用相同的 Key）'}
           {config.provider === 'gemini' && 'Google Gemini API Key'}
         </p>

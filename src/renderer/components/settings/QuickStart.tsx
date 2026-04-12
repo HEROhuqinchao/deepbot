@@ -9,6 +9,7 @@ import qrcodeImg from '../../assets/qrcode.png';
 
 interface QuickStartProps {
   onClose: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
 // 统一的样式常量
@@ -32,7 +33,7 @@ const STYLES = {
   tinySize: '11px',           // 极小字体
 };
 
-export function QuickStart(_props: QuickStartProps) {
+export function QuickStart({ onNavigate }: QuickStartProps) {
   // 滚动到指定章节
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -148,7 +149,7 @@ export function QuickStart(_props: QuickStartProps) {
           <div style={{ marginBottom: '10px' }}>
             <span style={{ fontWeight: '600', color: 'var(--settings-text)' }}>第一步：配置主大模型（必需）</span>
             <div style={{ marginLeft: '16px', marginTop: '4px' }}>
-              前往「模型配置」，选择提供商并配置 API 密钥
+              前往<a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('model'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>「模型配置」</a>，选择提供商并配置 API 密钥
             </div>
           </div>
 
@@ -190,8 +191,11 @@ export function QuickStart(_props: QuickStartProps) {
           <div style={{ marginBottom: '10px' }}>
             <span style={{ fontWeight: '600', color: 'var(--settings-text)' }}>第二步：配置工具（可选）</span>
             <div style={{ marginLeft: '16px', marginTop: '4px' }}>
-              • 前往「工具配置」→「图片生成工具」，配置 Qwen Image 或 Gemini API 密钥，启用 AI 绘图功能<br/>
-              • 前往「工具配置」→「网络搜索工具」，配置 Qwen 或 Gemini 的 API 密钥，启用实时信息查询
+              • 前往<a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('tools'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>「工具配置」</a>，配置图片生成和网络搜索工具的 API 密钥<br/>
+              • 支持 Qwen 或 DeepBot 供应商（DeepBot 供应商可免"魔法"使用 Gemini Nano Banana 2 生图和 Gemini 网络搜索，可填写自己的 Gemini API Key 或通过上方二维码获取）<br/>
+              <span style={{ fontSize: '12px', color: 'var(--settings-text-dim)', marginTop: '4px', display: 'inline-block' }}>
+                💡 如不使用内置工具，可在<a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('tools'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>「工具配置」</a>中关闭，自行安装 Skill 来实现相关功能，详见下方<a href="#recommended" onClick={(e) => { e.preventDefault(); scrollToSection('recommended'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>「推荐工具和 Skill」</a>
+              </span>
             </div>
           </div>
           <div>

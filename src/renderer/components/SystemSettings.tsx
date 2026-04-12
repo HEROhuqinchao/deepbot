@@ -164,7 +164,7 @@ export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsP
 
           {/* 右侧内容 */}
           <div className="settings-panel">
-            {activeTab === 'quickstart' && <QuickStart onClose={onClose} />}
+            {activeTab === 'quickstart' && <QuickStart onClose={onClose} onNavigate={(tab) => setActiveTab(tab as SettingsTab)} />}
             {activeTab === 'model' && <ModelConfig onClose={onClose} />}
             {activeTab === 'environment' && <EnvironmentConfig onClose={onClose} activeTabId={activeTabId} />}
             {activeTab === 'tools' && <ToolConfig onClose={onClose} />}
