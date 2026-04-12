@@ -8,6 +8,7 @@
   --terminal-bg: #0a0e1a;
   --terminal-text: #edf0f5;
   --terminal-text-dim: #8b9aaf;
+  --terminal-font: 'Courier New', 'Consolas', 'Monaco', monospace;
   --terminal-prompt-user: #7aa2f7;
   --terminal-prompt-agent: #bb9af7;
   --terminal-border: #2d3748;
@@ -55,13 +56,14 @@
   --terminal-line-hover: rgba(0, 122, 255, 0.04);
   --terminal-header-bg: rgba(255, 255, 255, 0.8);
   --terminal-input-focus-bg: #ffffff;
+  --terminal-font: 'Menlo', 'Consolas', 'SF Mono', 'Monaco', monospace;
 }
 
 /* 终端容器 */
 .terminal-container {
   background: var(--terminal-bg);
   color: var(--terminal-text);
-  font-family: 'Courier New', Consolas, Monaco, monospace;
+  font-family: var(--terminal-font);
   font-size: var(--font-size-base, 13px);
   line-height: 1.4;
   position: relative;
