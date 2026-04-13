@@ -100,18 +100,32 @@ export function assertPathAllowed(filePath: string): void {
     // Docker 模式用 /data/db，Electron 模式用 ~/.deepbot
     const extraDir = getDbDir();
 
+    const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
+
     throw new Error(
-      `安全限制：只能访问配置的目录及其子目录内的文件\n` +
-      `允许的目录：\n` +
-      `  - 默认工作目录: ${extraDir}\n` +
-      `  - 用户工作目录: ${settings.workspaceDir}\n` +
-      `  - 脚本目录: ${settings.scriptDir}\n` +
-      `  - Skill 目录: ${settings.skillDirs.join(', ')}\n` +
-      `  - 图片目录: ${settings.imageDir}\n` +
-      `  - 记忆目录: ${settings.memoryDir}\n` +
-      `  - 会话目录: ${settings.sessionDir}\n` +
-      `请求路径: ${resolvedPath}\n` +
-      `提示：请在系统设置中配置工作目录`
+      isEn
+        ? `Security restriction: Can only access files within configured directories\n` +
+          `Allowed directories:\n` +
+          `  - Default workspace: ${extraDir}\n` +
+          `  - User workspace: ${settings.workspaceDir}\n` +
+          `  - Script directory: ${settings.scriptDir}\n` +
+          `  - Skill directories: ${settings.skillDirs.join(', ')}\n` +
+          `  - Image directory: ${settings.imageDir}\n` +
+          `  - Memory directory: ${settings.memoryDir}\n` +
+          `  - Session directory: ${settings.sessionDir}\n` +
+          `Requested path: ${resolvedPath}\n` +
+          `Tip: Configure workspace directory in Settings`
+        : `安全限制：只能访问配置的目录及其子目录内的文件\n` +
+          `允许的目录：\n` +
+          `  - 默认工作目录: ${extraDir}\n` +
+          `  - 用户工作目录: ${settings.workspaceDir}\n` +
+          `  - 脚本目录: ${settings.scriptDir}\n` +
+          `  - Skill 目录: ${settings.skillDirs.join(', ')}\n` +
+          `  - 图片目录: ${settings.imageDir}\n` +
+          `  - 记忆目录: ${settings.memoryDir}\n` +
+          `  - 会话目录: ${settings.sessionDir}\n` +
+          `请求路径: ${resolvedPath}\n` +
+          `提示：请在系统设置中配置工作目录`
     );
   }
 }
