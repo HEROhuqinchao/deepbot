@@ -43,6 +43,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
     apiKey: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfigLoaded, setIsConfigLoaded] = useState(false);
   const hasLoadedRef = React.useRef(false);
   const [isFirstTimeConfig, setIsFirstTimeConfig] = useState(false);
   const [isFromEnv, setIsFromEnv] = useState(false); // 当前配置是否来自环境变量
@@ -82,6 +83,8 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
     } catch (error) {
       console.error('加载模型配置失败:', error);
       setIsFirstTimeConfig(true);
+    } finally {
+      setIsConfigLoaded(true);
     }
   };
 
@@ -174,7 +177,7 @@ export function ModelConfig({ onClose }: ModelConfigProps) {
       )}
 
       {/* 顶部提示 */}
-      {!config.apiKey && (
+      {isConfigLoaded && !config.apiKey && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
           <div className="flex items-start">
             <div className="flex-shrink-0">
