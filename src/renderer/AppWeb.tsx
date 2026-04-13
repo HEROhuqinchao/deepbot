@@ -27,6 +27,8 @@ export function AppWeb() {
     if (saved) {
       document.documentElement.setAttribute('data-font-size', saved);
     }
+    const lang = localStorage.getItem('deepbot-language') || 'zh';
+    document.documentElement.setAttribute('data-lang', lang);
   }, []);
 
   // 登录状态

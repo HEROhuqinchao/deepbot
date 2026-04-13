@@ -56,10 +56,10 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   
   // 可用命令列表（connector tab 额外显示 /stop）
   const availableCommands = [
-    { name: 'new', description: '清空当前会话历史，开始新对话' },
-    { name: 'memory', description: '查看和管理记忆' },
-    { name: 'history', description: '查看对话历史统计' },
-    ...(isConnectorTab ? [{ name: 'stop', description: '停止当前正在执行的任务' }] : []),
+    { name: 'new', description: lang === 'zh' ? '清空当前会话历史，开始新对话' : 'Clear session history and start fresh' },
+    { name: 'memory', description: lang === 'zh' ? '查看和管理记忆' : 'View and manage memory' },
+    { name: 'history', description: lang === 'zh' ? '查看对话历史统计' : 'View conversation history stats' },
+    ...(isConnectorTab ? [{ name: 'stop', description: lang === 'zh' ? '停止当前正在执行的任务' : 'Stop the current running task' }] : []),
   ];
 
   // 🔥 暴露 focus 和 handleDroppedFiles 方法给父组件
@@ -385,7 +385,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
     // 处理其他文件
     if (otherFiles.length > 0) {
       if (hasExistingImages) {
-        alert('已上传图片，不能同时上传文件');
+        alert(lang === 'zh' ? '已上传图片，不能同时上传文件' : 'Cannot upload files when images are already uploaded');
         return;
       }
       const maxSizeBytes = 500 * 1024 * 1024;

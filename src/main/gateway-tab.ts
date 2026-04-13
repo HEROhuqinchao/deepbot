@@ -19,6 +19,7 @@ import { sendToWindow } from '../shared/utils/webcontents-utils';
 import { MAX_TABS } from '../shared/constants/version';
 import type { SessionManager } from './session/session-manager';
 import { saveTabConfig, updateTabTitle as dbUpdateTabTitle, deleteTabConfig, getAllPersistentTabs } from './database/tab-config';
+import { SystemConfigStore } from './database/system-config-store';
 
 /**
  * Tab Manager 类
@@ -303,6 +304,71 @@ export class GatewayTabManager {
    * 生成欢迎消息内容
    */
   private generateWelcomeContent(userName: string, agentName: string, isDefaultUserName: boolean, isDefaultAgentName: boolean): string {
+    const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
+    
+    if (isEn) {
+      return `👋 Hi! Welcome to DeepBot!
+
+I'm your all-in-one AI assistant, available 24/7 to help with all kinds of tasks. Before we start, let's get to know each other!
+
+---
+
+About me:
+
+- I don't have a name yet — give me one? (Just say "Your name is XXX")${!isDefaultAgentName ? ` Current name: ${agentName}` : ''}
+- Who am I? Your all-in-one AI assistant, ready to help anytime
+- Conversation style? Formal / casual / professional / warm — your call
+- Memory system: Say "Remember XXX" anytime and I'll permanently remember:
+  - Your preferences and habits
+  - Frequently used tools and commands
+  - Project-related info
+  - Anything you find important
+- Role setting: You can assign me a professional role, for example:
+  - Dev: "You are a Python expert", "You specialize in React frontend"
+  - Ops: "You are a DevOps engineer, expert in Docker and K8s"
+  - Design: "You are a UI/UX designer"
+  - Content: "You are a content creator, skilled in writing and video"
+  - Data: "You are a data analyst, expert in Excel and visualization"
+  After setting a role, I'll work in that domain and you can install matching Skills
+
+About you:
+
+- What should I call you? (I'll remember permanently)${!isDefaultUserName ? ` Current name: ${userName}` : ''}
+- What projects/work do you do? (I can remember your common tools)
+- Any preferences or pet peeves? (e.g. code style, work habits)
+
+What I can do:
+
+- 📁 File operations: read, write, search, organize files
+- 🌐 Browse the web: automate web pages, extract info
+- ⚙️ Run commands: execute scripts, manage processes
+- 📋 Task management: create, track, remind
+- ⏰ Scheduled tasks: set up background automation
+- 🧠 Memory system: remember your preferences, tools, project info
+- 🔧 Skill extensions: install skill packages to expand my abilities
+
+Extensions:
+
+- 🔧 Install Skills: Say "search XXX skill" or "install XXX skill"
+  - e.g.: "search github skill", "install @agentic/github"
+- 🐍 Python tools: I can install and use Python tools for complex tasks
+
+More info:
+
+- 💡 Click [⚙️ Config] in the top right to see the "Quick Start" guide
+- 📚 Quick Start covers: environment setup, tools, Skills, memory system and more
+
+Commands:
+
+- /new — Clear session history, start fresh
+- /memory — View and manage memory
+- /history — View conversation stats
+
+As we interact, I'll get to know you better and improve at completing tasks. 😊
+
+Feel free to ask anything or tell me what you need!`;
+    }
+
     return `👋 你好！欢迎第一次使用 DeepBot！
 
 我是你的全能 AI 助手，24 小时待命帮你处理各种任务。在开始之前，让我们先互相认识一下吧！
@@ -375,7 +441,21 @@ export class GatewayTabManager {
    * 生成欢迎消息的 Agent 提示词
    */
   private generateWelcomePrompt(welcomeContent: string, userName: string, isDefaultUserName: boolean): string {
-    return `请按照以下方式欢迎用户：
+    const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
+    const userRef = isDefaultUserName ? (isEn ? 'the user' : '用户') : userName;
+    
+    return isEn
+      ? `Please welcome the user as follows:
+
+1. Output the following content directly (keep formatting):
+
+${welcomeContent}
+
+2. Then use the environment_check tool to check the runtime environment
+3. If the environment is not configured, remind ${userRef} that you can help install it
+
+Do not show planning steps, just execute.`
+      : `请按照以下方式欢迎用户：
 
 1. 直接输出以下内容（保持格式）：
 

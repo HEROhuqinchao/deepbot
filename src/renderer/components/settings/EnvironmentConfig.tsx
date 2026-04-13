@@ -51,6 +51,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
   const handleLanguageChange = (lang: Language) => {
     setLang(lang);
     saveLanguage(lang);
+    document.documentElement.setAttribute('data-lang', lang);
     // 同步到后端（影响系统提示词）
     api.saveAppSetting('language', lang).catch(() => {});
   };

@@ -463,7 +463,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
           {/* 全部展开/折叠按钮 */}
           <div className="terminal-execution-header">
             <span className="terminal-execution-title">
-              执行步骤 ({message.executionSteps.length})
+              {lang === 'zh' ? '执行步骤' : 'Steps'} ({message.executionSteps.length})
             </span>
             <button
               className="terminal-execution-toggle-all"
@@ -506,7 +506,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
                   <div className="terminal-execution-details">
                     {step.params && (
                       <div className="terminal-execution-detail-section">
-                        <div className="terminal-execution-detail-label">参数:</div>
+                        <div className="terminal-execution-detail-label">{lang === 'zh' ? '参数' : 'Params'}:</div>
                         <pre className="terminal-execution-detail-content">
                           {JSON.stringify(step.params, null, 2)}
                         </pre>
@@ -515,14 +515,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
                     {/* 🔥 优化：有错误时只显示错误框，没有错误时才显示结果框 */}
                     {step.error ? (
                       <div className="terminal-execution-detail-section error">
-                        <div className="terminal-execution-detail-label">错误:</div>
+                        <div className="terminal-execution-detail-label">{lang === 'zh' ? '错误' : 'Error'}:</div>
                         <pre className="terminal-execution-detail-content">
                           {step.error}
                         </pre>
                       </div>
                     ) : step.result ? (
                       <div className="terminal-execution-detail-section">
-                        <div className="terminal-execution-detail-label">结果:</div>
+                        <div className="terminal-execution-detail-label">{lang === 'zh' ? '结果' : 'Result'}:</div>
                         <pre className="terminal-execution-detail-content">
                           {typeof step.result === 'string' 
                             ? step.result 
@@ -541,13 +541,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
       {/* 🔥 总执行时间 + 操作按钮 - 只在 Agent 消息且有执行时间时显示 */}
       {!isUser && !isSystem && message.totalDuration !== undefined && (
         <div className="terminal-execution-time" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="terminal-execution-time-label">执行时间:</span>
+          <span className="terminal-execution-time-label">{lang === 'zh' ? '执行时间' : 'Duration'}:</span>
           <span className="terminal-execution-time-value">
             {formatDuration(message.totalDuration)}
           </span>
           {message.sentAt && (
             <span className="terminal-execution-time-sent">
-              (发送于 {formatTimestamp(message.sentAt)})
+              ({lang === 'zh' ? '发送于' : 'sent at'} {formatTimestamp(message.sentAt)})
             </span>
           )}
           {/* 复制按钮 */}

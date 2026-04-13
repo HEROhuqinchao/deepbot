@@ -31,6 +31,9 @@ function App() {
     if (saved) {
       document.documentElement.setAttribute('data-font-size', saved);
     }
+    // 语言属性初始化
+    const lang = localStorage.getItem('deepbot-language') || 'zh';
+    document.documentElement.setAttribute('data-lang', lang);
   }, []);
 
   // Tab 管理

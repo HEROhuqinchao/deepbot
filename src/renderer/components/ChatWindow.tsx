@@ -503,7 +503,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
           // 初始化提示 - 显示在提示符后面
           <div className="terminal-line" style={{ display: 'block' }}>
             <span className="terminal-prompt agent">{agentName}@deepbot:~&gt;</span>
-            <span className="terminal-message system">正在初始化系统...</span>
+            <span className="terminal-message system">{lang === 'zh' ? '正在初始化系统...' : 'Initializing system...'}</span>
           </div>
         ) : messages.length === 0 ? (
           // 🔥 空状态：显示等待提示符（不显示光标）

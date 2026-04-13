@@ -42,13 +42,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
     // 检查是否已有文件上传
     if (hasFiles) {
-      alert('已上传文件，不能同时上传图片');
+      alert(lang === 'zh' ? '已上传文件，不能同时上传图片' : 'Cannot upload images when files are already uploaded');
       return;
     }
 
     // 检查数量限制
     if (images.length >= maxImages) {
-      alert(`最多只能上传 ${maxImages} 张图片`);
+      alert(lang === 'zh' ? `最多只能上传 ${maxImages} 张图片` : `Maximum ${maxImages} images allowed`);
       return;
     }
 
@@ -58,7 +58,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     for (let i = 0; i < files.length; i++) {
       // 检查数量
       if (images.length + newImages.length >= maxImages) {
-        alert(`最多只能上传 ${maxImages} 张图片`);
+        alert(lang === 'zh' ? `最多只能上传 ${maxImages} 张图片` : `Maximum ${maxImages} images allowed`);
         break;
       }
 
@@ -66,13 +66,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
       // 检查文件类型
       if (!file.type.startsWith('image/')) {
-        alert(`文件 ${file.name} 不是图片格式`);
+        alert(lang === 'zh' ? `文件 ${file.name} 不是图片格式` : `File ${file.name} is not an image`);
         continue;
       }
 
       // 检查文件大小
       if (file.size > maxSizeBytes) {
-        alert(`图片 ${file.name} 超过 ${maxSizeMB}MB 限制`);
+        alert(lang === 'zh' ? `图片 ${file.name} 超过 ${maxSizeMB}MB 限制` : `Image ${file.name} exceeds ${maxSizeMB}MB limit`);
         continue;
       }
 
@@ -86,11 +86,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         if (result.success && result.image) {
           newImages.push(result.image);
         } else {
-          alert(`上传失败: ${result.error || '未知错误'}`);
+          alert(lang === 'zh' ? `上传失败: ${result.error || '未知错误'}` : `Upload failed: ${result.error || 'Unknown error'}`);
         }
       } catch (error) {
         console.error('上传图片失败:', error);
-        alert(`上传失败: ${error instanceof Error ? error.message : '未知错误'}`);
+        alert(lang === 'zh' ? `上传失败: ${error instanceof Error ? error.message : '未知错误'}` : `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 

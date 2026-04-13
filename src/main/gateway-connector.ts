@@ -13,6 +13,7 @@ import { IPC_CHANNELS } from '../types/ipc';
 import { getErrorMessage } from '../shared/utils/error-handler';
 import { generateMessageId, generateUserMessageId } from '../shared/utils/id-generator';
 import { sendToWindow } from '../shared/utils/webcontents-utils';
+import { SystemConfigStore } from './database/system-config-store';
 import { createLogger } from '../shared/utils/logger';
 import type { SessionManager } from './session/session-manager';
 import type { AgentRuntime } from './agent-runtime/index';
@@ -492,6 +493,7 @@ export class GatewayConnectorHandler {
     }
 
     const messageId = generateMessageId();
+    const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
 
     try {
       let resultText = '';
@@ -502,11 +504,11 @@ export class GatewayConnectorHandler {
           break;
 
         case 'memory':
-          resultText = await this.handleMemoryCommand(sessionId);
+          resultText = await this.handleMemoryCommand(sessionId, isEn);
           break;
 
         case 'history':
-          resultText = await this.handleHistoryCommand(sessionId);
+          resultText = await this.handleHistoryCommand(sessionId, isEn);
           break;
 
         case 'stop':
@@ -522,7 +524,9 @@ export class GatewayConnectorHandler {
           break;
 
         default:
-          resultText = `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /history - 查看对话历史统计\n- /reload-env - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
+          resultText = isEn
+            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /history - View conversation stats\n- /reload-env - Reload environment variables\n- /stop - Stop current task\n- /status - View task status`
+            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /history - 查看对话历史统计\n- /reload-env - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
       }
 
       sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
@@ -559,7 +563,8 @@ export class GatewayConnectorHandler {
       sendToWindow(this.mainWindow, 'command:clear-chat', { sessionId });
       logger.info('✅ 已通知前端清空 UI');
 
-      return '✅ 已清空会话历史，开始新对话';
+      const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
+      return isEn ? '✅ Session cleared, starting fresh' : '✅ 已清空会话历史，开始新对话';
     } catch (error) {
       logger.error('❌ 执行 /new 指令失败:', error);
       throw error;
@@ -569,14 +574,16 @@ export class GatewayConnectorHandler {
   /**
    * 处理 /memory 命令
    */
-  private async handleMemoryCommand(sessionId: string): Promise<string> {
+  private async handleMemoryCommand(sessionId: string, isEn = false): Promise<string> {
     if (!this.getOrCreateRuntimeFn || !this.sendAIResponseFn || !this.sendErrorFn) {
       throw new Error('依赖未设置');
     }
 
     logger.info(`执行 /memory 指令: ${sessionId}`);
 
-    const agentPrompt = '显示当前的记忆是什么，提示用户如何更新记忆';
+    const agentPrompt = isEn
+      ? 'Show the current memory content and tell the user how to update it'
+      : '显示当前的记忆是什么，提示用户如何更新记忆';
 
     setTimeout(async () => {
       try {
@@ -595,20 +602,21 @@ export class GatewayConnectorHandler {
       }
     }, 100);
 
-    return '✅ 正在查询记忆系统...';
+    return isEn ? '✅ Querying memory...' : '✅ 正在查询记忆系统...';
   }
 
   /**
    * 获取系统指令的简短回复文本（用于 connector 回复用户）
    */
   private getSystemCommandReply(commandName: string): string {
+    const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
     switch (commandName.toLowerCase()) {
-      case 'stop': return '⏹️ 任务已停止';
-      case 'new': return '✅ 已清空会话历史，开始新对话';
-      case 'memory': return '✅ 正在查询记忆系统...';
-      case 'history': return '✅ 正在分析对话历史...';
-      case 'status': return '📊 正在获取当前状态...';
-      default: return `❌ 未知指令: /${commandName}`;
+      case 'stop': return '⏹️ ' + (isEn ? 'Task stopped' : '任务已停止');
+      case 'new': return '✅ ' + (isEn ? 'Session cleared, starting fresh' : '已清空会话历史，开始新对话');
+      case 'memory': return '✅ ' + (isEn ? 'Querying memory...' : '正在查询记忆系统...');
+      case 'history': return '✅ ' + (isEn ? 'Analyzing history...' : '正在分析对话历史...');
+      case 'status': return '📊 ' + (isEn ? 'Getting status...' : '正在获取当前状态...');
+      default: return `❌ ${isEn ? 'Unknown command' : '未知指令'}: /${commandName}`;
     }
   }
 
@@ -725,7 +733,7 @@ export class GatewayConnectorHandler {
   /**
    * 处理 /history 命令
    */
-  private async handleHistoryCommand(sessionId: string): Promise<string> {
+  private async handleHistoryCommand(sessionId: string, isEn = false): Promise<string> {
     if (!this.getOrCreateRuntimeFn || !this.sendAIResponseFn || !this.sendErrorFn) {
       throw new Error('依赖未设置');
     }
@@ -733,11 +741,20 @@ export class GatewayConnectorHandler {
     logger.info(`执行 /history 指令: ${sessionId}`);
 
     if (!this.sessionManager) {
-      return '❌ SessionManager 未初始化';
+      return isEn ? '❌ SessionManager not initialized' : '❌ SessionManager 未初始化';
     }
 
     const sessionFilePath = this.sessionManager.getSessionFilePath(sessionId);
-    const agentPrompt = `读取我的对话历史文件并分析：${sessionFilePath}
+    const agentPrompt = isEn
+      ? `Read and analyze my conversation history file: ${sessionFilePath}
+
+Please answer:
+1. How many conversation rounds? (1 round = 1 user message + 1 AI reply)
+2. Estimated total token usage?
+3. What were the main topics?
+
+Use the file_read tool to read the file content.`
+      : `读取我的对话历史文件并分析：${sessionFilePath}
 
 请回答以下问题：
 1. 一共进行了多少轮对话？（1 轮 = 1 条用户消息 + 1 条 AI 回复）
@@ -763,7 +780,7 @@ export class GatewayConnectorHandler {
       }
     }, 100);
 
-    return '✅ 正在分析对话历史...';
+    return isEn ? '✅ Analyzing history...' : '✅ 正在分析对话历史...';
   }
 
   /**

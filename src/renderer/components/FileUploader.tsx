@@ -42,13 +42,13 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
 
     // 检查是否已有图片上传
     if (hasImages) {
-      alert('已上传图片，不能同时上传文件');
+      alert(lang === 'zh' ? '已上传图片，不能同时上传文件' : 'Cannot upload files when images are already uploaded');
       return;
     }
 
     // 检查数量限制
     if (files.length >= maxFiles) {
-      alert(`最多只能上传 ${maxFiles} 个文件`);
+      alert(lang === 'zh' ? `最多只能上传 ${maxFiles} 个文件` : `Maximum ${maxFiles} files allowed`);
       return;
     }
 
@@ -58,7 +58,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
     for (let i = 0; i < selectedFiles.length; i++) {
       // 检查数量
       if (files.length + newFiles.length >= maxFiles) {
-        alert(`最多只能上传 ${maxFiles} 个文件`);
+        alert(lang === 'zh' ? `最多只能上传 ${maxFiles} 个文件` : `Maximum ${maxFiles} files allowed`);
         break;
       }
 
@@ -66,7 +66,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
 
       // 检查文件大小
       if (file.size > maxSizeBytes) {
-        alert(`文件 ${file.name} 超过 ${maxSizeMB}MB 限制`);
+        alert(lang === 'zh' ? `文件 ${file.name} 超过 ${maxSizeMB}MB 限制` : `File ${file.name} exceeds ${maxSizeMB}MB limit`);
         continue;
       }
 
@@ -80,11 +80,11 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         if (result.success && result.file) {
           newFiles.push(result.file);
         } else {
-          alert(`上传失败: ${result.error || '未知错误'}`);
+          alert(lang === 'zh' ? `上传失败: ${result.error || '未知错误'}` : `Upload failed: ${result.error || 'Unknown error'}`);
         }
       } catch (error) {
         console.error('上传文件失败:', error);
-        alert(`上传失败: ${error instanceof Error ? error.message : '未知错误'}`);
+        alert(lang === 'zh' ? `上传失败: ${error instanceof Error ? error.message : '未知错误'}` : `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
