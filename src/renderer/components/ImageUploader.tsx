@@ -12,6 +12,7 @@ import { api } from '../api';
 import type { UploadedImage } from '../../types/message';
 import { Tooltip } from './Tooltip';
 import { readFileAsDataURL } from '../utils/file-reader';
+import { getLanguage } from '../i18n';
 
 interface ImageUploaderProps {
   images: UploadedImage[];
@@ -33,6 +34,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   hasFiles = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lang = getLanguage();
 
   // 处理文件选择
   const handleFileSelect = async (files: FileList | null) => {
@@ -40,13 +42,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
     // 检查是否已有文件上传
     if (hasFiles) {
-      alert('已上传文件，不能同时上传图片');
+      alert(lang === 'zh' ? '已上传文件，不能同时上传图片' : 'Cannot upload images when files are already uploaded');
       return;
     }
 
     // 检查数量限制
     if (images.length >= maxImages) {
-      alert(`最多只能上传 ${maxImages} 张图片`);
+      alert(lang === 'zh' ? `最多只能上传 ${maxImages} 张图片` : `Maximum ${maxImages} images allowed`);
       return;
     }
 
@@ -56,7 +58,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     for (let i = 0; i < files.length; i++) {
       // 检查数量
       if (images.length + newImages.length >= maxImages) {
-        alert(`最多只能上传 ${maxImages} 张图片`);
+        alert(lang === 'zh' ? `最多只能上传 ${maxImages} 张图片` : `Maximum ${maxImages} images allowed`);
         break;
       }
 
@@ -64,13 +66,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
       // 检查文件类型
       if (!file.type.startsWith('image/')) {
-        alert(`文件 ${file.name} 不是图片格式`);
+        alert(lang === 'zh' ? `文件 ${file.name} 不是图片格式` : `File ${file.name} is not an image`);
         continue;
       }
 
       // 检查文件大小
       if (file.size > maxSizeBytes) {
-        alert(`图片 ${file.name} 超过 ${maxSizeMB}MB 限制`);
+        alert(lang === 'zh' ? `图片 ${file.name} 超过 ${maxSizeMB}MB 限制` : `Image ${file.name} exceeds ${maxSizeMB}MB limit`);
         continue;
       }
 
@@ -84,11 +86,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         if (result.success && result.image) {
           newImages.push(result.image);
         } else {
-          alert(`上传失败: ${result.error || '未知错误'}`);
+          alert(lang === 'zh' ? `上传失败: ${result.error || '未知错误'}` : `Upload failed: ${result.error || 'Unknown error'}`);
         }
       } catch (error) {
         console.error('上传图片失败:', error);
-        alert(`上传失败: ${error instanceof Error ? error.message : '未知错误'}`);
+        alert(lang === 'zh' ? `上传失败: ${error instanceof Error ? error.message : '未知错误'}` : `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -125,7 +127,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   if (showButtonOnly) {
     return (
       <>
-        <Tooltip content={`上传图片 (最多${maxImages}张，每张最大${maxSizeMB}MB)`}>
+        <Tooltip content={lang === 'zh' ? `上传图片 (最多${maxImages}张，每张最大${maxSizeMB}MB)` : `Upload images (max ${maxImages}, ${maxSizeMB}MB each)`}>
           <button
             type="button"
             className="image-upload-button-inline"
@@ -178,7 +180,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                 type="button"
                 className="image-preview-remove-floating"
                 onClick={() => handleRemove(image.id)}
-                title="删除图片"
+                title={lang === 'zh' ? '删除图片' : 'Remove image'}
               >
                 ×
               </button>
@@ -227,7 +229,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                 type="button"
                 className="image-preview-remove"
                 onClick={() => handleRemove(image.id)}
-                title="删除图片"
+                title={lang === 'zh' ? '删除图片' : 'Remove image'}
               >
                 ×
               </button>

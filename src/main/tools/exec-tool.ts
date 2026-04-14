@@ -31,6 +31,15 @@ import { getShellEnvFromLoginShell } from './shell-env';
 import { isBlockingInteractiveCommand, getBlockingCommandSuggestion } from './exec-blocking-check';
 import { TIMEOUTS } from '../config/timeouts';
 import { assertPathAllowed } from '../utils/path-security';
+import { SystemConfigStore } from '../database/system-config-store';
+
+function securityError(error: unknown, command: string, unsafePath: string): Error {
+  const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
+  const msg = error instanceof Error ? error.message : (isEn ? 'Unknown error' : '未知错误');
+  return isEn
+    ? new Error(`Command security check failed: ${msg}\nCommand: ${command}\nUnsafe path: ${unsafePath}`)
+    : new Error(`命令安全检查失败：${msg}\n命令：${command}\n不安全路径：${unsafePath}`);
+}
 
 /**
  * 危险命令列表（黑名单）
@@ -194,7 +203,7 @@ function checkCommandPathSecurity(command: string): void {
       try {
         assertPathAllowed(arg);
       } catch (error) {
-        throw new Error(`命令安全检查失败：${error instanceof Error ? error.message : '未知错误'}\n命令：${command}\n不安全路径：${arg}`);
+        throw securityError(error, command, arg);
       }
     }
   }
@@ -274,7 +283,7 @@ function checkCommandPathSecurity(command: string): void {
       try {
         assertPathAllowed(pathToCheck);
       } catch (error) {
-        throw new Error(`命令安全检查失败：${error instanceof Error ? error.message : '未知错误'}\n命令：${command}\n不安全路径：${pathToCheck}`);
+        throw securityError(error, command, pathToCheck);
       }
     }
   }

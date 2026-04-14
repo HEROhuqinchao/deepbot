@@ -21,6 +21,16 @@ export function AppWeb() {
   // 主题管理
   const { mode: themeMode, setThemeMode } = useTheme();
 
+  // 字体大小初始化
+  useEffect(() => {
+    const saved = localStorage.getItem('deepbot-font-size');
+    if (saved) {
+      document.documentElement.setAttribute('data-font-size', saved);
+    }
+    const lang = localStorage.getItem('deepbot-language') || 'zh';
+    document.documentElement.setAttribute('data-lang', lang);
+  }, []);
+
   // 登录状态
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);

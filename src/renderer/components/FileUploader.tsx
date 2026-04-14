@@ -12,6 +12,7 @@ import { api } from '../api';
 import type { UploadedFile } from '../../types/message';
 import { Tooltip } from './Tooltip';
 import { readFileAsDataURL } from '../utils/file-reader';
+import { getLanguage } from '../i18n';
 
 interface FileUploaderProps {
   files: UploadedFile[];
@@ -33,6 +34,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   hasImages = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lang = getLanguage();
 
   // 处理文件选择
   const handleFileSelect = async (selectedFiles: FileList | null) => {
@@ -40,13 +42,13 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
 
     // 检查是否已有图片上传
     if (hasImages) {
-      alert('已上传图片，不能同时上传文件');
+      alert(lang === 'zh' ? '已上传图片，不能同时上传文件' : 'Cannot upload files when images are already uploaded');
       return;
     }
 
     // 检查数量限制
     if (files.length >= maxFiles) {
-      alert(`最多只能上传 ${maxFiles} 个文件`);
+      alert(lang === 'zh' ? `最多只能上传 ${maxFiles} 个文件` : `Maximum ${maxFiles} files allowed`);
       return;
     }
 
@@ -56,7 +58,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
     for (let i = 0; i < selectedFiles.length; i++) {
       // 检查数量
       if (files.length + newFiles.length >= maxFiles) {
-        alert(`最多只能上传 ${maxFiles} 个文件`);
+        alert(lang === 'zh' ? `最多只能上传 ${maxFiles} 个文件` : `Maximum ${maxFiles} files allowed`);
         break;
       }
 
@@ -64,7 +66,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
 
       // 检查文件大小
       if (file.size > maxSizeBytes) {
-        alert(`文件 ${file.name} 超过 ${maxSizeMB}MB 限制`);
+        alert(lang === 'zh' ? `文件 ${file.name} 超过 ${maxSizeMB}MB 限制` : `File ${file.name} exceeds ${maxSizeMB}MB limit`);
         continue;
       }
 
@@ -78,11 +80,11 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         if (result.success && result.file) {
           newFiles.push(result.file);
         } else {
-          alert(`上传失败: ${result.error || '未知错误'}`);
+          alert(lang === 'zh' ? `上传失败: ${result.error || '未知错误'}` : `Upload failed: ${result.error || 'Unknown error'}`);
         }
       } catch (error) {
         console.error('上传文件失败:', error);
-        alert(`上传失败: ${error instanceof Error ? error.message : '未知错误'}`);
+        alert(lang === 'zh' ? `上传失败: ${error instanceof Error ? error.message : '未知错误'}` : `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -126,7 +128,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   if (showButtonOnly) {
     return (
       <>
-        <Tooltip content={`上传文件 (最多${maxFiles}个，每个最大${maxSizeMB}MB)`}>
+        <Tooltip content={lang === 'zh' ? `上传文件 (最多${maxFiles}个，每个最大${maxSizeMB}MB)` : `Upload files (max ${maxFiles}, ${maxSizeMB}MB each)`}>
           <button
             type="button"
             className="file-upload-button-inline"
@@ -176,7 +178,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
                 type="button"
                 className="file-preview-remove-floating"
                 onClick={() => handleRemove(file.id)}
-                title="删除文件"
+                title={lang === 'zh' ? '删除文件' : 'Remove file'}
               >
                 ×
               </button>
@@ -224,7 +226,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
                 type="button"
                 className="file-preview-remove"
                 onClick={() => handleRemove(file.id)}
-                title="删除文件"
+                title={lang === 'zh' ? '删除文件' : 'Remove file'}
               >
                 ×
               </button>
