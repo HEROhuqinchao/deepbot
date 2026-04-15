@@ -20,7 +20,8 @@ import { getErrorMessage } from '../../shared/utils/error-handler';
 import { expandUserPath } from '../../shared/utils/path-utils';
 import { isDockerMode } from '../../shared/utils/docker-utils';
 import { TOOL_NAMES } from './tool-names';
-import { tmpdir } from 'os';
+import { SystemConfigStore } from '../database/system-config-store';
+import { ensureDirectoryExists } from '../../shared/utils/fs-utils';
 import { join } from 'path';
 
 /**
@@ -725,7 +726,18 @@ export const browserToolPlugin: ToolPlugin = {
               }
               
               case 'screenshot': {
-                const defaultPath = join(tmpdir(), `screenshot-${Date.now()}.png`);
+                // 默认保存到图片工作目录
+                let defaultDir: string;
+                try {
+                  const settings = SystemConfigStore.getInstance().getWorkspaceSettings();
+                  defaultDir = settings.imageDir;
+                  ensureDirectoryExists(defaultDir);
+                } catch {
+                  // 回退到系统临时目录
+                  const { tmpdir } = await import('os');
+                  defaultDir = tmpdir();
+                }
+                const defaultPath = join(defaultDir, `screenshot-${Date.now()}.png`);
                 const rawPath = params.screenshotPath || defaultPath;
                 
                 // 展开用户路径（支持 ~ 符号）

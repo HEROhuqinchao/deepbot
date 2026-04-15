@@ -5,6 +5,7 @@
  */
 
 import * as path from 'path';
+import { tmpdir } from 'os';
 import { SystemConfigStore } from '../database/system-config-store';
 import { getDbDir, isDockerMode } from '../../shared/utils/docker-utils';
 
@@ -41,6 +42,7 @@ export function getAllowedDirectories(): string[] {
     path.resolve(settings.imageDir),
     path.resolve(settings.memoryDir),
     path.resolve(settings.sessionDir),
+    path.resolve(tmpdir()),
   ];
 }
 
