@@ -8,7 +8,7 @@
  */
 export const TIMEOUTS = {
   // Agent 相关
-  AGENT_MESSAGE_TIMEOUT: 30 * 60 * 1000,       // 30 分钟（主 Agent 消息超时，支持长任务）
+  AGENT_MESSAGE_TIMEOUT: 6000 * 60 * 1000,       // 6000 分钟（主 Agent 消息超时，支持超长任务）
   SUBAGENT_LONG_TASK_THRESHOLD: 30 * 1000,     // 30 秒（长任务阈值，用于日志提示）
   
   // 浏览器相关
@@ -33,13 +33,13 @@ export const TIMEOUTS = {
   COMMAND_EXECUTION_TIMEOUT: 5 * 1000,         // 5 秒
   
   // Exec 工具
-  EXEC_TOOL_TIMEOUT: 120 * 1000,               // 120 秒
+  EXEC_TOOL_TIMEOUT: 0,                          // 不超时（命令可能执行很长时间）
   
   // 图片生成
   IMAGE_GENERATION_TIMEOUT: 60 * 1000,         // 60 秒
   
   // Web 搜索
-  WEB_SEARCH_TIMEOUT: 30 * 1000,               // 30 秒
+  WEB_SEARCH_TIMEOUT: 60 * 1000,               // 60 秒
   
   // 会话管理
   SESSION_CLEANUP_TIMEOUT: 30 * 60 * 1000,     // 30 分钟
