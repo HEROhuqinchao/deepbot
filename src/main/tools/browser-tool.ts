@@ -22,6 +22,7 @@ import { isDockerMode } from '../../shared/utils/docker-utils';
 import { TOOL_NAMES } from './tool-names';
 import { SystemConfigStore } from '../database/system-config-store';
 import { ensureDirectoryExists } from '../../shared/utils/fs-utils';
+import { tmpdir } from 'os';
 import { join } from 'path';
 
 /**
@@ -734,7 +735,6 @@ export const browserToolPlugin: ToolPlugin = {
                   ensureDirectoryExists(defaultDir);
                 } catch {
                   // 回退到系统临时目录
-                  const { tmpdir } = await import('os');
                   defaultDir = tmpdir();
                 }
                 const defaultPath = join(defaultDir, `screenshot-${Date.now()}.png`);

@@ -47,6 +47,8 @@ function securityError(error: unknown, command: string, unsafePath: string): Err
  * 这些命令可能造成系统损坏或数据丢失
  */
 const DANGEROUS_COMMANDS = [
+  // === Unix/Linux/macOS 危险命令 ===
+  
   // 删除命令
   'rm -rf /',
   'rm -rf ~',
@@ -59,11 +61,15 @@ const DANGEROUS_COMMANDS = [
   'dd if=/dev/zero',
   'dd if=/dev/random',
   
-  // 系统关机/重启
-  'shutdown',
+  // 系统关机/重启（Unix/Linux/macOS）
+  'shutdown -h',
+  'shutdown -r',
+  'shutdown -P',
   'reboot',
   'halt',
   'poweroff',
+  'init 0',
+  'init 6',
   
   // Fork 炸弹
   ':(){ :|:& };:',
@@ -71,18 +77,57 @@ const DANGEROUS_COMMANDS = [
   // 覆盖重要文件
   '> /dev/sda',
   '> /dev/hda',
+  
+  // === Windows 危险命令 ===
+  
+  // 删除命令
+  'rd /s /q c:\\',
+  'rmdir /s /q c:\\',
+  'del /f /s /q c:\\',
+  'del /f /s /q %systemroot%',
+  
+  // 格式化命令
+  'format c:',
+  'format d:',
+  
+  // 注册表破坏
+  'reg delete hklm',
+  'reg delete hkcu',
+  
+  // 系统关机/重启（Windows）
+  'shutdown /s',
+  'shutdown /r',
+  
+  // Fork 炸弹（Windows）
+  '%0|%0',
+  
+  // 磁盘清除
+  'diskpart',
+  'cipher /w:c',
 ];
 
 /**
  * 危险命令模式（正则表达式）
  */
 const DANGEROUS_PATTERNS = [
+  // === Unix/Linux/macOS 模式 ===
   /rm\s+-rf\s+\//,           // rm -rf /xxx
   /rm\s+-rf\s+~/,            // rm -rf ~/xxx
   /rm\s+-rf\s+\*/,           // rm -rf *
   /dd\s+if=\/dev\/(zero|random)/, // dd if=/dev/zero
   /mkfs/,                    // 格式化
   />\s*\/dev\/(sd|hd)[a-z]/, // 覆盖磁盘
+  
+  // === Windows 模式 ===
+  /rd\s+\/s\s+\/q\s+[a-z]:\\/i,       // rd /s /q C:\
+  /rmdir\s+\/s\s+\/q\s+[a-z]:\\/i,    // rmdir /s /q C:\
+  /del\s+\/[fFsS].*[a-z]:\\/i,        // del /f /s C:\
+  /del\s+\/[fFsS].*%\w+%/i,           // del /f /s %systemroot%
+  /format\s+[a-z]:/i,                  // format C:
+  /reg\s+delete\s+hk(lm|cu|cr|u|cc)/i, // reg delete HKLM/HKCU/HKCR/HKU/HKCC
+  /diskpart/i,                          // diskpart（磁盘分区工具）
+  /cipher\s+\/w:/i,                     // cipher /w:C（磁盘数据擦除）
+  /bcdedit/i,                           // bcdedit（引导配置编辑）
 ];
 
 /**

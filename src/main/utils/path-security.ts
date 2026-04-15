@@ -34,7 +34,7 @@ export function getAllowedDirectories(): string[] {
   // Docker 模式下用 /data/db，Electron 模式下用 ~/.deepbot
   const extraDir = getDbDir();
 
-  return [
+  const dirs = [
     path.resolve(settings.workspaceDir),
     path.resolve(extraDir),
     path.resolve(settings.scriptDir),
@@ -44,6 +44,21 @@ export function getAllowedDirectories(): string[] {
     path.resolve(settings.sessionDir),
     path.resolve(tmpdir()),
   ];
+  
+  // 添加常见系统临时目录（跨平台兼容）
+  // macOS 的 tmpdir() 返回 /var/folders/...，但 /tmp 和 /private/tmp 也常用
+  if (process.platform === 'darwin') {
+    dirs.push('/tmp', '/private/tmp');
+  } else if (process.platform === 'linux') {
+    dirs.push('/tmp', '/var/tmp');
+  } else if (process.platform === 'win32') {
+    // Windows 临时目录
+    const winTemp = process.env.TEMP || process.env.TMP;
+    if (winTemp) dirs.push(path.resolve(winTemp));
+    dirs.push('C:\\Windows\\Temp', 'C:\\Temp');
+  }
+  
+  return dirs;
 }
 
 /**
@@ -115,6 +130,7 @@ export function assertPathAllowed(filePath: string): void {
           `  - Image directory: ${settings.imageDir}\n` +
           `  - Memory directory: ${settings.memoryDir}\n` +
           `  - Session directory: ${settings.sessionDir}\n` +
+          `  - Temp directory: ${tmpdir()}\n` +
           `Requested path: ${resolvedPath}\n` +
           `Tip: Configure workspace directory in Settings`
         : `安全限制：只能访问配置的目录及其子目录内的文件\n` +
@@ -126,6 +142,7 @@ export function assertPathAllowed(filePath: string): void {
           `  - 图片目录: ${settings.imageDir}\n` +
           `  - 记忆目录: ${settings.memoryDir}\n` +
           `  - 会话目录: ${settings.sessionDir}\n` +
+          `  - 临时目录: ${tmpdir()}\n` +
           `请求路径: ${resolvedPath}\n` +
           `提示：请在系统设置中配置工作目录`
     );
