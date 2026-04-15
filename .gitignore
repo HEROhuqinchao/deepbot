@@ -51,3 +51,4 @@ temp/
 /dist-server
 *.gz
 /scripts/package-releases.sh
+/docs/deepbot-as-harness-engineering.md

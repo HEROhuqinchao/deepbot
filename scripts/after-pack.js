@@ -28,6 +28,22 @@ exports.default = async function(context) {
   const unpackedDir = path.join(resourcesDir, 'app.asar.unpacked');
   if (fs.existsSync(unpackedDir)) {
     cleanCrossPlatformFiles(unpackedDir, platform);
+    
+    // 修复 agent-browser 二进制执行权限（asarUnpack 后可能丢失）
+    const abBinDir = path.join(unpackedDir, 'node_modules', 'agent-browser', 'bin');
+    if (fs.existsSync(abBinDir)) {
+      for (const file of fs.readdirSync(abBinDir)) {
+        if (!file.endsWith('.js')) {
+          const filePath = path.join(abBinDir, file);
+          try {
+            fs.chmodSync(filePath, 0o755);
+          } catch (e) {
+            // 忽略（Windows 上 chmod 可能不生效）
+          }
+        }
+      }
+      console.log('   ✅ 已修复 agent-browser 二进制执行权限');
+    }
   }
 
   // ========== Windows: 从 asar 临时目录提取 agent-browser 依赖到 unpacked ==========
