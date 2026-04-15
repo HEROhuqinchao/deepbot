@@ -54,7 +54,7 @@
     "@sinclair/typebox": "^0.34.48",
     "@types/adm-zip": "^0.5.8",
     "adm-zip": "^0.5.16",
-    "agent-browser": "^0.15.1",
+    "agent-browser": "^0.25.4",
     "ajv": "^8.12.0",
     "body-parser": "^2.2.2",
     "chokidar": "^3.5.3",
