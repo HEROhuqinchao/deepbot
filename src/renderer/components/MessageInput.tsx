@@ -18,6 +18,7 @@ interface MessageInputProps {
   userName?: string; // 用户名字
   disableStop?: boolean; // 是否禁用 Stop 按钮（独立控制）
   isConnectorTab?: boolean; // 是否是连接器 Tab（显示 /stop 指令）
+  activeTabId?: string; // 当前 Tab ID（用于按 Tab 隔离历史记录）
 }
 
 // 🔥 暴露给父组件的方法
@@ -34,6 +35,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   userName = 'user',
   disableStop = false,
   isConnectorTab = false,
+  activeTabId = 'default',
 }, ref) => {
   const [content, setContent] = useState('');
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
@@ -41,10 +43,27 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lang = getLanguage();
   
-  // 🔥 历史记录功能
-  const [history, setHistory] = useState<string[]>([]);
+  // 🔥 按 Tab 隔离的历史记录
+  const historyMapRef = useRef<Map<string, string[]>>(new Map());
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [tempContent, setTempContent] = useState(''); // 临时保存当前输入
+  
+  // 获取当前 Tab 的历史记录
+  const getHistory = (): string[] => {
+    return historyMapRef.current.get(activeTabId) || [];
+  };
+  
+  // 设置当前 Tab 的历史记录
+  const setHistory = (updater: (prev: string[]) => string[]) => {
+    const current = historyMapRef.current.get(activeTabId) || [];
+    historyMapRef.current.set(activeTabId, updater(current));
+  };
+  
+  // 切换 Tab 时重置历史索引
+  useEffect(() => {
+    setHistoryIndex(-1);
+    setTempContent('');
+  }, [activeTabId]);
 
   // 🔥 命令提示功能
   const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
@@ -282,6 +301,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
     // 🔥 上下键浏览历史记录
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       const textarea = textareaRef.current;
+      const history = getHistory();
       if (!textarea || history.length === 0) return;
 
       const { selectionStart, selectionEnd, value } = textarea;

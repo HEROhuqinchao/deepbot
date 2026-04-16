@@ -574,6 +574,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
           isGenerating={isLoading}
           userName={userName}
           disableStop={isLocked}
+          activeTabId={activeTabId}
         />
       )}
     </div>
