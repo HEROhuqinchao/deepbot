@@ -1,6 +1,6 @@
 {
   "name": "deepbot",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "DeepBot - 系统级 AI 助手，专注企业生产提效",
   "main": "dist-electron/main/index.js",
   "author": "K Luo",
@@ -47,9 +47,9 @@
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@larksuiteoapi/node-sdk": "^1.59.0",
-    "@mariozechner/pi-agent-core": "^0.65.2",
-    "@mariozechner/pi-ai": "^0.65.2",
-    "@mariozechner/pi-coding-agent": "0.65.2",
+    "@mariozechner/pi-agent-core": "^0.67.2",
+    "@mariozechner/pi-ai": "^0.67.2",
+    "@mariozechner/pi-coding-agent": "0.67.2",
     "@mozilla/readability": "^0.6.0",
     "@sinclair/typebox": "^0.34.48",
     "@types/adm-zip": "^0.5.8",
