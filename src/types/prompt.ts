@@ -20,16 +20,12 @@ export interface ContextFile {
  * 运行时信息
  */
 export interface RuntimeInfo {
-  /** Agent ID */
-  agentId?: string;
-  /** 模型名称 */
+  /** 模型 ID */
   model: string;
-  /** 会话 ID */
+  /** Session ID */
   sessionId?: string;
   /** 操作系统 */
   os?: string;
-  /** Node 版本 */
-  nodeVersion?: string;
 }
 
 /**
@@ -53,9 +49,6 @@ export interface SystemPromptParams {
   
   /** 记忆管理目录 */
   memoryDir: string;
-  
-  /** Agent ID */
-  agentId?: string;
   
   /** 可用工具名称列表 */
   toolNames?: string[];

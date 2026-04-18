@@ -114,7 +114,6 @@ export class AgentInitializer {
       
       // 构建运行时参数
       const runtimeParams = buildRuntimeParams({
-        agentId: 'main',
         model: this.model.id,
         sessionId: this.sessionId,
       });
@@ -130,7 +129,6 @@ export class AgentInitializer {
         defaultSkillDir: settings.defaultSkillDir,
         imageDir: settings.imageDir,
         memoryDir: settings.memoryDir,
-        agentId: 'main',
         toolNames,
         runtimeInfo: runtimeParams.runtimeInfo,
         userTimezone: runtimeParams.userTimezone,
