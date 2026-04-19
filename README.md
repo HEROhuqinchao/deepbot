@@ -63,12 +63,39 @@ pnpm run dev
 # Build for all platforms
 pnpm run dist
 
-# macOS only
+# macOS (with code signing + notarization, requires Apple Developer account)
 pnpm run dist:mac
+
+# macOS local build (no signing, no notarization — for development/testing)
+pnpm run dist:mac:local
 
 # Windows only
 pnpm run dist:win
 ```
+
+**`dist:mac` vs `dist:mac:local`**:
+
+| | `dist:mac` | `dist:mac:local` |
+|---|---|---|
+| Code signing | ✅ Apple Developer ID | ❌ None |
+| Notarization | ✅ Apple notarization | ❌ None |
+| Gatekeeper | ✅ Passes verification | ❌ Triggers security warnings |
+| Requirements | Apple Developer account + `.env` credentials | None |
+
+To use `dist:mac`, configure the following in your `.env` file:
+
+```bash
+# Apple signing and notarization (macOS Electron builds only)
+APPLE_ID=your-apple-id@example.com
+APPLE_ID_PASSWORD=your-app-specific-password
+APPLE_APP_SPECIFIC_PASSWORD=your-app-specific-password
+APPLE_TEAM_ID=your-team-id
+```
+
+> You can generate an app-specific password at [appleid.apple.com](https://appleid.apple.com). The Team ID can be found in your [Apple Developer account](https://developer.apple.com/account).
+| Use case | Production release | Local development / testing |
+
+> **Note**: `dist:mac:local` builds will trigger macOS security warnings on first launch — see the section below for how to handle them.
 
 ### Docker Deployment
 
@@ -95,11 +122,11 @@ Configuration:
 - Adjust port mappings and volume mounts in `docker-compose.yml`
 - Data is persisted to `./data` by default
 
-**Note for macOS builds**: The build process automatically applies ad-hoc signing. This prevents the "app is damaged" error, but users will still see "cannot verify developer" on first launch — which is expected and can be bypassed with right-click → Open.
+**Note for macOS builds**: Signed builds (`dist:mac`) pass Gatekeeper verification and work without issues. Local builds (`dist:mac:local`) are unsigned and will trigger security warnings — see below for solutions.
 
-### macOS Security Warnings
+### macOS Security Warnings (Local Builds)
 
-macOS may show a security warning the first time you open DeepBot. Use the appropriate fix based on the message:
+When using `dist:mac:local` (unsigned builds), macOS may show security warnings on first launch:
 
 #### "App is damaged"
 

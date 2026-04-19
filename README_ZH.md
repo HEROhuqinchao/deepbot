@@ -63,12 +63,39 @@ pnpm run dev
 # 构建所有平台
 pnpm run dist
 
-# 仅构建 macOS
+# macOS（含代码签名 + 公证，需要 Apple 开发者账号）
 pnpm run dist:mac
+
+# macOS 本地构建（无签名、无公证，用于开发/测试）
+pnpm run dist:mac:local
 
 # 仅构建 Windows
 pnpm run dist:win
 ```
+
+**`dist:mac` 与 `dist:mac:local` 的区别**：
+
+| | `dist:mac` | `dist:mac:local` |
+|---|---|---|
+| 代码签名 | ✅ Apple Developer ID 签名 | ❌ 无签名 |
+| 公证 | ✅ Apple 公证 | ❌ 无公证 |
+| Gatekeeper | ✅ 通过验证 | ❌ 触发安全警告 |
+| 前置条件 | Apple 开发者账号 + `.env` 中配置签名凭证 | 无 |
+
+使用 `dist:mac` 需要在 `.env` 文件中配置以下信息：
+
+```bash
+# Apple 签名和公证（仅 macOS Electron 打包用）
+APPLE_ID=your-apple-id@example.com
+APPLE_ID_PASSWORD=your-app-specific-password
+APPLE_APP_SPECIFIC_PASSWORD=your-app-specific-password
+APPLE_TEAM_ID=your-team-id
+```
+
+> App 专用密码可在 [appleid.apple.com](https://appleid.apple.com) 生成。Team ID 可在 [Apple 开发者账号](https://developer.apple.com/account) 中查看。
+| 适用场景 | 正式发布 | 本地开发 / 测试 |
+
+> **注意**：`dist:mac:local` 构建的应用首次启动时会触发 macOS 安全警告，解决方法见下方说明。
 
 ### Docker 部署
 
@@ -95,11 +122,11 @@ docker-compose down
 - `docker-compose.yml` 中可调整端口映射和数据卷挂载
 - 数据默认持久化到 `./data` 目录
 
-**macOS 构建说明**：构建过程会自动对 macOS 应用进行 ad-hoc 签名。这可以避免"应用已损坏"提示，但用户首次启动时仍会看到"无法验证开发者"提示（这是正常的，可以通过右键点击 → 打开来绕过）。
+**macOS 构建说明**：正式签名构建（`dist:mac`）通过 Gatekeeper 验证，无安全问题。本地构建（`dist:mac:local`）未签名，首次启动会触发安全警告，解决方法见下方。
 
-### macOS 安装问题
+### macOS 安装问题（本地构建）
 
-macOS 首次打开 DeepBot 时可能会提示安全警告，选择对应的解决方法：
+使用 `dist:mac:local`（未签名构建）时，macOS 首次打开可能会提示安全警告：
 
 #### 提示"应用已损坏"
 

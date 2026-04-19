@@ -58,15 +58,7 @@ export async function buildSystemPrompt(params: SystemPromptParams, sessionId?: 
   // lines.push('注意：如果用户要求修改你的名字或用户称呼，使用 memory 工具更新记忆，系统会自动同步到数据库和提示符。');
   lines.push('');
 
-  // 2. 时间信息
-  if (params.userTimezone && params.userTime) {
-    lines.push(
-      ...buildTimeSection({
-        userTimezone: params.userTimezone,
-        userTime: params.userTime,
-      })
-    );
-  }
+  // 2. 时间信息（已移至每条用户消息的 systemHint 动态注入，保持系统提示词静态可 cache）
 
   // 3. 项目上下文（AGENT.md, TOOLS.md, MEMORY-TRIGGER.md 等）
   if (params.contextFiles && params.contextFiles.length > 0) {
@@ -100,8 +92,7 @@ export async function buildSystemPrompt(params: SystemPromptParams, sessionId?: 
     lines.push('## 额外指导', '', params.extraSystemPrompt, '');
   }
 
-  // 6. 运行时信息
-  lines.push(...buildRuntimeSection(params.runtimeInfo));
+  // 6. 运行时信息（已移至每条用户消息的 systemHint 动态注入，保持系统提示词静态可 cache）
 
   // 7. 已安装的 Skills（放在最后，框架会在此之后追加 ## Tools）
   try {

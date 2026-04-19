@@ -16,6 +16,8 @@ import { MessageHandler } from './message-handler';
 import { wrapToolWithAbortSignal, OperationTracker } from '../tools/tool-abort';
 import { sendLoadingStatus } from '../utils/loading-status';
 import { SystemConfigStore } from '../database/system-config-store';
+import { buildRuntimeParams, buildRuntimeLine } from '../prompts';
+import { buildTimeSection } from '../prompts/sections/time';
 
 /**
  * Message Processor 类
@@ -372,6 +374,35 @@ ${tailResponse}
         if (langSetting === 'en') {
           systemHint += '，所有回复必须使用英文（English），除非用户明确指定其他语言';
         }
+      } catch {
+        // 忽略
+      }
+
+      // 注入动态运行时信息（时间 + session/os/model/tab名称），保持系统提示词静态可 cache
+      try {
+        const runtimeParams = buildRuntimeParams({
+          model: this.runtimeConfig.model.id,
+          sessionId: this.runtimeConfig.sessionId,
+        });
+        const runtimeLine = buildRuntimeLine(runtimeParams.runtimeInfo);
+        const timeLines = buildTimeSection({
+          userTimezone: runtimeParams.userTimezone,
+          userTime: runtimeParams.userTime,
+        });
+
+        // 获取当前 tab 名称
+        let tabName = '';
+        try {
+          const { getGatewayInstance } = await import('../gateway');
+          const gateway = getGatewayInstance();
+          if (gateway) {
+            const tab = gateway.getAllTabs().find(t => t.id === this.runtimeConfig.sessionId);
+            if (tab?.title) tabName = tab.title;
+          }
+        } catch { /* 忽略 */ }
+
+        const tabInfo = tabName ? `，当前Tab名称: ${tabName}` : '';
+        systemHint += `，${runtimeLine}${tabInfo}，${timeLines.filter(l => l.startsWith('当前时间') || l.startsWith('时区')).join('，')}`;
       } catch {
         // 忽略
       }

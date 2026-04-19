@@ -19,7 +19,6 @@ import { getSystemTimezone, formatCurrentTime } from '../../shared/utils/datetim
  * @returns 运行时参数
  */
 export function buildRuntimeParams(params: {
-  agentId?: string;
   model: string;
   sessionId?: string;
 }): RuntimeParams {
@@ -27,11 +26,9 @@ export function buildRuntimeParams(params: {
   const userTime = formatCurrentTime({ timezone: userTimezone });
 
   const runtimeInfo: RuntimeInfo = {
-    agentId: params.agentId,
     model: params.model,
     sessionId: params.sessionId,
     os: `${os.platform()} ${os.release()}`,
-    nodeVersion: process.version,
   };
 
   return {
@@ -49,10 +46,6 @@ export function buildRuntimeParams(params: {
 export function buildRuntimeLine(runtimeInfo: RuntimeInfo): string {
   const parts: string[] = [];
 
-  if (runtimeInfo.agentId) {
-    parts.push(`agent=${runtimeInfo.agentId}`);
-  }
-
   parts.push(`model=${runtimeInfo.model}`);
 
   if (runtimeInfo.sessionId) {
@@ -61,10 +54,6 @@ export function buildRuntimeLine(runtimeInfo: RuntimeInfo): string {
 
   if (runtimeInfo.os) {
     parts.push(`os=${runtimeInfo.os}`);
-  }
-
-  if (runtimeInfo.nodeVersion) {
-    parts.push(`node=${runtimeInfo.nodeVersion}`);
   }
 
   return `Runtime: ${parts.join(' | ')}`;
