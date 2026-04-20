@@ -337,14 +337,14 @@ function createWindow() {
  */
 function registerIpcHandlers() {
   // 处理发送消息
-  ipcMain.handle(IPC_CHANNELS.SEND_MESSAGE, async (_event, { content, sessionId }) => {
+  ipcMain.handle(IPC_CHANNELS.SEND_MESSAGE, async (_event, { content, sessionId, displayContent }) => {
     console.log('IPC: 收到发送消息请求', { content, sessionId });
     
     if (!gateway) {
       throw new Error('Gateway 未初始化');
     }
 
-    await gateway.handleSendMessage(content, sessionId);
+    await gateway.handleSendMessage(content, sessionId, displayContent);
     return { success: true };
   });
 
@@ -360,6 +360,13 @@ function registerIpcHandlers() {
     return { success: true };
   });
   
+  // 标记系统提示词需要重建
+  ipcMain.handle(IPC_CHANNELS.INVALIDATE_SYSTEM_PROMPTS, async () => {
+    if (gateway) {
+      gateway.invalidateAllSystemPrompts();
+    }
+  });
+
   // Skill 管理器
   ipcMain.handle(IPC_CHANNELS.SKILL_MANAGER, async (_event, request) => {
     console.log('IPC: 收到 Skill Manager 请求', request);

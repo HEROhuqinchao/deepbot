@@ -728,6 +728,7 @@ function App() {
       <SkillManager
         isOpen={isSkillManagerOpen}
         onClose={() => setIsSkillManagerOpen(false)}
+        activeTabId={activeTabId}
       />
       
       {/* 定时任务管理器 */}

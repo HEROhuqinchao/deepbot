@@ -290,9 +290,9 @@ export const api = {
 
   // ==================== 消息管理 ====================
 
-  async sendMessage(content: string, sessionId?: string): Promise<void> {
-    if (isElectron()) return (window as any).deepbot.sendMessage(content, sessionId);
-    return webClient.sendMessage(sessionId || 'default', content);
+  async sendMessage(content: string, sessionId?: string, displayContent?: string): Promise<void> {
+    if (isElectron()) return (window as any).deepbot.sendMessage(content, sessionId, displayContent);
+    return webClient.sendMessage(sessionId || 'default', content, displayContent);
   },
 
   async stopGeneration(sessionId?: string): Promise<void> {
@@ -347,6 +347,11 @@ export const api = {
   async skillManager(request: any): Promise<any> {
     if (isElectron()) return (window as any).deepbot.skillManager(request);
     return webClient.post('/api/skills', request);
+  },
+
+  async invalidateSystemPrompts(): Promise<void> {
+    if (isElectron()) return (window as any).deepbot.invalidateSystemPrompts();
+    return webClient.post('/api/invalidate-system-prompts', {});
   },
 
   // ==================== 事件监听 ====================

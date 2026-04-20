@@ -21,6 +21,10 @@ interface Skill {
   installedAt?: Date;
   usageCount?: number;
   tags?: string[];
+  /** SKILL.md 是否有问题 */
+  invalid?: boolean;
+  /** 无效原因 */
+  invalidReason?: string;
 }
 
 // Skill 详细信息（从 info 接口返回）
@@ -41,9 +45,10 @@ interface SkillInfo extends Skill {
 interface SkillManagerProps {
   isOpen: boolean;
   onClose: () => void;
+  activeTabId?: string;
 }
 
-export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) => {
+export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, activeTabId }) => {
   const [activeTab, setActiveTab] = useState<'installed' | 'available'>('installed');
   const [searchQuery, setSearchQuery] = useState('');
   const [installedSkills, setInstalledSkills] = useState<Skill[]>([]);
@@ -210,6 +215,19 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
     }
   };
 
+  // 修复异常 Skill
+  const handleFix = (skill: Skill) => {
+    const prompt = `请修复 Skill "${skill.name}" 的 SKILL.md 文件格式。错误原因：${skill.invalidReason || '格式错误'}。请读取该文件，修正 YAML frontmatter 格式后写回。修复完成后，请调用 skill_manager 工具执行 list 操作来验证修复结果。`;
+    const displayContent = `修复 Skill "${skill.name}" 的 SKILL.md 格式`;
+    const sessionId = activeTabId || 'default';
+    api.sendMessage(prompt, sessionId, displayContent).catch(console.error);
+    // 延迟 invalidate，等 Agent 修复完文件后再清空，下次对话时重建
+    setTimeout(() => {
+      api.invalidateSystemPrompts().catch(console.error);
+    }, 15000);
+    onClose();
+  };
+
   // 查看详情
   const handleViewDetails = async (skillName: string, isInstalled: boolean) => {
     
@@ -365,6 +383,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose }) =
                     onUninstall={handleUninstall}
                     onViewDetails={(name) => handleViewDetails(name, true)}
                     onEnvEdit={handleOpenEnvEdit}
+                    onFix={handleFix}
                     installingSkill={installingSkill}
                     installProgress={installProgress}
                   />
@@ -491,6 +510,7 @@ interface SkillCardProps {
   onUninstall: (name: string) => void;
   onViewDetails: (name: string, isInstalled: boolean) => void;
   onEnvEdit?: (name: string) => void;
+  onFix?: (skill: Skill) => void;
   installingSkill?: string | null;
   installProgress?: number;
 }
@@ -503,6 +523,7 @@ const SkillCard: React.FC<SkillCardProps> = ({
   onUninstall,
   onViewDetails,
   onEnvEdit,
+  onFix,
   installingSkill,
   installProgress = 0,
 }) => {
@@ -526,6 +547,17 @@ const SkillCard: React.FC<SkillCardProps> = ({
             )}
           </div>
           <p className="text-sm text-text-secondary mb-2">{skill.description}</p>
+          {skill.invalid && onFix && (
+            <p className="text-xs text-amber-500 mb-2">
+              ⚠️ SKILL.md 异常：{skill.invalidReason || '格式错误'}。
+              <button
+                onClick={() => onFix(skill)}
+                className="ml-1 text-amber-600 hover:text-amber-700 font-medium"
+              >
+                点击修复
+              </button>
+            </p>
+          )}
           <div className="flex items-center gap-3 text-xs text-text-tertiary">
             <span>v{skill.version}</span>
             {skill.author && <span>• {skill.author}</span>}

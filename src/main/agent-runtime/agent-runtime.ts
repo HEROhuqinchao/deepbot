@@ -552,6 +552,18 @@ export class AgentRuntime {
   }
 
   /**
+   * 标记系统提示词需要重建
+   * 
+   * 清空当前提示词，下次发消息时会自动重新组装
+   * 用于 Skill 安装/卸载后延迟重建
+   */
+  invalidateSystemPrompt(): void {
+    this.systemPrompt = '';
+    this.systemPromptInitializing = false;
+    console.log('[AgentRuntime] 系统提示词已标记为需要重建');
+  }
+
+  /**
    * 重新加载系统提示词
    * 
    * 用于在记忆更新后重新加载系统提示词

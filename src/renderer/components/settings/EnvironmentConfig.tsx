@@ -72,11 +72,12 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
   const handleCheckEnvironment = () => {
     // 发送提示词到 Main Agent（不等待完成）
     const prompt = `请检查系统环境依赖，使用 environment_check 工具执行检查操作（action: check）。检查完成后，请告诉我结果。`;
+    const displayContent = '检查系统环境依赖';
     
     // 🔥 使用当前选中的 Tab ID，如果没有则使用默认 Tab
     const sessionId = activeTabId || 'default';
     
-    api.sendMessage(prompt, sessionId).catch((err) => {
+    api.sendMessage(prompt, sessionId, displayContent).catch((err) => {
       console.error('发送消息失败:', err);
     });
 

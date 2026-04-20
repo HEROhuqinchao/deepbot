@@ -13,7 +13,7 @@ export const PROVIDER_PRESETS = {
     name: 'DeepBot',
     baseUrl: 'https://www.im-director.com/api/llm-v1',
     defaultModelId: 'minimax-m2.7',
-    defaultModelId2: 'minimax-m2.7',  // 快速模型
+    defaultModelId2: 'minimax-m2.5',  // 快速模型
     apiType: 'openai-completions',
   },
   qwen: {

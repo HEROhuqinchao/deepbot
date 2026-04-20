@@ -90,7 +90,20 @@ export function listInstalledSkills(
             
             console.log(`[Skill Manager] 自动注册 Skill: ${dir}`);
           } catch (error) {
-            console.warn(`[Skill Manager] ⚠️ 跳过无效 Skill: ${dir}（${error instanceof Error ? error.message : '未知错误'}）`);
+            // SKILL.md 无效，仍然列出但标记为异常
+            const reason = error instanceof Error ? error.message : '未知错误';
+            console.warn(`[Skill Manager] ⚠️ Skill 异常: ${dir}（${reason}）`);
+            allSkills.push({
+              name: dir,
+              version: '?',
+              enabled: false,
+              installedAt: new Date(),
+              usageCount: 0,
+              repository: '',
+              description: '',
+              invalid: true,
+              invalidReason: reason,
+            });
           }
         }
       }

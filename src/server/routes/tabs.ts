@@ -79,14 +79,14 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
   const sendMessage: RequestHandler = async (req, res) => {
     try {
       const { tabId } = req.params;
-      const { content, clearHistory } = req.body;
+      const { content, displayContent, clearHistory } = req.body;
       
       if (!content) {
         res.status(400).json({ error: '消息内容不能为空' });
         return;
       }
       
-      await gatewayAdapter.handleSendMessage(tabId as string, content, clearHistory);
+      await gatewayAdapter.handleSendMessage(tabId as string, content, clearHistory, displayContent);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: getErrorMessage(error) });

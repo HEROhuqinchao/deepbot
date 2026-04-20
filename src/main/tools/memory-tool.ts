@@ -588,18 +588,10 @@ export const memoryToolPlugin: ToolPlugin = {
               const { memoryFile } = getMemoryFilePath(tabId);
               console.log('[Memory Tool] ✅ 合并后的记忆已写入:', memoryFile);
               
-              // 7. 重新加载当前 Tab 的系统提示词
+              // 7. 标记当前 tab 系统提示词需要重建
               const gateway = getGatewayInstance();
               if (gateway) {
-                console.log('\n' + '='.repeat(80));
-                console.log(`[Memory Tool] 🔄 触发当前 Tab (${sessionId}) 系统提示词重新加载...`);
-                console.log('='.repeat(80));
-                await gateway.reloadSessionSystemPrompt(sessionId);
-                console.log('='.repeat(80));
-                console.log(`[Memory Tool] ✅ Tab ${sessionId} 系统提示词已重新加载`);
-                console.log('='.repeat(80) + '\n');
-              } else {
-                console.warn('[Memory Tool] ⚠️ Gateway 实例未设置，无法重新加载系统提示词');
+                gateway.invalidateSessionSystemPrompt(sessionId);
               }
               
               return {
@@ -682,15 +674,7 @@ export const memoryToolPlugin: ToolPlugin = {
                 // 3. 重新加载默认 Tab 的系统提示词（因为主记忆更新了）
                 const gateway = getGatewayInstance();
                 if (gateway) {
-                  console.log('\n' + '='.repeat(80));
-                  console.log('[Memory Tool] 🔄 触发默认 Tab 系统提示词重新加载...');
-                  console.log('='.repeat(80));
-                  await gateway.reloadSessionSystemPrompt('default');
-                  console.log('='.repeat(80));
-                  console.log('[Memory Tool] ✅ 默认 Tab 系统提示词已重新加载');
-                  console.log('='.repeat(80) + '\n');
-                } else {
-                  console.warn('[Memory Tool] ⚠️ Gateway 实例未设置，无法重新加载系统提示词');
+                  gateway.invalidateAllSystemPrompts();
                 }
                 
                 return {
@@ -730,18 +714,10 @@ export const memoryToolPlugin: ToolPlugin = {
                 const { memoryFile } = getMemoryFilePath(tabId);
                 console.log('[Memory Tool] ✅ 记忆文件已写入:', memoryFile);
                 
-                // 🔥 只重新加载当前 Tab 的系统提示词
+                // 标记当前 tab 系统提示词需要重建
                 const gateway = getGatewayInstance();
                 if (gateway) {
-                  console.log('\n' + '='.repeat(80));
-                  console.log(`[Memory Tool] 🔄 触发当前 Tab (${sessionId}) 系统提示词重新加载...`);
-                  console.log('='.repeat(80));
-                  await gateway.reloadSessionSystemPrompt(sessionId);
-                  console.log('='.repeat(80));
-                  console.log(`[Memory Tool] ✅ Tab ${sessionId} 系统提示词已重新加载`);
-                  console.log('='.repeat(80) + '\n');
-                } else {
-                  console.warn('[Memory Tool] ⚠️ Gateway 实例未设置，无法重新加载系统提示词');
+                  gateway.invalidateSessionSystemPrompt(sessionId);
                 }
                 
                 return {

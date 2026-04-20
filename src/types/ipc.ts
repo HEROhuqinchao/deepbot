@@ -24,6 +24,7 @@ export const IPC_CHANNELS = {
   
   // Skill 管理器
   SKILL_MANAGER: 'skill-manager',
+  INVALIDATE_SYSTEM_PROMPTS: 'system-prompt:invalidate',
   
   // 定时任务管理
   SCHEDULED_TASK: 'scheduled-task',
