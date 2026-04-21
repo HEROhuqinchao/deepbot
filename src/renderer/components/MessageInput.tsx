@@ -79,6 +79,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
     { name: 'new', description: lang === 'zh' ? '清空当前会话历史，开始新对话' : 'Clear session history and start fresh' },
     { name: 'memory', description: lang === 'zh' ? '查看和管理记忆' : 'View and manage memory' },
     { name: 'merge-memory', description: lang === 'zh' ? '合并其他 Tab 的记忆（用法：/merge-memory Tab名称）' : 'Merge memory from another Tab (usage: /merge-memory Tab name)' },
+    { name: 'clone', description: lang === 'zh' ? '克隆其他 Tab 的历史和记忆（用法：/clone Tab名称）' : 'Clone history and memory from another Tab (usage: /clone Tab name)' },
     { name: 'history', description: lang === 'zh' ? '查看对话历史统计' : 'View conversation history stats' },
     ...(isConnectorTab ? [{ name: 'stop', description: lang === 'zh' ? '停止当前正在执行的任务' : 'Stop the current running task' }] : []),
   ];
@@ -258,7 +259,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
           setShowCommandSuggestions(false);
           
           // 需要参数的指令：填入输入框但不发送
-          if (selectedCommand.name === 'merge-memory') {
+          if (selectedCommand.name === 'merge-memory' || selectedCommand.name === 'clone') {
             setContent(commandText + ' ');
             if (textareaRef.current) {
               textareaRef.current.focus();
@@ -474,7 +475,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
                   setShowCommandSuggestions(false);
                   
                   // 需要参数的指令：填入输入框但不发送
-                  if (cmd.name === 'merge-memory') {
+                  if (cmd.name === 'merge-memory' || cmd.name === 'clone') {
                     setContent(commandText + ' ');
                     if (textareaRef.current) {
                       textareaRef.current.focus();

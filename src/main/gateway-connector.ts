@@ -4,9 +4,11 @@
  * 职责：
  * - 处理连接器消息
  * - 发送响应到连接器
- * - 执行系统命令（/new、/memory、/history）
+ * - 执行系统命令（/new、/memory、/history、/merge-memory、/clone 等）
  */
 
+import fs from 'fs';
+import path from 'path';
 import { BrowserWindow } from 'electron';
 import type { GatewayMessage } from '../types/connector';
 import { IPC_CHANNELS } from '../types/ipc';
@@ -14,12 +16,14 @@ import { getErrorMessage } from '../shared/utils/error-handler';
 import { generateMessageId, generateUserMessageId } from '../shared/utils/id-generator';
 import { sendToWindow } from '../shared/utils/webcontents-utils';
 import { SystemConfigStore } from './database/system-config-store';
+import { updateTabMemoryFile } from './database/tab-config';
 import { createLogger } from '../shared/utils/logger';
 import type { SessionManager } from './session/session-manager';
 import type { AgentRuntime } from './agent-runtime/index';
 import type { ConnectorManager } from './connectors/connector-manager';
 import type { GatewayTabManager } from './gateway-tab';
 import { setCurrentSenderIdForFeishuDocTool } from './tools/feishu-doc-tool';
+import { getGatewayInstance } from './gateway';
 
 const logger = createLogger('ConnectorHandler');
 
@@ -548,10 +552,14 @@ export class GatewayConnectorHandler {
           resultText = await this.handleMergeMemoryCommand(sessionId, commandArgs, isEn);
           break;
 
+        case 'clone':
+          resultText = await this.handleCloneCommand(sessionId, commandArgs, isEn);
+          break;
+
         default:
           resultText = isEn
-            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /merge-memory <tab> - Merge memory from another Tab\n- /history - View conversation stats\n- /reload-env - Reload environment variables\n- /stop - Stop current task\n- /status - View task status`
-            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /merge-memory <Tab名称> - 合并其他 Tab 的记忆\n- /history - 查看对话历史统计\n- /reload-env - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
+            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /merge-memory <tab> - Merge memory from another Tab\n- /clone <tab> - Clone history and memory from another Tab\n- /history - View conversation stats\n- /reload-env - Reload environment variables\n- /stop - Stop current task\n- /status - View task status`
+            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /merge-memory <Tab名称> - 合并其他 Tab 的记忆\n- /clone <Tab名称> - 克隆其他 Tab 的历史和记忆\n- /history - 查看对话历史统计\n- /reload-env - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
       }
 
       // /new 命令需要延迟发送结果，确保 clear-chat 先被前端处理
@@ -810,6 +818,103 @@ export class GatewayConnectorHandler {
     }, 100);
 
     return '';
+  }
+
+  /**
+   * 处理 /clone 命令
+   * 用法：/clone <tab名称>
+   * 复制目标 Tab 的历史文件和记忆文件到当前 Tab，重新加载
+   */
+  private async handleCloneCommand(sessionId: string, tabName: string | undefined, isEn = false): Promise<string> {
+    if (!tabName || !tabName.trim()) {
+      return isEn
+        ? '❌ Please specify a Tab name.\n\nUsage: /clone <tab name>\nExample: /clone FS-张三'
+        : '❌ 请指定要克隆的 Tab 名称。\n\n用法：/clone <Tab名称>\n示例：/clone FS-张三';
+    }
+
+    const trimmedName = tabName.trim();
+    logger.info(`执行 /clone 指令: sessionId=${sessionId}, sourceTab=${trimmedName}`);
+
+    try {
+      if (!this.tabManager || !this.sessionManager) {
+        throw new Error('依赖未设置');
+      }
+
+      // 1. 查找目标 Tab
+      const allTabs = this.tabManager.getAllTabs();
+      const sourceTab = allTabs.find(t => t.title === trimmedName);
+      if (!sourceTab) {
+        return isEn
+          ? `❌ Tab "${trimmedName}" not found`
+          : `❌ 未找到名为 "${trimmedName}" 的 Tab`;
+      }
+
+      const sourceTabId = sourceTab.id;
+
+      // 不允许克隆自己
+      if (sourceTabId === sessionId) {
+        return isEn
+          ? '❌ Cannot clone the current Tab into itself'
+          : '❌ 不能克隆当前 Tab 到自身';
+      }
+
+      // 2. 复制 session 历史文件
+      const sourceSessionPath = this.sessionManager.getSessionFilePath(sourceTabId);
+      const targetSessionPath = this.sessionManager.getSessionFilePath(sessionId);
+
+      if (fs.existsSync(sourceSessionPath)) {
+        fs.copyFileSync(sourceSessionPath, targetSessionPath);
+        logger.info(`✅ 历史文件已复制: ${sourceSessionPath} → ${targetSessionPath}`);
+      }
+
+      // 3. 复制 memory 文件（如果源 Tab 有独立记忆）
+      const configStore = SystemConfigStore.getInstance();
+      const sourceTabConfig = configStore.getTabConfig(sourceTabId);
+      const settings = configStore.getWorkspaceSettings();
+
+      if (sourceTabConfig?.memoryFile) {
+        const sourceMemoryPath = path.join(settings.memoryDir, sourceTabConfig.memoryFile);
+        const targetMemoryFile = `memory-${sessionId}.md`;
+        const targetMemoryPath = path.join(settings.memoryDir, targetMemoryFile);
+
+        if (fs.existsSync(sourceMemoryPath)) {
+          fs.copyFileSync(sourceMemoryPath, targetMemoryPath);
+          // 更新数据库中当前 Tab 的 memory 文件配置
+          updateTabMemoryFile(configStore.getDb(), sessionId, targetMemoryFile);
+          // 同步更新内存中 Tab 对象的 memoryFile
+          const currentTab = this.tabManager.getTab(sessionId);
+          if (currentTab) {
+            currentTab.memoryFile = targetMemoryFile;
+          }
+          logger.info(`✅ 记忆文件已复制: ${sourceMemoryPath} → ${targetMemoryPath}`);
+        }
+      }
+
+      // 4. 重置当前 Tab 的 AgentRuntime（重新加载历史和记忆）
+      if (this.resetSessionRuntimeFn) {
+        await this.resetSessionRuntimeFn(sessionId, { reason: '/clone 指令', recreate: true });
+      }
+
+      // 5. 通知前端重新加载历史消息
+      if (this.tabManager) {
+        await this.tabManager.loadTabHistory(sessionId, true);
+      }
+
+      // 6. 标记系统提示词需要重建
+      const gateway = getGatewayInstance();
+      if (gateway) {
+        gateway.invalidateSessionSystemPrompt(sessionId);
+      }
+
+      return isEn
+        ? `✅ Successfully cloned from "${trimmedName}". History and memory have been copied. The next message will use the cloned context.`
+        : `✅ 已从 "${trimmedName}" 克隆完成。历史记录和记忆已复制，下次对话将沿用克隆的上下文。`;
+    } catch (error) {
+      logger.error('❌ 克隆失败:', error);
+      return isEn
+        ? `❌ Clone failed: ${getErrorMessage(error)}`
+        : `❌ 克隆失败: ${getErrorMessage(error)}`;
+    }
   }
 
   /**
