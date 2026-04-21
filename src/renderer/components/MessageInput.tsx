@@ -511,8 +511,10 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
         {/* 提示符 */}
         <div className="terminal-input-prompt">{userName}@deepbot:~$</div>
 
-        {/* 输入框容器（包含图片预览、文本框和上传按钮） */}
-        <div className="terminal-input-with-upload">
+        {/* 输入框列（包含输入框和帮助提示） */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* 输入框容器（包含图片预览、文本框和上传按钮） */}
+          <div className="terminal-input-with-upload">
           {/* 图片预览（悬浮层） */}
           <ImageUploader
             images={uploadedImages}
@@ -559,6 +561,12 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
             showButtonOnly={true}
             hasImages={uploadedImages.length > 0}
           />
+        </div>
+
+          {/* 帮助提示 */}
+          <div className="terminal-input-hint">
+            {lang === 'zh' ? '上/下键 切换历史输入　输入 / 查看可用指令' : 'Up/Down browse history　Type / for commands'}
+          </div>
         </div>
 
         {/* 发送/停止按钮 */}
