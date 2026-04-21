@@ -27,16 +27,23 @@ export async function installSkill(
     console.info(`[Skill Manager] 开始安装 Skill: ${name}`);
 
     // 1. 检查是否已安装
+    const SKILLS_DIR = getSkillsDir();
+    const skillDir = path.join(SKILLS_DIR, name);
     const existing = db.prepare('SELECT * FROM skills WHERE name = ?').get(name) as any;
+    
     if (existing) {
-      throw new Error(`Skill "${name}" 已安装`);
+      // 数据库有记录，检查文件系统是否真的存在
+      const skillMdPath = path.join(skillDir, 'SKILL.md');
+      if (fs.existsSync(skillMdPath)) {
+        throw new Error(`Skill "${name}" 已安装`);
+      }
+      // 文件系统不存在，清理数据库中的残留记录
+      console.warn(`[Skill Manager] ⚠️ 数据库有 "${name}" 记录但文件不存在，清理残留记录`);
+      db.prepare('DELETE FROM skills WHERE name = ?').run(name);
     }
 
     // 2. 确保 skills 目录存在
-    const SKILLS_DIR = getSkillsDir();
     ensureDirectoryExists(SKILLS_DIR);
-
-    const skillDir = path.join(SKILLS_DIR, name);
 
     // 3. 从 ClawHub 下载 zip
     await downloadSkillFromClawHub(name, skillDir);

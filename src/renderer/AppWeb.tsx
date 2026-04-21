@@ -730,6 +730,7 @@ export function AppWeb() {
       <SkillManager
         isOpen={isSkillManagerOpen}
         onClose={() => setIsSkillManagerOpen(false)}
+        activeTabId={activeTabId}
       />
       
       <ScheduledTaskManager

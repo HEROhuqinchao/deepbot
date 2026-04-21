@@ -185,7 +185,7 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
   return {
     name: TOOL_NAMES.IMAGE_GENERATION,
     label: 'Image Generation',
-    description: '多提供商图片生成工具。系统内置 Gemini 和 Qwen 两个提供商，可在工具配置中切换；如需调用其他提供商接口，可通过安装 Skill 扩展。支持：1) Gemini 3 Pro Image 生成和解析图片 2) Qwen-Image 系列模型生成图片 3) 使用参考图片（最多5张）生成图片。根据配置的模型自动选择提供商。',
+    description: '生成图片或解析图片内容。支持文本生成图片、基于参考图片生成（最多5张）、解析图片生成描述。可指定宽高比和分辨率。',
     parameters: ImageGenerationSchema,
     execute: async (_toolCallId: string, args: unknown, signal?: AbortSignal) => {
       try {
@@ -306,6 +306,8 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
 
         // 保存图片（使用配置的输出目录）
         const savedPath = saveImage(imageData, mimeType, outputDir, params.outputPath);
+        // Windows 路径转正斜杠，避免 Markdown 渲染时反斜杠被当作转义字符
+        const displayPath = savedPath.replace(/\\/g, '/');
 
         console.log('[Image Generation] ✅ 图片生成成功');
         console.log(`   保存路径: ${savedPath}`);
@@ -316,7 +318,7 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
             success: true,
             action: 'generate',
             provider: toolConfig.provider,
-            path: savedPath,
+            path: displayPath,
             aspectRatio: params.aspectRatio || '16:9',
             resolution: params.resolution || '1K',
             referenceCount: params.referenceImages?.length || 0,
@@ -329,7 +331,7 @@ export function createImageGenerationTool(configStore: SystemConfigStore): Agent
                 action: 'generate',
                 provider: toolConfig.provider,
                 message: '图片生成成功，显示图片预览时，必须使用path中的完整路径作为图片路径，禁止只显示图片的名字',
-                path: savedPath,
+                path: displayPath,
                 aspectRatio: params.aspectRatio || '16:9',
                 resolution: params.resolution || '1K',
                 referenceCount: params.referenceImages?.length || 0,

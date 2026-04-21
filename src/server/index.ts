@@ -94,6 +94,16 @@ async function main(): Promise<void> {
   app.use('/api/files', authMiddleware, createFilesRouter(gatewayAdapter));
   app.use('/api/skills', authMiddleware, createSkillsRouter(gatewayAdapter));
   
+  // 标记系统提示词需要重建
+  app.post('/api/invalidate-system-prompts', authMiddleware, (req, res) => {
+    try {
+      gatewayAdapter.invalidateSystemPrompts();
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: '操作失败' });
+    }
+  });
+  
   // SPA 路由（生产环境）- 必须放在所有 API 路由之后
   if (NODE_ENV === 'production') {
     app.get(/^\/(?!api).*/, (req, res) => {

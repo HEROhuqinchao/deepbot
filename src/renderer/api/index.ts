@@ -193,6 +193,26 @@ export const api = {
     return { success: true, settings: updatedSettings };
   },
 
+  async addWorkspaceDir(dir: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.addWorkspaceDir(dir);
+    const config = await webClient.getConfig();
+    const currentSettings = config.workspace || {};
+    const currentDirs = currentSettings.workspaceDirs || [currentSettings.workspaceDir || ''];
+    const updatedSettings = { ...currentSettings, workspaceDirs: [...currentDirs, dir] };
+    await webClient.updateConfig({ workspace: updatedSettings });
+    return { success: true, settings: updatedSettings };
+  },
+
+  async removeWorkspaceDir(dir: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.removeWorkspaceDir(dir);
+    const config = await webClient.getConfig();
+    const currentSettings = config.workspace || {};
+    const currentDirs = (currentSettings.workspaceDirs || []).filter((d: string) => d !== dir);
+    const updatedSettings = { ...currentSettings, workspaceDirs: currentDirs, workspaceDir: currentDirs[0] || '' };
+    await webClient.updateConfig({ workspace: updatedSettings });
+    return { success: true, settings: updatedSettings };
+  },
+
   async launchChromeWithDebug(port: number): Promise<any> {
     if (isElectron()) return (window as any).deepbot.launchChromeWithDebug(port);
     return webClient.post('/api/tools/launch-chrome', { port });
@@ -290,9 +310,9 @@ export const api = {
 
   // ==================== 消息管理 ====================
 
-  async sendMessage(content: string, sessionId?: string): Promise<void> {
-    if (isElectron()) return (window as any).deepbot.sendMessage(content, sessionId);
-    return webClient.sendMessage(sessionId || 'default', content);
+  async sendMessage(content: string, sessionId?: string, displayContent?: string): Promise<void> {
+    if (isElectron()) return (window as any).deepbot.sendMessage(content, sessionId, displayContent);
+    return webClient.sendMessage(sessionId || 'default', content, displayContent);
   },
 
   async stopGeneration(sessionId?: string): Promise<void> {
@@ -347,6 +367,11 @@ export const api = {
   async skillManager(request: any): Promise<any> {
     if (isElectron()) return (window as any).deepbot.skillManager(request);
     return webClient.post('/api/skills', request);
+  },
+
+  async invalidateSystemPrompts(): Promise<void> {
+    if (isElectron()) return (window as any).deepbot.invalidateSystemPrompts();
+    return webClient.post('/api/invalidate-system-prompts', {});
   },
 
   // ==================== 事件监听 ====================

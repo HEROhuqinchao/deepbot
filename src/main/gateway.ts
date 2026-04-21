@@ -325,6 +325,26 @@ export class Gateway {
     console.log('='.repeat(80) + '\n');
   }
 
+  /**
+   * 标记所有会话的系统提示词需要重建（下次发消息时自动重新组装）
+   */
+  invalidateAllSystemPrompts(): void {
+    for (const [sessionId, runtime] of this.agentRuntimes.entries()) {
+      runtime.invalidateSystemPrompt();
+    }
+    console.log(`[Gateway] 已标记 ${this.agentRuntimes.size} 个会话的系统提示词需要重建`);
+  }
+
+  /**
+   * 标记单个会话的系统提示词需要重建
+   */
+  invalidateSessionSystemPrompt(sessionId: string): void {
+    const runtime = this.agentRuntimes.get(sessionId);
+    if (runtime) {
+      runtime.invalidateSystemPrompt();
+    }
+  }
+
 
   /**
    * 设置所有处理器的依赖（统一的依赖注入逻辑）

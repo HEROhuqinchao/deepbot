@@ -236,9 +236,9 @@ export class GatewayAdapter extends EventEmitter {
   /**
    * 发送消息
    */
-  async handleSendMessage(tabId: string, content: string, clearHistory?: boolean): Promise<void> {
+  async handleSendMessage(tabId: string, content: string, clearHistory?: boolean, displayContent?: string): Promise<void> {
     // Gateway 使用 sessionId，Tab 的 id 就是 sessionId
-    await this.gateway.handleSendMessage(content, tabId, undefined, clearHistory);
+    await this.gateway.handleSendMessage(content, tabId, displayContent, clearHistory);
   }
   
   /**
@@ -771,5 +771,12 @@ export class GatewayAdapter extends EventEmitter {
    */
   async checkAndSendWelcomeMessage(): Promise<void> {
     return this.gateway.getTabManager().checkAndSendWelcomeMessage();
+  }
+
+  /**
+   * 标记所有会话的系统提示词需要重建
+   */
+  invalidateSystemPrompts(): void {
+    this.gateway.invalidateAllSystemPrompts();
   }
 }

@@ -142,13 +142,9 @@ export async function handleSetNameConfig(
       });
       logger.info('已发送名字配置更新事件到前端:', updatedConfig);
       
-      // 重新加载系统提示词
+      // 标记系统提示词需要重建
       if (gateway) {
-        logger.info('触发系统提示词重新加载...');
-        await gateway.reloadSystemPrompts();
-        logger.info('系统提示词已重新加载');
-      } else {
-        logger.warn('Gateway 实例未设置，无法重新加载系统提示词');
+        gateway.invalidateAllSystemPrompts();
       }
       
       return createSuccessResponse(
@@ -209,13 +205,9 @@ export async function handleSetNameConfig(
         });
         logger.info('已发送 Tab 名字更新事件到前端:', { sessionId, agentName: params.agentName });
         
-        // 只重新加载当前 Tab 的系统提示词
+        // 标记系统提示词需要重建
         if (gateway) {
-          logger.info('触发当前 Tab 系统提示词重新加载...');
-          await gateway.reloadSessionSystemPrompt(sessionId);
-          logger.info('当前 Tab 系统提示词已重新加载');
-        } else{
-          logger.warn('Gateway 实例未设置，无法重新加载系统提示词');
+          gateway.invalidateAllSystemPrompts();
         }
         
         return createSuccessResponse(

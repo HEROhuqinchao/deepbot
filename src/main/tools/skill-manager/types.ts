@@ -31,6 +31,10 @@ export interface InstalledSkill {
   usageCount: number;
   repository: string;
   description?: string;
+  /** 标记 SKILL.md 是否有问题（缺少 frontmatter 等） */
+  invalid?: boolean;
+  /** 无效原因 */
+  invalidReason?: string;
 }
 
 /**

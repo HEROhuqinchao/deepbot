@@ -24,6 +24,7 @@ export const IPC_CHANNELS = {
   
   // Skill 管理器
   SKILL_MANAGER: 'skill-manager',
+  INVALIDATE_SYSTEM_PROMPTS: 'system-prompt:invalidate',
   
   // 定时任务管理
   SCHEDULED_TASK: 'scheduled-task',
@@ -38,6 +39,8 @@ export const IPC_CHANNELS = {
   ADD_SKILL_DIR: 'workspace:add-skill-dir',
   REMOVE_SKILL_DIR: 'workspace:remove-skill-dir',
   SET_DEFAULT_SKILL_DIR: 'workspace:set-default-skill-dir',
+  ADD_WORKSPACE_DIR: 'workspace:add-workspace-dir',
+  REMOVE_WORKSPACE_DIR: 'workspace:remove-workspace-dir',
   
   // 模型配置
   GET_MODEL_CONFIG: 'model-config:get',

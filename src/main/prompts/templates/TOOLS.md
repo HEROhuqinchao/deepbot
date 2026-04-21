@@ -542,13 +542,13 @@ google-chrome --remote-debugging-port=9222
 ### 使用时机
 用户说了以下关键词时使用：
 - **生成图片**："生成图片"、"画一张图"、"创建图片"
-- **解析图片**：用户明确说"解析"、"分析"、"描述图片"
+- **解析图片**：用户明确说"解析"、"分析"、"描述图片"、"识别图片中的文字"、"这张图片是什么"
 - **参考图生成**：用户上传图片并要求生成新图
 
 ### 使用场景
 - ✅ 文本生成图片
 - ✅ 基于参考图生成（最多 5 张）
-- ✅ 解析图片生成提示词
+- ✅ 解析图片内容（描述、OCR 文字识别、情绪分析等）
 - ✅ 指定宽高比和分辨率
 - ❌ 不要自作主张添加参数（aspectRatio、resolution）
 
@@ -574,6 +574,16 @@ google-chrome --remote-debugging-port=9222
 {
   "action": "analyze",
   "imagePath": "~/.deepbot/temp/uploads/abc123.jpg"
+}
+```
+
+**示例 1b：带自定义提示词的图片分析**
+```json
+// 用户说"识别这张图片里的文字"
+{
+  "action": "analyze",
+  "imagePath": "~/.deepbot/temp/uploads/abc123.jpg",
+  "analysisPrompt": "请识别图片中的所有文字内容"
 }
 ```
 

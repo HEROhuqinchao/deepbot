@@ -41,6 +41,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isComposingRef = useRef(false); // IME 组合输入状态（中文输入法等）
   const lang = getLanguage();
   
   // 🔥 按 Tab 隔离的历史记录
@@ -286,6 +287,11 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
 
     // Enter 发送，Shift + Enter 换行
     if (e.key === 'Enter' && !e.shiftKey) {
+      // IME 组合输入中（如中文输入法选词），回车是确认候选，不是发送
+      if (e.nativeEvent.isComposing || isComposingRef.current) {
+        return;
+      }
+      
       e.preventDefault();
       
       // 如果命令正在执行，跳过
@@ -506,6 +512,8 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
+            onCompositionStart={() => { isComposingRef.current = true; }}
+            onCompositionEnd={() => { isComposingRef.current = false; }}
             placeholder="Enter command or query..."
             disabled={disabled}
             rows={1}

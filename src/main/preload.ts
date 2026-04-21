@@ -22,6 +22,7 @@ const IPC_CHANNELS = {
   TASK_SUB_UPDATED: 'task-monitor:sub-task-updated',
   TASKS_CLEARED: 'task-monitor:tasks-cleared',
   SKILL_MANAGER: 'skill-manager',
+  INVALIDATE_SYSTEM_PROMPTS: 'system-prompt:invalidate',
   SCHEDULED_TASK: 'scheduled-task',
   ENVIRONMENT_CHECK: 'environment-check',
   GET_WORKSPACE_SETTINGS: 'workspace:get-settings',
@@ -30,6 +31,8 @@ const IPC_CHANNELS = {
   ADD_SKILL_DIR: 'workspace:add-skill-dir',
   REMOVE_SKILL_DIR: 'workspace:remove-skill-dir',
   SET_DEFAULT_SKILL_DIR: 'workspace:set-default-skill-dir',
+  ADD_WORKSPACE_DIR: 'workspace:add-workspace-dir',
+  REMOVE_WORKSPACE_DIR: 'workspace:remove-workspace-dir',
   READ_IMAGE: 'image:read',
   UPLOAD_IMAGE: 'image:upload',
   UPLOAD_FILE: 'file:upload',
@@ -74,8 +77,8 @@ const IPC_CHANNELS = {
  */
 contextBridge.exposeInMainWorld('deepbot', {
   // 发送消息
-  sendMessage: (content: string, sessionId?: string) => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SEND_MESSAGE, { content, sessionId });
+  sendMessage: (content: string, sessionId?: string, displayContent?: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SEND_MESSAGE, { content, sessionId, displayContent });
   },
 
   // 停止生成
@@ -86,6 +89,11 @@ contextBridge.exposeInMainWorld('deepbot', {
   // Skill Manager
   skillManager: (request: any) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SKILL_MANAGER, request);
+  },
+
+  // 标记系统提示词需要重建
+  invalidateSystemPrompts: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.INVALIDATE_SYSTEM_PROMPTS);
   },
   
   // 定时任务管理
@@ -121,6 +129,14 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   setDefaultSkillDir: (dir: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SET_DEFAULT_SKILL_DIR, { dir });
+  },
+
+  addWorkspaceDir: (dir: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ADD_WORKSPACE_DIR, { dir });
+  },
+
+  removeWorkspaceDir: (dir: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.REMOVE_WORKSPACE_DIR, { dir });
   },
 
   // 读取图片

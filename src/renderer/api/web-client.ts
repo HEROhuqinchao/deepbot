@@ -163,11 +163,12 @@ export const webClient = {
   async sendMessage(
     tabId: string,
     content: string,
+    displayContent?: string,
     clearHistory?: boolean
   ): Promise<void> {
     await request(`/api/tabs/${tabId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ content, clearHistory }),
+      body: JSON.stringify({ content, displayContent, clearHistory }),
     });
   },
   

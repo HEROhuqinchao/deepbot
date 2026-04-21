@@ -104,6 +104,8 @@ export function createSkillManagerTool(): AgentTool {
               throw new Error('缺少参数: name（skill slug）');
             }
             result = await installSkill(name, db);
+            // 安装成功后标记系统提示词需要重建
+            invalidateSystemPrompts();
             break;
           
           case 'list':
@@ -125,6 +127,8 @@ export function createSkillManagerTool(): AgentTool {
             }
             uninstallSkill(name, db);
             result = { success: true, message: `Skill "${name}" 已卸载` };
+            // 卸载成功后标记系统提示词需要重建
+            invalidateSystemPrompts();
             break;
           
           case 'info':
@@ -177,6 +181,21 @@ export function createSkillManagerTool(): AgentTool {
       }
     },
   };
+}
+
+/**
+ * 标记系统提示词需要重建（Skill 安装/卸载后调用，下次发消息时自动重新组装）
+ */
+function invalidateSystemPrompts(): void {
+  try {
+    const { getGatewayInstance } = require('../../gateway');
+    const gateway = getGatewayInstance();
+    if (gateway) {
+      gateway.invalidateAllSystemPrompts();
+    }
+  } catch (error) {
+    console.warn('[Skill Manager] ⚠️ 标记系统提示词重建失败:', error);
+  }
 }
 
 
