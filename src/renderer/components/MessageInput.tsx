@@ -78,6 +78,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   const availableCommands = [
     { name: 'new', description: lang === 'zh' ? '清空当前会话历史，开始新对话' : 'Clear session history and start fresh' },
     { name: 'memory', description: lang === 'zh' ? '查看和管理记忆' : 'View and manage memory' },
+    { name: 'merge-memory', description: lang === 'zh' ? '合并其他 Tab 的记忆（用法：/merge-memory Tab名称）' : 'Merge memory from another Tab (usage: /merge-memory Tab name)' },
     { name: 'history', description: lang === 'zh' ? '查看对话历史统计' : 'View conversation history stats' },
     ...(isConnectorTab ? [{ name: 'stop', description: lang === 'zh' ? '停止当前正在执行的任务' : 'Stop the current running task' }] : []),
   ];
@@ -255,6 +256,17 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
           
           const commandText = `/${selectedCommand.name}`;
           setShowCommandSuggestions(false);
+          
+          // 需要参数的指令：填入输入框但不发送
+          if (selectedCommand.name === 'merge-memory') {
+            setContent(commandText + ' ');
+            if (textareaRef.current) {
+              textareaRef.current.focus();
+            }
+            setTimeout(() => { isExecutingCommandRef.current = false; }, 100);
+            return;
+          }
+          
           setContent('');
           
           setHistoryIndex(-1);
@@ -460,6 +472,16 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
                 onClick={() => {
                   const commandText = `/${cmd.name}`;
                   setShowCommandSuggestions(false);
+                  
+                  // 需要参数的指令：填入输入框但不发送
+                  if (cmd.name === 'merge-memory') {
+                    setContent(commandText + ' ');
+                    if (textareaRef.current) {
+                      textareaRef.current.focus();
+                    }
+                    return;
+                  }
+                  
                   setContent('');
                   
                   setHistoryIndex(-1);

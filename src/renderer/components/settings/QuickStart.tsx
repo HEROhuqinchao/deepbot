@@ -856,6 +856,31 @@ export function QuickStart({ onNavigate }: QuickStartProps) {
                 color: 'var(--settings-accent)',
                 marginRight: '8px'
               }}>
+                /merge-memory
+              </code>
+              <span style={{ color: 'var(--settings-text)', fontWeight: '600' }}>{lang === 'zh' ? '合并记忆' : 'Merge Memory'}</span>
+            </div>
+            <div style={{ marginLeft: '12px', fontSize: '12px' }}>
+              {lang === 'zh' ? '将其他 Tab 的记忆合并到当前 Tab（用法：/merge-memory Tab名称）' : 'Merge memory from another Tab (usage: /merge-memory Tab name)'}
+            </div>
+          </div>
+          
+          <div style={{ 
+            padding: '10px 12px',
+            background: 'var(--settings-input-bg)',
+            borderRadius: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              <code style={{ 
+                padding: '2px 8px', 
+                background: 'rgba(0,0,0,0.2)', 
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--settings-accent)',
+                marginRight: '8px'
+              }}>
                 /history
               </code>
               <span style={{ color: 'var(--settings-text)', fontWeight: '600' }}>{lang === 'zh' ? '分析历史' : 'Analyze History'}</span>

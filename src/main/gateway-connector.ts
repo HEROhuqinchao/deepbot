@@ -507,7 +507,7 @@ export class GatewayConnectorHandler {
   /**
    * 执行系统命令
    */
-  async executeSystemCommand(commandName: string, _commandArgs: string | undefined, sessionId: string): Promise<void> {
+  async executeSystemCommand(commandName: string, commandArgs: string | undefined, sessionId: string): Promise<void> {
     if (!this.sendErrorFn) {
       logger.error('sendError 未设置');
       return;
@@ -544,10 +544,14 @@ export class GatewayConnectorHandler {
           resultText = await this.handleReloadEnvCommand();
           break;
 
+        case 'merge-memory':
+          resultText = await this.handleMergeMemoryCommand(sessionId, commandArgs, isEn);
+          break;
+
         default:
           resultText = isEn
-            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /history - View conversation stats\n- /reload-env - Reload environment variables\n- /stop - Stop current task\n- /status - View task status`
-            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /history - 查看对话历史统计\n- /reload-env - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
+            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /merge-memory <tab> - Merge memory from another Tab\n- /history - View conversation stats\n- /reload-env - Reload environment variables\n- /stop - Stop current task\n- /status - View task status`
+            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /merge-memory <Tab名称> - 合并其他 Tab 的记忆\n- /history - 查看对话历史统计\n- /reload-env - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
       }
 
       // /new 命令需要延迟发送结果，确保 clear-chat 先被前端处理
@@ -764,6 +768,48 @@ export class GatewayConnectorHandler {
       logger.error('❌ 刷新环境变量失败:', error);
       return `❌ 刷新环境变量失败: ${getErrorMessage(error)}`;
     }
+  }
+
+  /**
+   * 处理 /merge-memory 命令
+   * 用法：/merge-memory <tab名称>
+   */
+  private async handleMergeMemoryCommand(sessionId: string, tabName: string | undefined, isEn = false): Promise<string> {
+    if (!tabName || !tabName.trim()) {
+      return isEn
+        ? '❌ Please specify a Tab name.\n\nUsage: /merge-memory <tab name>\nExample: /merge-memory FS-张三'
+        : '❌ 请指定要合并记忆的 Tab 名称。\n\n用法：/merge-memory <Tab名称>\n示例：/merge-memory FS-张三';
+    }
+
+    if (!this.getOrCreateRuntimeFn || !this.sendAIResponseFn || !this.sendErrorFn) {
+      throw new Error('依赖未设置');
+    }
+
+    const trimmedName = tabName.trim();
+    logger.info(`执行 /merge-memory 指令: sessionId=${sessionId}, sourceTab=${trimmedName}`);
+
+    const agentPrompt = isEn
+      ? `Merge the memory from Tab "${trimmedName}" into the current Tab's memory. Use the memory tool with action "merge" and sourceTabName "${trimmedName}".`
+      : `将 Tab "${trimmedName}" 的记忆合并到当前 Tab 的记忆中。使用 memory 工具，action 为 "merge"，sourceTabName 为 "${trimmedName}"。`;
+
+    setTimeout(async () => {
+      try {
+        const runtime = this.getOrCreateRuntimeFn!(sessionId);
+        sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
+          messageId: generateUserMessageId(),
+          content: agentPrompt,
+          done: true,
+          role: 'user',
+          sessionId,
+        });
+        await this.sendAIResponseFn!(runtime, agentPrompt, sessionId);
+      } catch (error) {
+        logger.error('❌ 合并记忆失败:', error);
+        this.sendErrorFn!(`合并记忆失败: ${getErrorMessage(error)}`, sessionId);
+      }
+    }, 100);
+
+    return '';
   }
 
   /**

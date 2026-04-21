@@ -362,6 +362,7 @@ Commands:
 
 - /new — Clear session history, start fresh
 - /memory — View and manage memory
+- /merge-memory <Tab name> — Merge memory from another Tab
 - /history — View conversation stats
 
 As we interact, I'll get to know you better and improve at completing tasks. 😊
@@ -428,6 +429,7 @@ Feel free to ask anything or tell me what you need!`;
 
 - /new — 清空当前会话历史，开始新对话
 - /memory — 查看和管理记忆
+- /merge-memory <Tab名称> — 合并其他 Tab 的记忆到当前 Tab
 - /history — 查看对话历史统计
 - /stop — 停止当前正在执行的任务（从外部通讯，比如飞书发送支持）
 - /status — 查看当前任务执行状态和正在输出的内容（从外部通讯，比如飞书发送支持）
