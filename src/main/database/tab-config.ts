@@ -172,6 +172,21 @@ export function updateTabAgentName(
 }
 
 /**
+ * 更新 Tab 的 memory 文件
+ */
+export function updateTabMemoryFile(db: Database.Database, tabId: string, memoryFile: string): void {
+  const stmt = db.prepare(`
+    UPDATE agent_tabs 
+    SET memory_file = ?
+    WHERE id = ?
+  `);
+  
+  stmt.run(memoryFile, tabId);
+  
+  console.log(`[TabConfig] 🧠 已更新 Tab memory 文件: ${tabId} -> ${memoryFile}`);
+}
+
+/**
  * 删除 Tab 配置
  */
 export function deleteTabConfig(db: Database.Database, tabId: string): void {

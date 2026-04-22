@@ -4,9 +4,11 @@
  * 职责：
  * - 处理连接器消息
  * - 发送响应到连接器
- * - 执行系统命令（/new、/memory、/history）
+ * - 执行系统命令（/new、/memory、/history、/merge-memory、/clone 等）
  */
 
+import fs from 'fs';
+import path from 'path';
 import { BrowserWindow } from 'electron';
 import type { GatewayMessage } from '../types/connector';
 import { IPC_CHANNELS } from '../types/ipc';
@@ -14,12 +16,14 @@ import { getErrorMessage } from '../shared/utils/error-handler';
 import { generateMessageId, generateUserMessageId } from '../shared/utils/id-generator';
 import { sendToWindow } from '../shared/utils/webcontents-utils';
 import { SystemConfigStore } from './database/system-config-store';
+import { updateTabMemoryFile } from './database/tab-config';
 import { createLogger } from '../shared/utils/logger';
 import type { SessionManager } from './session/session-manager';
 import type { AgentRuntime } from './agent-runtime/index';
 import type { ConnectorManager } from './connectors/connector-manager';
 import type { GatewayTabManager } from './gateway-tab';
 import { setCurrentSenderIdForFeishuDocTool } from './tools/feishu-doc-tool';
+import { getGatewayInstance } from './gateway';
 
 const logger = createLogger('ConnectorHandler');
 
@@ -57,7 +61,7 @@ export class GatewayConnectorHandler {
   private sendAIResponseFn: ((runtime: AgentRuntime, message: string, sessionId: string, sentAt?: number) => Promise<void>) | null = null;
   private sendErrorFn: ((error: string, sessionId?: string) => void) | null = null;
   private resetSessionRuntimeFn: ((sessionId: string, options: { reason?: string; recreate?: boolean }) => Promise<AgentRuntime | null>) | null = null;
-  private executeSystemCommandFn: ((commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<void>) | null = null;
+  private executeSystemCommandFn: ((commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<string>) | null = null;
 
   constructor() {}
 
@@ -74,7 +78,7 @@ export class GatewayConnectorHandler {
     sendAIResponse: (runtime: AgentRuntime, message: string, sessionId: string, sentAt?: number) => Promise<void>;
     sendError: (error: string, sessionId?: string) => void;
     resetSessionRuntime: (sessionId: string, options: { reason?: string; recreate?: boolean }) => Promise<AgentRuntime | null>;
-    executeSystemCommand: (commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<void>;
+    executeSystemCommand: (commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<string>;
   }): void {
     this.mainWindow = deps.mainWindow;
     this.connectorManager = deps.connectorManager;
@@ -163,8 +167,11 @@ export class GatewayConnectorHandler {
             const senderName = message.source.senderName || '';
             title = senderName ? `FS-${senderName}` : 'feishu';
           }
+        } else if (message.source.connectorId === 'wechat') {
+          const existingWxTabs = this.tabManager.getAllTabs().filter(t => t.title?.startsWith('WX-'));
+          const nextNum = existingWxTabs.length + 1;
+          title = `WX-用户${nextNum}`;
         } else {
-          // 其他连接器使用 connectorId
           title = message.source.connectorId || 'unknown';
         }
         
@@ -229,19 +236,16 @@ export class GatewayConnectorHandler {
           }
 
           // 其他系统指令正常处理
-          await this.executeSystemCommandFn(commandName, commandArgs, tab.id);
+          const resultText = await this.executeSystemCommandFn(commandName, commandArgs, tab.id);
           logger.info('✅ 系统指令已执行');
 
           // connector tab 的系统指令需要把结果回复给用户
           // （executeSystemCommand 只发到前端 UI，connector 用户看不到）
-          if (tab.type === 'connector') {
-            const reply = this.getSystemCommandReply(commandName);
-            if (reply) {
-              try {
-                await this.sendResponseToConnector(tab.id, reply);
-              } catch (replyError) {
-                logger.error('❌ 回复系统指令结果失败:', replyError);
-              }
+          if (tab.type === 'connector' && resultText) {
+            try {
+              await this.sendResponseToConnector(tab.id, resultText);
+            } catch (replyError) {
+              logger.error('❌ 回复系统指令结果失败:', replyError);
             }
           }
           return;
@@ -319,38 +323,53 @@ export class GatewayConnectorHandler {
 
     // 根据消息类型构建正文
     if (message.content.type === 'image' && message.content.imagePath) {
-      content = `[系统通知: 用户发送了一张图片]\n\n图片已自动下载并保存到: ${message.content.imagePath}\n\n请立即回复用户:\n1. 确认收到图片\n2. 告知图片保存位置\n3. 询问用户需要对图片做什么操作`;
+      content = `[系统提示: 用户发送了一张图片\n\n图片已自动下载并保存到: ${message.content.imagePath}\n\n请立即回复用户:\n1. 确认收到图片\n2. 告知图片保存位置\n3. 询问用户需要对图片做什么操作；不要调用其他任何工具]`;
       displayContent = `[收到图片]`;
+    } else if (message.content.type === 'video' && message.content.filePath) {
+      const fileName = message.content.fileName || '未知视频';
+      content = `[系统提示: 用户发送了一个视频\n\n文件名: ${fileName}\n视频已自动下载并保存到: ${message.content.filePath}\n\n请立即回复用户:\n1. 确认收到视频\n2. 告知视频保存位置\n3. 询问用户需要对视频做什么操作；不要调用其他任何工具]`;
+      displayContent = `[收到视频]`;
     } else if (message.content.type === 'file' && message.content.filePath) {
       const fileName = message.content.fileName || '未知文件';
-      content = `[系统通知: 用户发送了文件]\n\n文件名: ${fileName}\n文件已自动下载并保存到: ${message.content.filePath}\n\n请立即回复用户:\n1. 确认收到文件\n2. 告知文件保存位置\n3. 询问用户需要对文件做什么操作`;
+      content = `[系统提示: 用户发送了文件\n\n文件名: ${fileName}\n文件已自动下载并保存到: ${message.content.filePath}\n\n请立即回复用户:\n1. 确认收到文件\n2. 告知文件保存位置\n3. 询问用户需要对文件做什么操作；不要调用其他任何工具]`;
       displayContent = `[收到文件]`;
     } else {
       displayContent = content;
     }
 
-    // 飞书专用工具提示（固定注入）
-    const feishuToolsHint = `\n\n[系统提示: 这是飞书通讯会话，除了系统的工具，你还可以根据用户的需求使用以下专用工具:
-- connector_send_image: 发送图片给对方
-- connector_send_file: 发送文件给对方
+    // 连接器专用工具提示（根据连接器类型注入）
+    let connectorToolsHint = '';
+    if (message.source.connectorId === 'feishu') {
+      connectorToolsHint = `\n\n[系统提示: 这是飞书通讯会话，除了系统的工具，你还可以根据用户的需求使用以下专用工具:
+- feishu_send_image: 发送图片给对方
+- feishu_send_file: 发送文件给对方
 - feishu_doc_create: 创建飞书云文档（参数: title, folder_token?）
 - feishu_doc_get: 获取文档信息和纯文本内容（参数: document_id）
-- feishu_doc_get_blocks: 获取文档所有块列表，更新/删除块前先调用此工具获取 block_id（参数: document_id）
+- feishu_doc_get_blocks: 获取文档所有块列表（参数: document_id）
 - feishu_doc_update_block: 更新指定块的文本内容（参数: document_id, block_id, content）
-- feishu_doc_delete_blocks: 删除文档中指定范围的块（参数: document_id, start_index, end_index，parent_block_id 可选默认同 document_id）
-- feishu_doc_delete_file: 永久删除整篇文档文件，不可恢复（参数: document_id）
+- feishu_doc_delete_blocks: 删除文档中指定范围的块（参数: document_id, start_index, end_index）
+- feishu_doc_delete_file: 永久删除整篇文档文件（参数: document_id）
 - feishu_doc_add_comment: 在文档中添加评论（参数: document_id, content）
 - feishu_drive_download: 下载飞书云空间文件到本地（参数: file_token, file_name?）
-- feishu_doc_insert_rich_blocks: 将 Markdown/HTML 内容转换为丰富格式文档块并插入文档，支持标题、表格、列表、代码块、引用、图片等（参数: document_id, content, content_type?, index?, parent_block_id?）
+- feishu_doc_insert_rich_blocks: 将 Markdown/HTML 内容插入文档（参数: document_id, content）
 
 注意：
 1. feishu_doc_add_comment 是添加文档评论，不是追加正文内容
-2. 不要用markdown格式回复内容，不要使用表格回复内容，飞书只能接收无格式的的字符，除非需要创建飞书文档
+2. 不要用markdown格式回复内容，飞书只能接收无格式的字符，除非需要创建飞书文档
 3. 回复的内容超过1000个字，创建飞书文档回复
-4. 创建飞书文档时，使用 feishu_doc_insert_rich_blocks 插入丰富格式内容（Markdown）
+4. 创建飞书文档时，使用 feishu_doc_insert_rich_blocks 插入丰富格式内容
 5. 回复的时候根据回复的内容，带上用户的名字
-6. 来自信息中包含了发送信息的用户的姓名，群消息还包含群名称，收到消息中的“我”就是发送者，如果当前信息来自群，“我”指代群本身。执行任务时需要用正确名称代替。
+6. 来自信息中包含了发送信息的用户的姓名，群消息还包含群名称
 7. 不要使用 feishu_send_message 工具回复，除非收到明确指令要给具体目标发送消息]`;
+    } else if (message.source.connectorId === 'wechat') {
+      connectorToolsHint = `\n\n[系统提示: 这是微信通讯会话，除了系统的工具，你还可以根据用户的需求使用以下专用工具:
+- wechat_send_image: 发送图片给对方
+- wechat_send_file: 发送文件给对方
+
+注意：
+1. 不要用markdown格式回复内容，微信只能接收纯文本
+2. 禁止使用 wechat_send_message 工具]`;
+    }
 
     // 额外系统通知（由连接器按需注入，如首次管理员授权提示）
     const extraNotice = message.systemContext ? `\n\n${message.systemContext}` : '';
@@ -362,7 +381,7 @@ export class GatewayConnectorHandler {
     } else {
       sourceLabel = `发送信息者：${senderName}`;
     }
-    const contentForAgent = `[来自: ${sourceLabel}]\n${content}${feishuToolsHint}${extraNotice}`;
+    const contentForAgent = `[来自: ${sourceLabel}]\n${content}${connectorToolsHint}${extraNotice}`;
 
     return { contentForAgent, displayContent };
   }
@@ -489,10 +508,10 @@ export class GatewayConnectorHandler {
   /**
    * 执行系统命令
    */
-  async executeSystemCommand(commandName: string, _commandArgs: string | undefined, sessionId: string): Promise<void> {
+  async executeSystemCommand(commandName: string, commandArgs: string | undefined, sessionId: string): Promise<string> {
     if (!this.sendErrorFn) {
       logger.error('sendError 未设置');
-      return;
+      return '';
     }
 
     const messageId = generateMessageId();
@@ -522,14 +541,22 @@ export class GatewayConnectorHandler {
           resultText = await this.handleStatusCommand(sessionId);
           break;
 
-        case 'reload-env':
-          resultText = await this.handleReloadEnvCommand();
+        case 'reload-path':
+          resultText = await this.handleReloadPathCommand();
+          break;
+
+        case 'merge-memory':
+          resultText = await this.handleMergeMemoryCommand(sessionId, commandArgs, isEn);
+          break;
+
+        case 'clone':
+          resultText = await this.handleCloneCommand(sessionId, commandArgs, isEn);
           break;
 
         default:
           resultText = isEn
-            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /history - View conversation stats\n- /reload-env - Reload environment variables\n- /stop - Stop current task\n- /status - View task status`
-            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /history - 查看对话历史统计\n- /reload-env - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
+            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /merge-memory <tab> - Merge memory from another Tab\n- /clone <tab> - Clone history and memory from another Tab\n- /history - View conversation stats\n- /reload-path - Reload PATH environment variables\n- /stop - Stop current task\n- /status - View task status`
+            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /merge-memory <Tab名称> - 合并其他 Tab 的记忆\n- /clone <Tab名称> - 克隆其他 Tab 的历史和记忆\n- /history - 查看对话历史统计\n- /reload-path - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
       }
 
       // /new 命令需要延迟发送结果，确保 clear-chat 先被前端处理
@@ -553,9 +580,12 @@ export class GatewayConnectorHandler {
           sessionId,
         });
       }
+
+      return resultText;
     } catch (error) {
       logger.error(`❌ 执行系统命令失败: /${commandName}`, error);
       this.sendErrorFn(`执行命令失败: ${getErrorMessage(error)}`, sessionId);
+      return '';
     }
   }
 
@@ -621,21 +651,6 @@ export class GatewayConnectorHandler {
     }, 100);
 
     return '';
-  }
-
-  /**
-   * 获取系统指令的简短回复文本（用于 connector 回复用户）
-   */
-  private getSystemCommandReply(commandName: string): string {
-    const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
-    switch (commandName.toLowerCase()) {
-      case 'stop': return '⏹️ ' + (isEn ? 'Task stopped' : '任务已停止');
-      case 'new': return '✅ ' + (isEn ? 'Session cleared, starting fresh' : '已清空会话历史，开始新对话');
-      case 'memory': return '';  // Agent 会异步回复记忆内容
-      case 'history': return '';  // Agent 会异步回复历史分析
-      case 'status': return '📊 ' + (isEn ? 'Getting status...' : '正在获取当前状态...');
-      default: return `❌ ${isEn ? 'Unknown command' : '未知指令'}: /${commandName}`;
-    }
   }
 
   /**
@@ -733,18 +748,161 @@ export class GatewayConnectorHandler {
   }
 
   /**
-   * 处理 /reload-env 命令 - 刷新环境变量缓存
+   * 处理 /reload-path 命令 - 刷新环境变量缓存
+   * 用于用户在 DeepBot 外部安装了工具后，重新加载 PATH 等环境变量
    */
-  private async handleReloadEnvCommand(): Promise<string> {
+  private async handleReloadPathCommand(): Promise<string> {
     try {
-      logger.info('执行 /reload-env 指令，刷新环境变量缓存');
+      logger.info('执行 /reload-path 指令，刷新环境变量缓存');
       const { resetShellPathCache } = require('./tools/shell-env');
       resetShellPathCache();
       logger.info('✅ 环境变量缓存已清除，下次执行命令时将重新加载');
-      return '✅ 环境变量已刷新\n\n下次执行命令时将从系统重新加载所有环境变量（包括 .zshrc/.bashrc 中新增的变量）';
+      const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
+      return isEn
+        ? '✅ PATH reloaded\n\nEnvironment variables will be refreshed from your shell profile (.zshrc/.bashrc) on the next command execution.'
+        : '✅ 环境变量已刷新\n\n下次执行命令时将从系统重新加载所有环境变量（包括 .zshrc/.bashrc 中新增的变量）。\n\n适用场景：在 DeepBot 外部安装了 Python、Node.js 等工具后使用此指令。';
     } catch (error) {
       logger.error('❌ 刷新环境变量失败:', error);
       return `❌ 刷新环境变量失败: ${getErrorMessage(error)}`;
+    }
+  }
+
+  /**
+   * 处理 /merge-memory 命令
+   * 用法：/merge-memory <tab名称>
+   */
+  private async handleMergeMemoryCommand(sessionId: string, tabName: string | undefined, isEn = false): Promise<string> {
+    if (!tabName || !tabName.trim()) {
+      return isEn
+        ? '❌ Please specify a Tab name.\n\nUsage: /merge-memory <tab name>\nExample: /merge-memory FS-张三'
+        : '❌ 请指定要合并记忆的 Tab 名称。\n\n用法：/merge-memory <Tab名称>\n示例：/merge-memory FS-张三';
+    }
+
+    if (!this.getOrCreateRuntimeFn || !this.sendAIResponseFn || !this.sendErrorFn) {
+      throw new Error('依赖未设置');
+    }
+
+    const trimmedName = tabName.trim();
+    logger.info(`执行 /merge-memory 指令: sessionId=${sessionId}, sourceTab=${trimmedName}`);
+
+    const agentPrompt = isEn
+      ? `Merge the memory from Tab "${trimmedName}" into the current Tab's memory. Use the memory tool with action "merge" and sourceTabName "${trimmedName}".`
+      : `将 Tab "${trimmedName}" 的记忆合并到当前 Tab 的记忆中。使用 memory 工具，action 为 "merge"，sourceTabName 为 "${trimmedName}"。`;
+
+    setTimeout(async () => {
+      try {
+        const runtime = this.getOrCreateRuntimeFn!(sessionId);
+        sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
+          messageId: generateUserMessageId(),
+          content: agentPrompt,
+          done: true,
+          role: 'user',
+          sessionId,
+        });
+        await this.sendAIResponseFn!(runtime, agentPrompt, sessionId);
+      } catch (error) {
+        logger.error('❌ 合并记忆失败:', error);
+        this.sendErrorFn!(`合并记忆失败: ${getErrorMessage(error)}`, sessionId);
+      }
+    }, 100);
+
+    return '';
+  }
+
+  /**
+   * 处理 /clone 命令
+   * 用法：/clone <tab名称>
+   * 复制目标 Tab 的历史文件和记忆文件到当前 Tab，重新加载
+   */
+  private async handleCloneCommand(sessionId: string, tabName: string | undefined, isEn = false): Promise<string> {
+    if (!tabName || !tabName.trim()) {
+      return isEn
+        ? '❌ Please specify a Tab name.\n\nUsage: /clone <tab name>\nExample: /clone FS-张三'
+        : '❌ 请指定要克隆的 Tab 名称。\n\n用法：/clone <Tab名称>\n示例：/clone FS-张三';
+    }
+
+    const trimmedName = tabName.trim();
+    logger.info(`执行 /clone 指令: sessionId=${sessionId}, sourceTab=${trimmedName}`);
+
+    try {
+      if (!this.tabManager || !this.sessionManager) {
+        throw new Error('依赖未设置');
+      }
+
+      // 1. 查找目标 Tab
+      const allTabs = this.tabManager.getAllTabs();
+      const sourceTab = allTabs.find(t => t.title === trimmedName);
+      if (!sourceTab) {
+        return isEn
+          ? `❌ Tab "${trimmedName}" not found`
+          : `❌ 未找到名为 "${trimmedName}" 的 Tab`;
+      }
+
+      const sourceTabId = sourceTab.id;
+
+      // 不允许克隆自己
+      if (sourceTabId === sessionId) {
+        return isEn
+          ? '❌ Cannot clone the current Tab into itself'
+          : '❌ 不能克隆当前 Tab 到自身';
+      }
+
+      // 2. 复制 session 历史文件
+      const sourceSessionPath = this.sessionManager.getSessionFilePath(sourceTabId);
+      const targetSessionPath = this.sessionManager.getSessionFilePath(sessionId);
+
+      if (fs.existsSync(sourceSessionPath)) {
+        fs.copyFileSync(sourceSessionPath, targetSessionPath);
+        logger.info(`✅ 历史文件已复制: ${sourceSessionPath} → ${targetSessionPath}`);
+      }
+
+      // 3. 复制 memory 文件（如果源 Tab 有独立记忆）
+      const configStore = SystemConfigStore.getInstance();
+      const sourceTabConfig = configStore.getTabConfig(sourceTabId);
+      const settings = configStore.getWorkspaceSettings();
+
+      if (sourceTabConfig?.memoryFile) {
+        const sourceMemoryPath = path.join(settings.memoryDir, sourceTabConfig.memoryFile);
+        const targetMemoryFile = `memory-${sessionId}.md`;
+        const targetMemoryPath = path.join(settings.memoryDir, targetMemoryFile);
+
+        if (fs.existsSync(sourceMemoryPath)) {
+          fs.copyFileSync(sourceMemoryPath, targetMemoryPath);
+          // 更新数据库中当前 Tab 的 memory 文件配置
+          updateTabMemoryFile(configStore.getDb(), sessionId, targetMemoryFile);
+          // 同步更新内存中 Tab 对象的 memoryFile
+          const currentTab = this.tabManager.getTab(sessionId);
+          if (currentTab) {
+            currentTab.memoryFile = targetMemoryFile;
+          }
+          logger.info(`✅ 记忆文件已复制: ${sourceMemoryPath} → ${targetMemoryPath}`);
+        }
+      }
+
+      // 4. 重置当前 Tab 的 AgentRuntime（重新加载历史和记忆）
+      if (this.resetSessionRuntimeFn) {
+        await this.resetSessionRuntimeFn(sessionId, { reason: '/clone 指令', recreate: true });
+      }
+
+      // 5. 通知前端重新加载历史消息
+      if (this.tabManager) {
+        await this.tabManager.loadTabHistory(sessionId, true);
+      }
+
+      // 6. 标记系统提示词需要重建
+      const gateway = getGatewayInstance();
+      if (gateway) {
+        gateway.invalidateSessionSystemPrompt(sessionId);
+      }
+
+      return isEn
+        ? `✅ Successfully cloned from "${trimmedName}". History and memory have been copied. The next message will use the cloned context.`
+        : `✅ 已从 "${trimmedName}" 克隆完成。历史记录和记忆已复制，下次对话将沿用克隆的上下文。`;
+    } catch (error) {
+      logger.error('❌ 克隆失败:', error);
+      return isEn
+        ? `❌ Clone failed: ${getErrorMessage(error)}`
+        : `❌ 克隆失败: ${getErrorMessage(error)}`;
     }
   }
 

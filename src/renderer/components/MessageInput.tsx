@@ -78,7 +78,10 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   const availableCommands = [
     { name: 'new', description: lang === 'zh' ? '清空当前会话历史，开始新对话' : 'Clear session history and start fresh' },
     { name: 'memory', description: lang === 'zh' ? '查看和管理记忆' : 'View and manage memory' },
+    { name: 'merge-memory', description: lang === 'zh' ? '合并其他 Tab 的记忆（用法：/merge-memory Tab名称）' : 'Merge memory from another Tab (usage: /merge-memory Tab name)' },
+    { name: 'clone', description: lang === 'zh' ? '克隆其他 Tab 的历史和记忆（用法：/clone Tab名称）' : 'Clone history and memory from another Tab (usage: /clone Tab name)' },
     { name: 'history', description: lang === 'zh' ? '查看对话历史统计' : 'View conversation history stats' },
+    { name: 'reload-path', description: lang === 'zh' ? '刷新环境变量（外部安装工具后使用）' : 'Reload PATH environment variables' },
     ...(isConnectorTab ? [{ name: 'stop', description: lang === 'zh' ? '停止当前正在执行的任务' : 'Stop the current running task' }] : []),
   ];
 
@@ -255,6 +258,17 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
           
           const commandText = `/${selectedCommand.name}`;
           setShowCommandSuggestions(false);
+          
+          // 需要参数的指令：填入输入框但不发送
+          if (selectedCommand.name === 'merge-memory' || selectedCommand.name === 'clone') {
+            setContent(commandText + ' ');
+            if (textareaRef.current) {
+              textareaRef.current.focus();
+            }
+            setTimeout(() => { isExecutingCommandRef.current = false; }, 100);
+            return;
+          }
+          
           setContent('');
           
           setHistoryIndex(-1);
@@ -460,6 +474,16 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
                 onClick={() => {
                   const commandText = `/${cmd.name}`;
                   setShowCommandSuggestions(false);
+                  
+                  // 需要参数的指令：填入输入框但不发送
+                  if (cmd.name === 'merge-memory' || cmd.name === 'clone') {
+                    setContent(commandText + ' ');
+                    if (textareaRef.current) {
+                      textareaRef.current.focus();
+                    }
+                    return;
+                  }
+                  
                   setContent('');
                   
                   setHistoryIndex(-1);
@@ -487,8 +511,10 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
         {/* 提示符 */}
         <div className="terminal-input-prompt">{userName}@deepbot:~$</div>
 
-        {/* 输入框容器（包含图片预览、文本框和上传按钮） */}
-        <div className="terminal-input-with-upload">
+        {/* 输入框列（包含输入框和帮助提示） */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* 输入框容器（包含图片预览、文本框和上传按钮） */}
+          <div className="terminal-input-with-upload">
           {/* 图片预览（悬浮层） */}
           <ImageUploader
             images={uploadedImages}
@@ -535,6 +561,12 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
             showButtonOnly={true}
             hasImages={uploadedImages.length > 0}
           />
+        </div>
+
+          {/* 帮助提示 */}
+          <div className="terminal-input-hint">
+            {lang === 'zh' ? '上/下键 切换历史输入　输入 / 查看可用指令' : 'Up/Down browse history　Type / for commands'}
+          </div>
         </div>
 
         {/* 发送/停止按钮 */}

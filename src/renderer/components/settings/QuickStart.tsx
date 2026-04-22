@@ -781,7 +781,7 @@ export function QuickStart({ onNavigate }: QuickStartProps) {
             fontSize: '11px',
             fontWeight: '600'
           }}>
-            5
+            6
           </span>
         </h4>
         <div style={{ 
@@ -837,6 +837,56 @@ export function QuickStart({ onNavigate }: QuickStartProps) {
             </div>
             <div style={{ marginLeft: '12px', fontSize: '12px' }}>
               {lang === 'zh' ? '查看 AI 记住的所有信息（用户偏好、习惯等）' : 'View all information the AI has memorized (preferences, habits, etc.)'}
+            </div>
+          </div>
+          
+          <div style={{ 
+            padding: '10px 12px',
+            background: 'var(--settings-input-bg)',
+            borderRadius: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              <code style={{ 
+                padding: '2px 8px', 
+                background: 'rgba(0,0,0,0.2)', 
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--settings-accent)',
+                marginRight: '8px'
+              }}>
+                /merge-memory
+              </code>
+              <span style={{ color: 'var(--settings-text)', fontWeight: '600' }}>{lang === 'zh' ? '合并记忆' : 'Merge Memory'}</span>
+            </div>
+            <div style={{ marginLeft: '12px', fontSize: '12px' }}>
+              {lang === 'zh' ? '将其他 Tab 的记忆合并到当前 Tab（用法：/merge-memory Tab名称）' : 'Merge memory from another Tab (usage: /merge-memory Tab name)'}
+            </div>
+          </div>
+          
+          <div style={{ 
+            padding: '10px 12px',
+            background: 'var(--settings-input-bg)',
+            borderRadius: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              <code style={{ 
+                padding: '2px 8px', 
+                background: 'rgba(0,0,0,0.2)', 
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--settings-accent)',
+                marginRight: '8px'
+              }}>
+                /clone
+              </code>
+              <span style={{ color: 'var(--settings-text)', fontWeight: '600' }}>{lang === 'zh' ? '克隆会话' : 'Clone Session'}</span>
+            </div>
+            <div style={{ marginLeft: '12px', fontSize: '12px' }}>
+              {lang === 'zh' ? '克隆其他 Tab 的历史和记忆到当前 Tab（用法：/clone Tab名称）' : 'Clone history and memory from another Tab (usage: /clone Tab name)'}
             </div>
           </div>
           

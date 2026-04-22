@@ -315,6 +315,15 @@
   gap: 8px;
 }
 
+.terminal-input-hint {
+  font-size: 11px;
+  color: var(--terminal-text-dim);
+  opacity: 0.5;
+  margin-top: 4px;
+  padding-left: 2px;
+  user-select: none;
+}
+
 .terminal-input-prompt {
   color: var(--terminal-prompt-user);
   font-weight: bold;
@@ -340,8 +349,8 @@
 }
 
 .terminal-input-with-upload:focus-within {
-  border-color: var(--terminal-prompt-user);
-  box-shadow: 0 0 8px var(--terminal-accent-glow);
+  border-color: var(--terminal-border);
+  box-shadow: none;
   background: var(--terminal-input-focus-bg);
 }
 
@@ -1617,8 +1626,8 @@ ul.terminal-list {
 }
 
 [data-theme="light"] .terminal-input-with-upload:focus-within {
-  border-color: #007aff;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+  border-color: #d1d1d6;
+  box-shadow: none;
 }
 
 /* 按钮：圆角胶囊风格 */

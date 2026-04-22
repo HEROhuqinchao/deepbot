@@ -39,7 +39,7 @@ export class GatewayMessageHandler {
   // 回调函数
   private getOrCreateRuntimeFn: ((sessionId: string) => AgentRuntime) | null = null;
   private resetSessionRuntimeFn: ((sessionId: string, options: { reason?: string; recreate?: boolean }) => Promise<AgentRuntime | null>) | null = null;
-  private executeSystemCommandFn: ((commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<void>) | null = null;
+  private executeSystemCommandFn: ((commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<string>) | null = null;
   private sendResponseToConnectorFn: ((tabId: string, response: string) => Promise<void>) | null = null;
   
   constructor() {}
@@ -52,7 +52,7 @@ export class GatewayMessageHandler {
     sessionManager: SessionManager | null;
     getOrCreateRuntime: (sessionId: string) => AgentRuntime;
     resetSessionRuntime: (sessionId: string, options: { reason?: string; recreate?: boolean }) => Promise<AgentRuntime | null>;
-    executeSystemCommand: (commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<void>;
+    executeSystemCommand: (commandName: string, commandArgs: string | undefined, sessionId: string) => Promise<string>;
     sendResponseToConnector: (tabId: string, response: string) => Promise<void>;
   }): void {
     this.mainWindow = deps.mainWindow;
@@ -88,7 +88,7 @@ export class GatewayMessageHandler {
     const commandMatch = content.trim().match(/^\/([\w-]+)(?:\s+(.*))?$/);
     if (commandMatch) {
       const [, commandName, commandArgs] = commandMatch;
-      const supportedCommands = ['new', 'memory', 'history', 'reload-env'];
+      const supportedCommands = ['new', 'memory', 'history', 'reload-path', 'merge-memory', 'clone'];
       
       if (supportedCommands.includes(commandName.toLowerCase())) {
         console.log(`[MessageHandler] 🎯 检测到系统命令: /${commandName}，直接执行`);
