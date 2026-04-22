@@ -413,9 +413,6 @@ export class GatewayAdapter extends EventEmitter {
     const store = SystemConfigStore.getInstance();
     
     const configData = store.getConnectorConfig(connectorId);
-    console.log('[GatewayAdapter] connectorGetConfig 被调用');
-    console.log('  connectorId:', connectorId);
-    console.log('  configData:', configData);
     
     return { 
       success: true, 

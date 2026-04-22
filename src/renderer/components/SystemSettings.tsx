@@ -18,11 +18,12 @@ import { WorkspaceConfig } from './settings/WorkspaceConfig';
 import { ToolConfig } from './settings/ToolConfig';
 import { ConnectorConfig } from './settings/ConnectorConfig';
 import { AppVersion } from './settings/AppVersion';
+import { Subscription } from './settings/Subscription';
 import { t, getLanguage, setLanguage as saveLanguage, type Language } from '../i18n';
 import { api } from '../api';
 import '../styles/settings.css';
 
-type SettingsTab = 'quickstart' | 'model' | 'environment' | 'workspace' | 'tools' | 'connectors' | 'version';
+type SettingsTab = 'quickstart' | 'model' | 'environment' | 'workspace' | 'tools' | 'connectors' | 'version' | 'subscription';
 
 interface SystemSettingsProps {
   isOpen: boolean;
@@ -210,6 +211,12 @@ export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsP
                   }} />
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab('subscription')}
+                className={`settings-nav-item ${activeTab === 'subscription' ? 'active' : ''}`}
+              >
+                {t('settings.subscription')}
+              </button>
             </nav>
             
             {/* 版本号 + 语言切换 */}
@@ -232,6 +239,7 @@ export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsP
             {activeTab === 'workspace' && <WorkspaceConfig onClose={onClose} />}
             {activeTab === 'connectors' && <ConnectorConfig onClose={onClose} />}
             {activeTab === 'version' && <AppVersion initialUpdateInfo={pendingUpdateInfo} />}
+            {activeTab === 'subscription' && <Subscription />}
           </div>
         </div>
       </div>

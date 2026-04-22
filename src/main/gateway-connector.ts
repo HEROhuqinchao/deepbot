@@ -559,8 +559,8 @@ export class GatewayConnectorHandler {
 
         default:
           resultText = isEn
-            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /merge-memory <tab> - Merge memory from another Tab\n- /clone <tab> - Clone history and memory from another Tab\n- /history - View conversation stats\n- /check-usage - Check DeepBot token usage\n- /reload-path - Reload PATH environment variables\n- /stop - Stop current task\n- /status - View task status`
-            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /merge-memory <Tab名称> - 合并其他 Tab 的记忆\n- /clone <Tab名称> - 克隆其他 Tab 的历史和记忆\n- /history - 查看对话历史统计\n- /check-usage - 查看 DeepBot Token 使用量\n- /reload-path - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
+            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /merge-memory <tab> - Merge memory from another Tab\n- /clone <tab> - Clone history and memory from another Tab\n- /history - View conversation stats\n- /reload-path - Reload PATH environment variables\n- /stop - Stop current task\n- /status - View task status`
+            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /merge-memory <Tab名称> - 合并其他 Tab 的记忆\n- /clone <Tab名称> - 克隆其他 Tab 的历史和记忆\n- /history - 查看对话历史统计\n- /reload-path - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
       }
 
       // /new 命令需要延迟发送结果，确保 clear-chat 先被前端处理

@@ -303,8 +303,6 @@ export function registerConnectorHandlers(): void {
     IPC_CHANNELS.CONNECTOR_GET_PAIRING_RECORDS,
     async (_event, request): Promise<GetPairingRecordsResponse> => {
       try {
-        console.log('[IPC] 获取 Pairing 记录:', request.connectorId);
-        
         const store = SystemConfigStore.getInstance();
         const records = store.getAllPairingRecords(request.connectorId);
         
