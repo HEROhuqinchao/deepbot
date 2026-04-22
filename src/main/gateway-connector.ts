@@ -553,10 +553,14 @@ export class GatewayConnectorHandler {
           resultText = await this.handleCloneCommand(sessionId, commandArgs, isEn);
           break;
 
+        case 'check-usage':
+          resultText = await this.handleCheckUsageCommand(isEn);
+          break;
+
         default:
           resultText = isEn
-            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /merge-memory <tab> - Merge memory from another Tab\n- /clone <tab> - Clone history and memory from another Tab\n- /history - View conversation stats\n- /reload-path - Reload PATH environment variables\n- /stop - Stop current task\n- /status - View task status`
-            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /merge-memory <Tab名称> - 合并其他 Tab 的记忆\n- /clone <Tab名称> - 克隆其他 Tab 的历史和记忆\n- /history - 查看对话历史统计\n- /reload-path - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
+            ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /merge-memory <tab> - Merge memory from another Tab\n- /clone <tab> - Clone history and memory from another Tab\n- /history - View conversation stats\n- /check-usage - Check DeepBot token usage\n- /reload-path - Reload PATH environment variables\n- /stop - Stop current task\n- /status - View task status`
+            : `❌ 未知指令: /${commandName}\n\n可用指令：\n- /new - 清空当前会话历史，开始新对话\n- /memory - 查看和管理记忆\n- /merge-memory <Tab名称> - 合并其他 Tab 的记忆\n- /clone <Tab名称> - 克隆其他 Tab 的历史和记忆\n- /history - 查看对话历史统计\n- /check-usage - 查看 DeepBot Token 使用量\n- /reload-path - 刷新环境变量\n- /stop - 停止当前正在执行的任务\n- /status - 查看当前任务执行状态`;
       }
 
       // /new 命令需要延迟发送结果，确保 clear-chat 先被前端处理
@@ -764,6 +768,75 @@ export class GatewayConnectorHandler {
     } catch (error) {
       logger.error('❌ 刷新环境变量失败:', error);
       return `❌ 刷新环境变量失败: ${getErrorMessage(error)}`;
+    }
+  }
+
+  /**
+   * 处理 /check-usage 命令
+   * 查询 DeepBot Token 使用量（仅 DeepBot 供应商可用）
+   */
+  private async handleCheckUsageCommand(isEn = false): Promise<string> {
+    try {
+      // 检查当前供应商是否是 DeepBot
+      const configStore = SystemConfigStore.getInstance();
+      const modelConfig = configStore.getModelConfig();
+
+      if (!modelConfig || modelConfig.providerId !== 'deepbot') {
+        return isEn
+          ? '❌ This command is only available when using the DeepBot provider.\n\nPlease switch to the DeepBot provider in Model Settings to check token usage.'
+          : '❌ 此指令仅在使用 DeepBot 供应商时可用。\n\n请在模型配置中切换到 DeepBot 供应商后再查询。';
+      }
+
+      // 使用用户自己的 API Key 查询用量（GET /api/v1/auth/key）
+      const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
+        headers: {
+          'Authorization': `Bearer ${modelConfig.apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json() as { data: any };
+
+      const keyData = result.data;
+      if (!keyData) {
+        return isEn
+          ? '❌ Could not find usage data for your API key.'
+          : '❌ 未找到当前 API Key 的使用量数据。';
+      }
+
+      // 格式化用量数据（OpenRouter 用量单位是美元）
+      const fmt = (val: number) => `$${val.toFixed(4)}`;
+      const usageDaily = keyData.usage_daily ?? keyData.usage ?? 0;
+      const usageWeekly = keyData.usage_weekly ?? 0;
+      const usageMonthly = keyData.usage_monthly ?? 0;
+      const limit = keyData.limit;
+      const limitRemaining = keyData.limit_remaining;
+
+      let text = isEn
+        ? `📊 DeepBot Token Usage\n\n` +
+          `• Today: ${fmt(usageDaily)}\n` +
+          `• This week: ${fmt(usageWeekly)}\n` +
+          `• This month: ${fmt(usageMonthly)}`
+        : `📊 DeepBot Token 使用量\n\n` +
+          `• 今日: ${fmt(usageDaily)}\n` +
+          `• 本周: ${fmt(usageWeekly)}\n` +
+          `• 本月: ${fmt(usageMonthly)}`;
+
+      if (limit !== null && limit !== undefined && limitRemaining !== null && limitRemaining !== undefined) {
+        text += isEn
+          ? `\n\n💰 Quota: ${fmt(limitRemaining)} remaining / ${fmt(limit)} total`
+          : `\n\n💰 额度: 剩余 ${fmt(limitRemaining)} / 总计 ${fmt(limit)}`;
+      }
+
+      return text;
+    } catch (error) {
+      logger.error('❌ 查询用量失败:', error);
+      return isEn
+        ? `❌ Failed to check usage: ${getErrorMessage(error)}`
+        : `❌ 查询用量失败: ${getErrorMessage(error)}`;
     }
   }
 
