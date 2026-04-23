@@ -682,6 +682,22 @@ function registerIpcHandlers() {
     }
   });
 
+  // 打开保存文件对话框
+  ipcMain.handle('dialog:save-file', async (_event, { defaultName }) => {
+    try {
+      const result = await dialog.showSaveDialog({
+        defaultPath: defaultName,
+        filters: [{ name: 'ZIP', extensions: ['zip'] }],
+      });
+      if (result.canceled || !result.filePath) {
+        return { success: false, canceled: true };
+      }
+      return { success: true, path: result.filePath };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 上传图片（保存到临时目录）
   ipcMain.handle(IPC_CHANNELS.UPLOAD_IMAGE, async (_event, { name, dataUrl, size }) => {
     try {

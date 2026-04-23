@@ -324,7 +324,8 @@ export class WebSocketManager {
     this.gatewayAdapter.on('wechat_qr_code', (event: any) => {
       this.broadcastToAll({
         type: 'wechat:qr-code',
-        url: event.url
+        url: event.url,
+        connectorId: event.connectorId
       });
     });
     
@@ -349,7 +350,8 @@ export class WebSocketManager {
     this.gatewayAdapter.on('loading-status', (event: any) => {
       this.broadcastToAll({
         type: 'loading-status',
-        status: event.status
+        status: event.status,
+        sessionId: event.sessionId
       });
     });
   }

@@ -202,7 +202,8 @@ export class GatewayAdapter extends EventEmitter {
       case 'loading-status': {
         // 加载状态变化 - 转发到 WebSocket
         this.emit('loading-status', {
-          status: data.status
+          status: data.status,
+          sessionId: data.sessionId
         });
         break;
       }
@@ -413,9 +414,6 @@ export class GatewayAdapter extends EventEmitter {
     const store = SystemConfigStore.getInstance();
     
     const configData = store.getConnectorConfig(connectorId);
-    console.log('[GatewayAdapter] connectorGetConfig 被调用');
-    console.log('  connectorId:', connectorId);
-    console.log('  configData:', configData);
     
     return { 
       success: true, 
@@ -535,6 +533,18 @@ export class GatewayAdapter extends EventEmitter {
     this.gateway.getConnectorManager().broadcastPendingCount();
     
     return { success: true, message: '配对已删除' };
+  }
+
+  async connectorCreateWechat(): Promise<any> {
+    const connectorManager = this.gateway.getConnectorManager();
+    const connectorId = connectorManager.createWechatInstance();
+    return { success: true, connectorId };
+  }
+
+  async connectorRemoveWechat(connectorId: string): Promise<any> {
+    const connectorManager = this.gateway.getConnectorManager();
+    await connectorManager.removeWechatInstance(connectorId);
+    return { success: true };
   }
   
   async connectorGetPairingRecords(): Promise<any> {

@@ -8,7 +8,7 @@ import type Database from '../../../shared/utils/sqlite-adapter';
 import type { InstalledSkill, SkillInfo } from './types';
 import { getAllSkillPaths } from '../../config/skill-paths';
 import { parseSkillMetadata, scanDirectory } from './utils';
-import { isDirectory, isFile, safeReadFile, safeRemove } from '../../../shared/utils/fs-utils';
+import { isDirectory, isFile, safeReadFile, safeRemove, ensureDirectoryExists } from '../../../shared/utils/fs-utils';
 import { safeJsonParse } from '../../../shared/utils/json-utils';
 
 /**
@@ -290,4 +290,100 @@ export function getSkillInfo(name: string, db: Database.Database): SkillInfo {
     },
     files,
   };
+}
+
+/**
+ * 导出 Skill 为 zip 压缩包
+ * 
+ * @param names - 要导出的 Skill 名称列表
+ * @returns zip 文件的路径
+ */
+export async function exportSkills(names: string[], savePath?: string): Promise<string> {
+  const { execSync } = require('child_process');
+  const os = require('os');
+
+  if (names.length === 0) {
+    throw new Error('No skills selected for export');
+  }
+
+  // 查找每个 skill 的目录
+  const allPaths = getAllSkillPaths();
+  const skillDirs: Array<{ name: string; dir: string }> = [];
+
+  for (const name of names) {
+    let found = false;
+    for (const basePath of allPaths) {
+      const candidatePath = path.join(basePath, name);
+      if (isDirectory(candidatePath) && isFile(path.join(candidatePath, 'SKILL.md'))) {
+        skillDirs.push({ name, dir: candidatePath });
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      throw new Error(`Skill "${name}" 不存在`);
+    }
+  }
+
+  // 创建临时目录
+  const tmpDir = path.join(os.tmpdir(), `deepbot-skill-export-${Date.now()}`);
+  ensureDirectoryExists(tmpDir);
+
+  // 复制 skill 目录到临时目录
+  for (const { name, dir } of skillDirs) {
+    const destDir = path.join(tmpDir, name);
+    copyDirRecursive(dir, destDir);
+  }
+
+  // 打包为 zip
+  const zipName = names.length === 1 ? `${names[0]}.zip` : `skills-export-${Date.now()}.zip`;
+  const zipPath = path.join(os.tmpdir(), zipName);
+
+  // 使用系统 zip 命令（跨平台兼容）
+  try {
+    if (process.platform === 'win32') {
+      // Windows: 使用 PowerShell
+      execSync(`powershell -Command "Compress-Archive -Path '${tmpDir}\\*' -DestinationPath '${zipPath}' -Force"`, { timeout: 30000 });
+    } else {
+      // macOS/Linux: 使用 zip 命令
+      execSync(`cd "${tmpDir}" && zip -r "${zipPath}" .`, { timeout: 30000 });
+    }
+  } catch (error) {
+    // 清理临时目录
+    safeRemove(tmpDir);
+    throw new Error(`打包失败: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  // 清理临时目录
+  safeRemove(tmpDir);
+
+  // 如果指定了保存路径，移动 zip 文件
+  let finalPath = zipPath;
+  if (savePath) {
+    fs.copyFileSync(zipPath, savePath);
+    fs.unlinkSync(zipPath);
+    finalPath = savePath;
+  }
+
+  console.log(`[Skill Manager] ✅ 已导出 ${names.length} 个 Skill: ${finalPath}`);
+  return finalPath;
+}
+
+/**
+ * 递归复制目录
+ */
+function copyDirRecursive(src: string, dest: string): void {
+  ensureDirectoryExists(dest);
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      // 跳过 node_modules 和 __pycache__
+      if (entry.name === 'node_modules' || entry.name === '__pycache__' || entry.name === '.git') continue;
+      copyDirRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
 }

@@ -118,6 +118,7 @@ const zh: Dict = {
   'settings.workspace': '工作目录',
   'settings.connectors': '外部通讯',
   'settings.version': '系统版本',
+  'settings.subscription': '订阅及付费',
 };
 
 const en: Dict = {
@@ -219,6 +220,7 @@ const en: Dict = {
   'settings.workspace': 'Workspace',
   'settings.connectors': 'Connectors',
   'settings.version': 'Version',
+  'settings.subscription': 'Subscription',
 };
 
 const dictionaries: Record<Language, Dict> = { zh, en };

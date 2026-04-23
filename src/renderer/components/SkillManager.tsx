@@ -49,6 +49,7 @@ interface SkillManagerProps {
 }
 
 export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, activeTabId }) => {
+  const lang = getLanguage();
   const [activeTab, setActiveTab] = useState<'installed' | 'available'>('installed');
   const [searchQuery, setSearchQuery] = useState('');
   const [installedSkills, setInstalledSkills] = useState<Skill[]>([]);
@@ -65,6 +66,11 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
   // 安装进度状态
   const [installingSkill, setInstallingSkill] = useState<string | null>(null);
   const [installProgress, setInstallProgress] = useState(0);
+
+  // 导出状态
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportSelection, setExportSelection] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
 
   // 加载已安装的 Skill
   useEffect(() => {
@@ -215,6 +221,51 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
     }
   };
 
+  // 导出 Skill
+  const handleExport = async () => {
+    const names = Array.from(exportSelection);
+    if (names.length === 0) return;
+
+    const isElectronMode = !!(window as any).deepbot?.showSaveDialog;
+    const defaultName = names.length === 1 ? `${names[0]}.zip` : `skills-export.zip`;
+
+    // Electron 模式：先让用户选择保存位置
+    let savePath: string | undefined;
+    if (isElectronMode) {
+      const saveResult = await (window as any).deepbot.showSaveDialog(defaultName);
+      if (!saveResult.success || saveResult.canceled) return;
+      savePath = saveResult.path;
+    }
+
+    setExporting(true);
+    try {
+      const result = await api.skillManager({ action: 'export', names, savePath });
+      if (result.success) {
+        if (isElectronMode) {
+          alert(lang === 'zh' ? `已导出到: ${result.savedPath}` : `Exported to: ${result.savedPath}`);
+        } else {
+          // Docker 模式：触发浏览器下载
+          const downloadUrl = `/api/skills/download?path=${encodeURIComponent(result.zipPath)}`;
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = defaultName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
+      } else {
+        alert(result.error || (lang === 'zh' ? '导出失败' : 'Export failed'));
+      }
+    } catch (error) {
+      console.error('导出 Skill 失败:', error);
+      alert(lang === 'zh' ? '导出失败' : 'Export failed');
+    } finally {
+      setExporting(false);
+      setShowExportDialog(false);
+      setExportSelection(new Set());
+    }
+  };
+
   // 修复异常 Skill
   const handleFix = (skill: Skill) => {
     const prompt = `请修复 Skill "${skill.name}" 的 SKILL.md 文件格式。错误原因：${skill.invalidReason || '格式错误'}。请读取该文件，修正 YAML frontmatter 格式后写回。修复完成后，请调用 skill_manager 工具执行 list 操作来验证修复结果。`;
@@ -356,6 +407,24 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
           >
             {t('skill.tab_available')} ({availableSkills.length})
           </button>
+          {installedSkills.length > 0 && (
+            <button
+              onClick={() => {
+                setExportSelection(new Set());
+                setShowExportDialog(true);
+              }}
+              className="settings-button"
+              style={{
+                marginLeft: 'auto',
+                background: 'transparent',
+                color: 'var(--settings-text-dim)',
+                borderColor: 'var(--settings-border)',
+                fontSize: '12px',
+              }}
+            >
+              {lang === 'zh' ? '📦 导出' : '📦 Export'}
+            </button>
+          )}
         </div>
 
         {/* Skill 列表 */}
@@ -492,6 +561,68 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
                 className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-md hover:bg-brand-600 disabled:opacity-50 transition-colors text-sm"
               >
                 {envSaving ? t('skill.saving') : t('skill.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 导出选择对话框 */}
+      {showExportDialog && (
+        <div className="settings-overlay">
+          <div className="bg-bg-primary rounded-lg shadow-xl w-[400px] flex flex-col" style={{ maxHeight: '70vh' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border-medium">
+              <h2 className="text-base font-semibold text-text-primary">
+                {lang === 'zh' ? '📦 选择要导出的 Skill' : '📦 Select Skills to Export'}
+              </h2>
+              <button onClick={() => setShowExportDialog(false)} className="text-text-secondary hover:text-text-primary">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4 settings-panel">
+              <div className="space-y-2">
+                {installedSkills.filter(s => !s.invalid).map(skill => (
+                  <label key={skill.name} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                    exportSelection.has(skill.name)
+                      ? 'bg-bg-secondary border-brand-500'
+                      : 'border-border-medium hover:border-border-dark'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={exportSelection.has(skill.name)}
+                      onChange={(e) => {
+                        setExportSelection(prev => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(skill.name);
+                          else next.delete(skill.name);
+                          return next;
+                        });
+                      }}
+                      className="rounded"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-text-primary">{skill.displayName || skill.name}</div>
+                      <div className="text-xs text-text-tertiary">{skill.description && skill.description.length > 30 ? skill.description.slice(0, 30) + '...' : skill.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-border-medium">
+              <button
+                onClick={() => setShowExportDialog(false)}
+                className="flex-1 px-4 py-2 bg-bg-secondary text-text-primary rounded-md hover:bg-bg-tertiary transition-colors text-sm"
+              >
+                {lang === 'zh' ? '取消' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={exporting || exportSelection.size === 0}
+                className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-md hover:bg-brand-600 disabled:opacity-50 transition-colors text-sm"
+              >
+                {exporting
+                  ? (lang === 'zh' ? '导出中...' : 'Exporting...')
+                  : (lang === 'zh' ? `导出 (${exportSelection.size})` : `Export (${exportSelection.size})`)}
               </button>
             </div>
           </div>

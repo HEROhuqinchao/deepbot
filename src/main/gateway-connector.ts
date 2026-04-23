@@ -167,9 +167,16 @@ export class GatewayConnectorHandler {
             const senderName = message.source.senderName || '';
             title = senderName ? `FS-${senderName}` : 'feishu';
           }
-        } else if (message.source.connectorId === 'wechat') {
+        } else if (message.source.connectorId?.startsWith('wechat')) {
+          // 微信消息：WX-用户N，取最大编号+1 避免重名
           const existingWxTabs = this.tabManager.getAllTabs().filter(t => t.title?.startsWith('WX-'));
-          const nextNum = existingWxTabs.length + 1;
+          const existingNums = existingWxTabs
+            .map(t => {
+              const match = t.title?.match(/^WX-用户(\d+)$/);
+              return match ? parseInt(match[1], 10) : 0;
+            })
+            .filter(n => n > 0);
+          const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
           title = `WX-用户${nextNum}`;
         } else {
           title = message.source.connectorId || 'unknown';
@@ -282,6 +289,22 @@ export class GatewayConnectorHandler {
         tab.pendingMessages = [];
       }
 
+      // 队列满时拒绝新消息
+      const MAX_QUEUE_SIZE = 5;
+      if (tab.pendingMessages.length >= MAX_QUEUE_SIZE) {
+        logger.warn(`⚠️ 消息队列已满（${MAX_QUEUE_SIZE}），拒绝新消息`);
+        if (tab.type === 'connector') {
+          const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
+          const fullMsg = isEn
+            ? `⚠️ Whoa, I've got ${MAX_QUEUE_SIZE} messages lined up already! Let me catch up first — send me more in a bit 😊`
+            : `⚠️ 哎呀，我手头已经积了 ${MAX_QUEUE_SIZE} 条消息啦，让我先处理完，稍后再发给我吧 😊`;
+          try {
+            await this.sendResponseToConnector(tab.id, fullMsg, true);
+          } catch { /* 静默处理 */ }
+        }
+        return;
+      }
+
       // 加入队列
       tab.pendingMessages.push(pendingMessage);
       logger.info('📥 消息已加入队列:', {
@@ -296,6 +319,20 @@ export class GatewayConnectorHandler {
         await this.processNextMessage(tab.id);
       } else {
         logger.info('⏳ 有消息正在处理中，当前消息已排队等待');
+
+        // 立即回复用户，告知消息已收到正在排队
+        if (tab.type === 'connector') {
+          const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
+          const queuePos = tab.pendingMessages.length;
+          const busyMsg = isEn
+            ? `⏳ Got it! I'm currently working on a previous message. This message is #${queuePos} in queue and will be handled shortly.`
+            : `⏳ 收到！我正在处理上一条消息，当前消息排在第 ${queuePos} 位，稍后会按顺序回复。`;
+          try {
+            await this.sendResponseToConnector(tab.id, busyMsg, true);
+          } catch {
+            // 静默处理
+          }
+        }
       }
     } catch (error) {
       logger.error('❌ 处理连接器消息失败:', error);
@@ -360,15 +397,15 @@ export class GatewayConnectorHandler {
 4. 创建飞书文档时，使用 feishu_doc_insert_rich_blocks 插入丰富格式内容
 5. 回复的时候根据回复的内容，带上用户的名字
 6. 来自信息中包含了发送信息的用户的姓名，群消息还包含群名称
-7. 不要使用 feishu_send_message 工具回复，除非收到明确指令要给具体目标发送消息]`;
-    } else if (message.source.connectorId === 'wechat') {
+7. 绝对不要使用 feishu_send_message 工具回复消息，除非收到明确指令要给具体目标发送消息]`;
+    } else if (message.source.connectorId?.startsWith('wechat')) {
       connectorToolsHint = `\n\n[系统提示: 这是微信通讯会话，除了系统的工具，你还可以根据用户的需求使用以下专用工具:
 - wechat_send_image: 发送图片给对方
 - wechat_send_file: 发送文件给对方
 
 注意：
 1. 不要用markdown格式回复内容，微信只能接收纯文本
-2. 禁止使用 wechat_send_message 工具]`;
+2. 绝对不要使用 wechat_send_message 工具回复信息，除非收到明确指令要给具体目标发送消息]`;
     }
 
     // 额外系统通知（由连接器按需注入，如首次管理员授权提示）
@@ -553,6 +590,10 @@ export class GatewayConnectorHandler {
           resultText = await this.handleCloneCommand(sessionId, commandArgs, isEn);
           break;
 
+        case 'check-usage':
+          resultText = await this.handleCheckUsageCommand(isEn);
+          break;
+
         default:
           resultText = isEn
             ? `❌ Unknown command: /${commandName}\n\nAvailable commands:\n- /new - Clear session history\n- /memory - View and manage memory\n- /merge-memory <tab> - Merge memory from another Tab\n- /clone <tab> - Clone history and memory from another Tab\n- /history - View conversation stats\n- /reload-path - Reload PATH environment variables\n- /stop - Stop current task\n- /status - View task status`
@@ -663,20 +704,44 @@ export class GatewayConnectorHandler {
 
     logger.info(`执行 /stop 指令，停止任务: ${sessionId}`);
 
+    // 1. 清空消息队列
+    let queueCleared = 0;
+    if (this.tabManager) {
+      const tab = this.tabManager.getTab(sessionId);
+      if (tab?.pendingMessages && tab.pendingMessages.length > 0) {
+        queueCleared = tab.pendingMessages.length;
+        tab.pendingMessages = [];
+        tab.processingMessageId = undefined;
+        logger.info(`✅ 已清空 ${queueCleared} 条排队消息`);
+      }
+    }
+
+    // 2. 停止当前正在执行的 Agent
     const runtime = this.getOrCreateRuntimeFn(sessionId);
     const wasGenerating = runtime.isCurrentlyGenerating();
 
-    // 停止 agent（等同于点击 Stop 按钮）
     await this.resetSessionRuntimeFn(sessionId, {
       reason: '用户发送 /stop 指令',
       recreate: false,
     });
 
-    // 清除进度提醒定时器
+    // 3. 清除进度提醒定时器
     this.clearProgressTimers(sessionId);
 
     logger.info('✅ /stop 指令已执行');
-    return wasGenerating ? '⏹️ 任务已停止' : '⏹️ 当前没有正在执行的任务';
+
+    const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
+    if (wasGenerating || queueCleared > 0) {
+      const parts: string[] = ['⏹️'];
+      if (wasGenerating) {
+        parts.push(isEn ? 'Current task stopped.' : '当前任务已停止。');
+      }
+      if (queueCleared > 0) {
+        parts.push(isEn ? `${queueCleared} queued message(s) cleared.` : `已清除 ${queueCleared} 条排队消息。`);
+      }
+      return parts.join(' ');
+    }
+    return isEn ? '⏹️ No task is currently running.' : '⏹️ 当前没有正在执行的任务';
   }
 
   /**
@@ -764,6 +829,75 @@ export class GatewayConnectorHandler {
     } catch (error) {
       logger.error('❌ 刷新环境变量失败:', error);
       return `❌ 刷新环境变量失败: ${getErrorMessage(error)}`;
+    }
+  }
+
+  /**
+   * 处理 /check-usage 命令
+   * 查询 DeepBot Token 使用量（仅 DeepBot 供应商可用）
+   */
+  private async handleCheckUsageCommand(isEn = false): Promise<string> {
+    try {
+      // 检查当前供应商是否是 DeepBot
+      const configStore = SystemConfigStore.getInstance();
+      const modelConfig = configStore.getModelConfig();
+
+      if (!modelConfig || modelConfig.providerId !== 'deepbot') {
+        return isEn
+          ? '❌ This command is only available when using the DeepBot provider.\n\nPlease switch to the DeepBot provider in Model Settings to check token usage.'
+          : '❌ 此指令仅在使用 DeepBot 供应商时可用。\n\n请在模型配置中切换到 DeepBot 供应商后再查询。';
+      }
+
+      // 使用用户自己的 API Key 查询用量（GET /api/v1/auth/key）
+      const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
+        headers: {
+          'Authorization': `Bearer ${modelConfig.apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json() as { data: any };
+
+      const keyData = result.data;
+      if (!keyData) {
+        return isEn
+          ? '❌ Could not find usage data for your API key.'
+          : '❌ 未找到当前 API Key 的使用量数据。';
+      }
+
+      // 格式化用量数据（OpenRouter 用量单位是美元）
+      const fmt = (val: number) => `$${val.toFixed(4)}`;
+      const usageDaily = keyData.usage_daily ?? keyData.usage ?? 0;
+      const usageWeekly = keyData.usage_weekly ?? 0;
+      const usageMonthly = keyData.usage_monthly ?? 0;
+      const limit = keyData.limit;
+      const limitRemaining = keyData.limit_remaining;
+
+      let text = isEn
+        ? `📊 DeepBot Token Usage\n\n` +
+          `• Today: ${fmt(usageDaily)}\n` +
+          `• This week: ${fmt(usageWeekly)}\n` +
+          `• This month: ${fmt(usageMonthly)}`
+        : `📊 DeepBot Token 使用量\n\n` +
+          `• 今日: ${fmt(usageDaily)}\n` +
+          `• 本周: ${fmt(usageWeekly)}\n` +
+          `• 本月: ${fmt(usageMonthly)}`;
+
+      if (limit !== null && limit !== undefined && limitRemaining !== null && limitRemaining !== undefined) {
+        text += isEn
+          ? `\n\n💰 Quota: ${fmt(limitRemaining)} remaining / ${fmt(limit)} total`
+          : `\n\n💰 额度: 剩余 ${fmt(limitRemaining)} / 总计 ${fmt(limit)}`;
+      }
+
+      return text;
+    } catch (error) {
+      logger.error('❌ 查询用量失败:', error);
+      return isEn
+        ? `❌ Failed to check usage: ${getErrorMessage(error)}`
+        : `❌ 查询用量失败: ${getErrorMessage(error)}`;
     }
   }
 
@@ -884,10 +1018,13 @@ export class GatewayConnectorHandler {
         await this.resetSessionRuntimeFn(sessionId, { reason: '/clone 指令', recreate: true });
       }
 
-      // 5. 通知前端重新加载历史消息
+      // 5. 通知前端清空当前 UI，然后重新加载历史消息
+      sendToWindow(this.mainWindow, 'command:clear-chat', { sessionId });
+      await new Promise(resolve => setTimeout(resolve, 300));
       if (this.tabManager) {
         await this.tabManager.loadTabHistory(sessionId, true);
       }
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // 6. 标记系统提示词需要重建
       const gateway = getGatewayInstance();

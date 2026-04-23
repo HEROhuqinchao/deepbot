@@ -92,10 +92,34 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           {lang === 'zh'
             ? '配置网络搜索能力，获取最新的网络信息、新闻、天气等实时数据。如需调用其他提供商，可通过安装 Skill 扩展。'
             : 'Configure web search to get real-time data such as news, weather, etc. Install a Skill to use other providers.'}
-          <span style={{ color: 'var(--settings-accent)' }}>
-            {lang === 'zh' ? '推荐：Tavily Search Skill' : 'Recommended: Tavily Search Skill'}
-          </span>
         </p>
+        <div style={{
+          padding: '10px 12px',
+          background: 'rgba(59, 130, 246, 0.05)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          borderRadius: '6px',
+          fontSize: '12px',
+          color: 'var(--settings-text-dim)',
+          lineHeight: '1.8',
+          marginBottom: '16px',
+        }}>
+          <div style={{ fontWeight: 600, color: 'var(--settings-accent)', marginBottom: '4px' }}>
+            {lang === 'zh' ? '💡 推荐：Tavily Search Skill（免费）' : '💡 Recommended: Tavily Search Skill (Free)'}
+          </div>
+          {lang === 'zh' ? (
+            <>
+              1. 告诉 DeepBot：<code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.1)', borderRadius: '3px' }}>帮我安装 Tavily Search Skill</code><br/>
+              2. 安装完成后，告诉 DeepBot：<code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.1)', borderRadius: '3px' }}>帮我配置 Tavily Search Skill</code><br/>
+              3. 根据提示注册并配置免费的 Tavily API Key 即可
+            </>
+          ) : (
+            <>
+              1. Tell DeepBot: <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.1)', borderRadius: '3px' }}>Install Tavily Search Skill</code><br/>
+              2. After installation, tell DeepBot: <code style={{ padding: '1px 4px', background: 'rgba(0,0,0,0.1)', borderRadius: '3px' }}>Configure Tavily Search Skill</code><br/>
+              3. Follow the prompts to register and set up a free Tavily API Key
+            </>
+          )}
+        </div>
       </div>
 
       {/* 提供商选择 */}
