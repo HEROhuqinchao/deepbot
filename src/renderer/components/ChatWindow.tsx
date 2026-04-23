@@ -12,7 +12,7 @@ import { api } from '../api'; // 🔥 使用统一 API 适配器
 import { isElectron, isMacOS } from '../utils/platform'; // 🔥 平台检测
 import { getLanguage } from '../i18n';
 import { ModelConfig } from './settings/ModelConfig';
-
+import { X } from 'lucide-react';
 interface ChatWindowProps {
   messages: Message[];
   onSendMessage: (content: string, images?: import('../../types/message').UploadedImage[], files?: import('../../types/message').UploadedFile[]) => void;
@@ -544,7 +544,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               <h2 className="settings-title">
                 {lang === 'zh' ? 'Tab 模型配置' : 'Tab Model Config'}
               </h2>
-              <button className="settings-close-button" onClick={() => setShowModelPicker(null)}>×</button>
+              <button className="settings-close-button" onClick={() => setShowModelPicker(null)}>
+                <X size={20} />
+              </button>
             </div>
             <div className="settings-panel tab-model-picker-panel">
               <ModelConfig onClose={() => setShowModelPicker(null)} tabId={showModelPicker} />
