@@ -412,6 +412,11 @@
   letter-spacing: 1px !important;
 }
 
+/* Skill 操作按钮（导出、打开文件夹） */
+.skill-action-button {
+  font-size: 12px !important;
+}
+
 /* 英文模式下按钮取消大写 */
 [data-lang="en"] .settings-button,
 [data-lang="en"] .settings-panel button,
