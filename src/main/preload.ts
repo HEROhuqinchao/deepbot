@@ -156,6 +156,11 @@ contextBridge.exposeInMainWorld('deepbot', {
     return ipcRenderer.invoke('dialog:select-folder');
   },
 
+  // 打开保存文件对话框（仅 Electron）
+  showSaveDialog: (defaultName: string) => {
+    return ipcRenderer.invoke('dialog:save-file', { defaultName });
+  },
+
   // 上传图片
   uploadImage: (name: string, dataUrl: string, size: number) => {
     return ipcRenderer.invoke(IPC_CHANNELS.UPLOAD_IMAGE, { name, dataUrl, size });

@@ -19,7 +19,7 @@ import { initDatabase } from './database';
 import { searchSkillsOnGitHub } from './search';
 import { installSkill } from './install';
 import type { ToolPlugin, ToolCreateOptions } from '../registry/tool-interface';
-import { listInstalledSkills, uninstallSkill, getSkillInfo, getSkillEnv, setSkillEnv } from './manage';
+import { listInstalledSkills, uninstallSkill, getSkillInfo, getSkillEnv, setSkillEnv, exportSkills } from './manage';
 import { resetShellPathCache } from '../shell-env';
 
 /**
@@ -150,6 +150,16 @@ export function createSkillManagerTool(): AgentTool {
             // 自动清除环境变量缓存，下次执行命令时重新加载
             resetShellPathCache();
             result = { success: true, message: `Skill "${name}" 环境变量已保存` };
+            break;
+          
+          case 'export':
+            {
+              const names = (params as any).names as string[];
+              const savePath = (params as any).savePath as string | undefined;
+              if (!names || names.length === 0) throw new Error('缺少参数: names');
+              const zipPath = await exportSkills(names, savePath);
+              result = { success: true, zipPath, savedPath: savePath || zipPath, message: `Exported ${names.length} skill(s)` };
+            }
             break;
           
           default:

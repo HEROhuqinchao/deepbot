@@ -32,6 +32,34 @@ export function createSkillsRouter(gatewayAdapter: GatewayAdapter): Router {
       });
     }
   });
+
+  // Skill 导出下载（Docker 模式用）
+  router.get('/download', async (req, res) => {
+    try {
+      const filePath = req.query.path as string;
+      if (!filePath) {
+        return res.status(400).json({ success: false, error: '缺少 path 参数' });
+      }
+      const fs = await import('fs');
+      const path = await import('path');
+      const os = await import('os');
+      // 安全检查：只允许下载临时目录中的 zip 文件
+      const normalizedPath = path.normalize(filePath);
+      if (!normalizedPath.startsWith(os.tmpdir()) || !normalizedPath.endsWith('.zip')) {
+        return res.status(403).json({ success: false, error: '无权访问该文件' });
+      }
+      if (!fs.existsSync(normalizedPath)) {
+        return res.status(404).json({ success: false, error: '文件不存在' });
+      }
+      res.download(normalizedPath, path.basename(normalizedPath), (err) => {
+        if (!err) {
+          try { fs.unlinkSync(normalizedPath); } catch { /* 忽略 */ }
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: '下载失败' });
+    }
+  });
   
   return router;
 }
