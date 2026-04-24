@@ -540,7 +540,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
             onPaste={handlePaste}
             onCompositionStart={() => { isComposingRef.current = true; }}
             onCompositionEnd={() => { isComposingRef.current = false; }}
-            placeholder="Enter command or query..."
+            placeholder={lang === 'zh' ? '问我任何问题，或让我帮你完成任务...' : 'Ask me anything, or let me help with a task...'}
             disabled={disabled}
             rows={1}
             className="terminal-input"
