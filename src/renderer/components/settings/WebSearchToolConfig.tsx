@@ -166,13 +166,13 @@ export function WebSearchToolConfig({ onClose }: WebSearchToolConfigProps) {
           value={config.model}
           onChange={(e) => setConfig({ ...config, model: e.target.value })}
           disabled={config.provider === 'deepbot'}
-          placeholder={config.provider === 'qwen' ? 'qwen3.5-plus' : 'gemini-3-flash-preview'}
+          placeholder={config.provider === 'qwen' ? 'qwen3.6-plus' : 'gemini-3-flash-preview'}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
         />
         <p className="mt-1 text-xs text-gray-500">
           {config.provider === 'qwen' && (lang === 'zh'
-            ? '默认: qwen3.5-plus（可选: qwen-plus, qwen-turbo, qwen-max 等）'
-            : 'Default: qwen3.5-plus (options: qwen-plus, qwen-turbo, qwen-max, etc.)')}
+            ? '默认: qwen3.6-plus（可选: qwen-plus, qwen-turbo, qwen-max 等）'
+            : 'Default: qwen3.6-plus (options: qwen-plus, qwen-turbo, qwen-max, etc.)')}
           {(config.provider === 'gemini' || config.provider === 'deepbot') && (lang === 'zh'
             ? '默认: gemini-3-flash-preview'
             : 'Default: gemini-3-flash-preview')}
