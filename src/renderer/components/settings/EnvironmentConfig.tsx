@@ -12,6 +12,7 @@ import { api } from '../../api';
 import { ThemeContext } from '../../App';
 import type { ThemeMode } from '../../hooks/useTheme';
 import { getLanguage } from '../../i18n';
+import { ScanSearch } from 'lucide-react';
 
 interface EnvironmentStatus {
   python: {
@@ -271,7 +272,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
 
       {/* 错误提示 */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="settings-alert settings-alert-error">
           <div className="flex items-start space-x-3">
             <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -293,7 +294,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
 
       {/* 未检查状态 */}
       {status && status.needsCheck && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="settings-alert settings-alert-warning">
           <div className="flex items-start space-x-3">
             <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -312,16 +313,18 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
       <div className="flex items-center space-x-4">
         <button
           onClick={handleCheckEnvironment}
-          className="px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          className="skill-icon-button skill-icon-button-accent"
+          style={{ padding: '4px 12px', gap: '4px', display: 'inline-flex', alignItems: 'center', fontSize: '12px' }}
         >
-          {lang === 'zh' ? '检查环境' : 'Check Environment'}
+          <ScanSearch size={14} />
+          <span>{lang === 'zh' ? '检查环境' : 'Check Environment'}</span>
         </button>
       </div>
 
       {/* 总体状态 */}
       {status && !status.needsCheck && (
-        <div className={`rounded-lg p-4 ${
-          status.allInstalled ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
+        <div className={`settings-alert ${
+          status.allInstalled ? 'settings-alert-success' : 'settings-alert-warning'
         }`}>
           <div className="flex items-start space-x-3">
             {status.allInstalled ? (
@@ -357,7 +360,7 @@ export function EnvironmentConfig({ onClose, activeTabId }: EnvironmentConfigPro
 
       {/* 安装指南 */}
       {status && !status.allInstalled && !status.needsCheck && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="settings-alert settings-alert-info">
           <h4 className="text-sm font-medium text-blue-900 mb-2">{lang === 'zh' ? '安装指南' : 'Installation Guide'}</h4>
           <div className="space-y-2 text-sm text-blue-700">
             {!status.python?.isInstalled && (

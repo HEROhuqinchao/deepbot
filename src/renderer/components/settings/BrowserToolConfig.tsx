@@ -53,7 +53,7 @@ export function BrowserToolConfig({ onClose: _onClose }: BrowserToolConfigProps)
       {/* Docker 模式：无头浏览器安装说明 */}
       {isDocker && (
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="settings-alert settings-alert-info">
             <h5 className="text-sm font-semibold text-blue-900 mb-2">{lang === 'zh' ? '📦 安装 Chromium' : '📦 Install Chromium'}</h5>
             <p className="text-sm text-blue-800 mb-3">
               {lang === 'zh' ? '首次使用需要在容器内安装 Chromium，在宿主机终端执行：' : 'For first-time use, install Chromium inside the container by running on the host terminal:'}
@@ -83,7 +83,7 @@ export function BrowserToolConfig({ onClose: _onClose }: BrowserToolConfigProps)
       {!isDocker && (
         <div className="space-y-4">
           {/* 快速启动按钮 */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="settings-alert settings-alert-info">
             <h5 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
               <span>🚀</span>
               <span>{lang === 'zh' ? '快速启动' : 'Quick Launch'}</span>
@@ -171,7 +171,7 @@ export function BrowserToolConfig({ onClose: _onClose }: BrowserToolConfigProps)
           </div>
 
           {/* 注意事项 */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="settings-alert settings-alert-warning">
             <h5 className="text-sm font-semibold text-yellow-900 mb-2 flex items-center gap-2">
               <span>⚠️</span>
               <span>{lang === 'zh' ? '注意事项' : 'Notes'}</span>

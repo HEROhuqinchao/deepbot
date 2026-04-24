@@ -11,6 +11,8 @@ import { api } from '../../api';
 import { isElectron } from '../../utils/platform';
 import { showToast } from '../../utils/toast';
 import { getLanguage } from '../../i18n';
+import { FolderOpen, RotateCcw, Plus, X as XIcon, Save } from 'lucide-react';
+import { Tooltip } from '../Tooltip';
 
 interface WorkspaceConfigProps {
   onClose: () => void;
@@ -391,60 +393,66 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
               required
             />
             {isElectron() && !isDocker && (
-              <button
-                onClick={async () => {
-                  const result = await api.selectFolder();
-                  if (result.success && result.path) {
-                    const newDirs = [...settings.workspaceDirs];
-                    newDirs[0] = result.path;
-                    setSettings({ ...settings, workspaceDirs: newDirs, workspaceDir: result.path });
-                    markDirty('workspaceDir');
-                  }
-                }}
-                className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap"
-              >
-                {lang === 'zh' ? '浏览' : 'Browse'}
-              </button>
+              <Tooltip content={lang === 'zh' ? '浏览' : 'Browse'}>
+                <button
+                  onClick={async () => {
+                    const result = await api.selectFolder();
+                    if (result.success && result.path) {
+                      const newDirs = [...settings.workspaceDirs];
+                      newDirs[0] = result.path;
+                      setSettings({ ...settings, workspaceDirs: newDirs, workspaceDir: result.path });
+                      markDirty('workspaceDir');
+                    }
+                  }}
+                  className="skill-icon-button"
+                >
+                  <FolderOpen size={16} />
+                </button>
+              </Tooltip>
             )}
-            <button
-              onClick={async () => {
-                try {
-                  const result = await api.getDefaultWorkspaceSettings();
-                  if (result.success && result.settings) {
-                    const defaultDir = result.settings.workspaceDir || result.settings.workspaceDirs?.[0] || '';
-                    const newDirs = [...settings.workspaceDirs];
-                    newDirs[0] = defaultDir;
-                    setSettings({ ...settings, workspaceDirs: newDirs, workspaceDir: defaultDir });
-                    markDirty('workspaceDir');
-                  }
-                } catch {
-                  showToast('error', lang === 'zh' ? '获取默认路径失败' : 'Failed to get default path');
-                }
-              }}
-              disabled={isDocker}
-              className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              {lang === 'zh' ? '重置' : 'Reset'}
-            </button>
-            {dirtyFields.has('workspaceDir') && (
+            <Tooltip content={lang === 'zh' ? '重置' : 'Reset'}>
               <button
                 onClick={async () => {
                   try {
-                    setSaving(true);
-                    await api.saveWorkspaceSettings(settings);
-                    showToast('success', lang === 'zh' ? '主工作目录已保存' : 'Primary workspace directory saved');
-                    clearDirty('workspaceDir');
+                    const result = await api.getDefaultWorkspaceSettings();
+                    if (result.success && result.settings) {
+                      const defaultDir = result.settings.workspaceDir || result.settings.workspaceDirs?.[0] || '';
+                      const newDirs = [...settings.workspaceDirs];
+                      newDirs[0] = defaultDir;
+                      setSettings({ ...settings, workspaceDirs: newDirs, workspaceDir: defaultDir });
+                      markDirty('workspaceDir');
+                    }
                   } catch {
-                    showToast('error', lang === 'zh' ? '保存失败' : 'Save failed');
-                  } finally {
-                    setSaving(false);
+                    showToast('error', lang === 'zh' ? '获取默认路径失败' : 'Failed to get default path');
                   }
                 }}
-                disabled={saving || !(settings.workspaceDirs[0] || '').trim() || isDocker}
-                className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed whitespace-nowrap"
+                disabled={isDocker}
+                className="skill-icon-button"
               >
-                {saving ? (lang === 'zh' ? '保存中...' : 'Saving...') : (lang === 'zh' ? '保存' : 'Save')}
+                <RotateCcw size={16} />
               </button>
+            </Tooltip>
+            {dirtyFields.has('workspaceDir') && (
+              <Tooltip content={lang === 'zh' ? '保存' : 'Save'}>
+                <button
+                  onClick={async () => {
+                    try {
+                      setSaving(true);
+                      await api.saveWorkspaceSettings(settings);
+                      showToast('success', lang === 'zh' ? '主工作目录已保存' : 'Primary workspace directory saved');
+                      clearDirty('workspaceDir');
+                    } catch {
+                      showToast('error', lang === 'zh' ? '保存失败' : 'Save failed');
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving || !(settings.workspaceDirs[0] || '').trim() || isDocker}
+                  className="skill-icon-button skill-icon-button-accent"
+                >
+                  <Save size={16} />
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -472,10 +480,9 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
                         showToast('error', lang === 'zh' ? '删除失败' : 'Failed to remove');
                       }
                     }}
-                    className="text-red-400 hover:text-red-600 transition-colors"
-                    title={lang === 'zh' ? '删除' : 'Remove'}
+                    className="skill-icon-button"
                   >
-                    ✕
+                    <XIcon size={14} />
                   </button>
                 )}
               </div>
@@ -505,13 +512,14 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
                 }
               }
             }}
-            className="px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+            className="skill-icon-button skill-icon-button-accent"
           >
-            + {lang === 'zh' ? '添加工作目录' : 'Add Directory'}
+            <Plus size={14} />
+            <span style={{ fontSize: '12px' }}>{lang === 'zh' ? '添加工作目录' : 'Add Directory'}</span>
           </button>
         )}
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mt-2">
+        <div className="settings-alert settings-alert-warning mt-2">
           <div className="flex">
             <svg className="w-5 h-5 text-yellow-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -548,17 +556,15 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             placeholder="~/.deepbot/scripts"
           />
           {isElectron() && !isDocker && (
-            <button onClick={() => handleBrowse('scriptDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">
-              {lang === 'zh' ? '浏览' : 'Browse'}
-            </button>
+            <Tooltip content={lang === 'zh' ? '浏览' : 'Browse'}><button onClick={() => handleBrowse('scriptDir')} className="skill-icon-button"><FolderOpen size={16} /></button></Tooltip>
           )}
-          <button onClick={handleResetScriptDir} disabled={isDocker} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
-            {lang === 'zh' ? '重置' : 'Reset'}
-          </button>
+          <Tooltip content={lang === 'zh' ? '重置' : 'Reset'}><button onClick={handleResetScriptDir} disabled={isDocker} className="skill-icon-button"><RotateCcw size={16} /></button></Tooltip>
           {dirtyFields.has('scriptDir') && (
-            <button onClick={handleSaveScriptDir} disabled={saving || isDocker} className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors whitespace-nowrap">
-              {saving ? (lang === 'zh' ? '保存中...' : 'Saving...') : (lang === 'zh' ? '保存' : 'Save')}
-            </button>
+            <Tooltip content={lang === 'zh' ? '保存' : 'Save'}>
+              <button onClick={handleSaveScriptDir} disabled={saving || isDocker} className="skill-icon-button skill-icon-button-accent">
+                <Save size={16} />
+              </button>
+            </Tooltip>
           )}
         </div>
         <p className="text-xs text-gray-400">
@@ -586,17 +592,15 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             placeholder="~/.deepbot/generated-images"
           />
           {isElectron() && !isDocker && (
-            <button onClick={() => handleBrowse('imageDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">
-              {lang === 'zh' ? '浏览' : 'Browse'}
-            </button>
+            <Tooltip content={lang === 'zh' ? '浏览' : 'Browse'}><button onClick={() => handleBrowse('imageDir')} className="skill-icon-button"><FolderOpen size={16} /></button></Tooltip>
           )}
-          <button onClick={handleResetImageDir} disabled={isDocker} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
-            {lang === 'zh' ? '重置' : 'Reset'}
-          </button>
+          <Tooltip content={lang === 'zh' ? '重置' : 'Reset'}><button onClick={handleResetImageDir} disabled={isDocker} className="skill-icon-button"><RotateCcw size={16} /></button></Tooltip>
           {dirtyFields.has('imageDir') && (
-            <button onClick={handleSaveImageDir} disabled={saving || isDocker} className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors whitespace-nowrap">
-              {saving ? (lang === 'zh' ? '保存中...' : 'Saving...') : (lang === 'zh' ? '保存' : 'Save')}
-            </button>
+            <Tooltip content={lang === 'zh' ? '保存' : 'Save'}>
+              <button onClick={handleSaveImageDir} disabled={saving || isDocker} className="skill-icon-button skill-icon-button-accent">
+                <Save size={16} />
+              </button>
+            </Tooltip>
           )}
         </div>
         <p className="text-xs text-gray-400">
@@ -624,17 +628,15 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             placeholder="~/.deepbot/memory"
           />
           {isElectron() && !isDocker && (
-            <button onClick={() => handleBrowse('memoryDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">
-              {lang === 'zh' ? '浏览' : 'Browse'}
-            </button>
+            <Tooltip content={lang === 'zh' ? '浏览' : 'Browse'}><button onClick={() => handleBrowse('memoryDir')} className="skill-icon-button"><FolderOpen size={16} /></button></Tooltip>
           )}
-          <button onClick={handleResetMemoryDir} disabled={isDocker} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
-            {lang === 'zh' ? '重置' : 'Reset'}
-          </button>
+          <Tooltip content={lang === 'zh' ? '重置' : 'Reset'}><button onClick={handleResetMemoryDir} disabled={isDocker} className="skill-icon-button"><RotateCcw size={16} /></button></Tooltip>
           {dirtyFields.has('memoryDir') && (
-            <button onClick={handleSaveMemoryDir} disabled={saving || isDocker} className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors whitespace-nowrap">
-              {saving ? (lang === 'zh' ? '保存中...' : 'Saving...') : (lang === 'zh' ? '保存' : 'Save')}
-            </button>
+            <Tooltip content={lang === 'zh' ? '保存' : 'Save'}>
+              <button onClick={handleSaveMemoryDir} disabled={saving || isDocker} className="skill-icon-button skill-icon-button-accent">
+                <Save size={16} />
+              </button>
+            </Tooltip>
           )}
         </div>
         <p className="text-xs text-gray-400">
@@ -662,17 +664,15 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
             placeholder="~/.deepbot/sessions"
           />
           {isElectron() && !isDocker && (
-            <button onClick={() => handleBrowse('sessionDir')} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors whitespace-nowrap">
-              {lang === 'zh' ? '浏览' : 'Browse'}
-            </button>
+            <Tooltip content={lang === 'zh' ? '浏览' : 'Browse'}><button onClick={() => handleBrowse('sessionDir')} className="skill-icon-button"><FolderOpen size={16} /></button></Tooltip>
           )}
-          <button onClick={handleResetSessionDir} disabled={isDocker} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
-            {lang === 'zh' ? '重置' : 'Reset'}
-          </button>
+          <Tooltip content={lang === 'zh' ? '重置' : 'Reset'}><button onClick={handleResetSessionDir} disabled={isDocker} className="skill-icon-button"><RotateCcw size={16} /></button></Tooltip>
           {dirtyFields.has('sessionDir') && (
-            <button onClick={handleSaveSessionDir} disabled={saving || isDocker} className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors whitespace-nowrap">
-              {saving ? (lang === 'zh' ? '保存中...' : 'Saving...') : (lang === 'zh' ? '保存' : 'Save')}
-            </button>
+            <Tooltip content={lang === 'zh' ? '保存' : 'Save'}>
+              <button onClick={handleSaveSessionDir} disabled={saving || isDocker} className="skill-icon-button skill-icon-button-accent">
+                <Save size={16} />
+              </button>
+            </Tooltip>
           )}
         </div>
         <p className="text-xs text-gray-400">
@@ -689,11 +689,12 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
           {!isDocker && (
             <button
               onClick={() => setShowAddInput(!showAddInput)}
-              className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className={`skill-icon-button ${showAddInput ? '' : 'skill-icon-button-accent'}`}
+              style={{ padding: '4px 12px', gap: '4px', display: 'inline-flex', alignItems: 'center', fontSize: '12px' }}
             >
               {showAddInput
-                ? (lang === 'zh' ? '取消' : 'Cancel')
-                : (lang === 'zh' ? '+ 添加路径' : '+ Add Path')}
+                ? <><XIcon size={14} /> <span>{lang === 'zh' ? '取消' : 'Cancel'}</span></>
+                : <><Plus size={14} /> <span>{lang === 'zh' ? '添加路径' : 'Add Path'}</span></>}
             </button>
           )}
         </div>
@@ -783,7 +784,7 @@ export function WorkspaceConfig({ onClose }: WorkspaceConfigProps) {
       </div>
 
       {/* 提示信息 */}
-      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+      <div className="settings-alert settings-alert-info">
         <div className="flex">
           <svg className="w-5 h-5 text-blue-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />

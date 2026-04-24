@@ -479,6 +479,54 @@ button.settings-tab.active {
   cursor: not-allowed !important;
 }
 
+/* 强调色图标按钮（如添加工作目录） */
+button.skill-icon-button.skill-icon-button-accent {
+  color: var(--settings-accent) !important;
+  border-color: var(--settings-accent) !important;
+  padding: 4px 12px !important;
+  gap: 4px !important;
+  font-size: 12px !important;
+}
+
+button.skill-icon-button.skill-icon-button-accent:hover:not(:disabled) {
+  background: var(--settings-accent) !important;
+  color: var(--settings-bg) !important;
+}
+
+/* 连接器启动按钮（绿色，全宽） */
+button.skill-icon-button.connector-start-button {
+  width: 100% !important;
+  color: var(--settings-success) !important;
+  border-color: var(--settings-success) !important;
+  padding: 8px 16px !important;
+  gap: 6px !important;
+  font-size: 13px !important;
+  justify-content: center !important;
+}
+
+button.skill-icon-button.connector-start-button:hover:not(:disabled) {
+  background: var(--settings-success) !important;
+  color: var(--settings-bg) !important;
+  border-color: var(--settings-success) !important;
+}
+
+/* 连接器停止按钮（红色，全宽） */
+button.skill-icon-button.connector-stop-button {
+  width: 100% !important;
+  color: var(--settings-error) !important;
+  border-color: var(--settings-error) !important;
+  padding: 8px 16px !important;
+  gap: 6px !important;
+  font-size: 13px !important;
+  justify-content: center !important;
+}
+
+button.skill-icon-button.connector-stop-button:hover:not(:disabled) {
+  background: var(--settings-error) !important;
+  color: var(--settings-bg) !important;
+  border-color: var(--settings-error) !important;
+}
+
 /* Skill 卡片操作按钮（详情、环境变量、卸载、安装） */
 button.skill-card-action,
 button.skill-card-action:hover,
@@ -717,6 +765,107 @@ button.settings-close-button:hover:not(:disabled) {
   background: transparent !important;
   box-shadow: none !important;
 }
+
+/* ==================== 信息提示框（统一样式） ==================== */
+
+/* 基础提示框 */
+.settings-alert {
+  border-radius: 8px !important;
+  padding: 16px !important;
+  border: 1px solid !important;
+  font-size: 13px !important;
+}
+
+.settings-alert h4,
+.settings-alert h5 {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  margin-bottom: 6px !important;
+}
+
+.settings-alert p,
+.settings-alert li,
+.settings-alert div {
+  font-size: 13px !important;
+}
+
+/* 信息提示（蓝色） */
+.settings-alert-info {
+  background: rgba(122, 162, 247, 0.08) !important;
+  border-color: rgba(122, 162, 247, 0.25) !important;
+}
+
+.settings-alert-info,
+.settings-alert-info h4,
+.settings-alert-info h5,
+.settings-alert-info p,
+.settings-alert-info li,
+.settings-alert-info strong,
+.settings-alert-info span,
+.settings-alert-info div {
+  color: var(--settings-accent) !important;
+}
+
+/* 成功提示（绿色） */
+.settings-alert-success {
+  background: rgba(158, 206, 106, 0.08) !important;
+  border-color: rgba(158, 206, 106, 0.25) !important;
+}
+
+.settings-alert-success,
+.settings-alert-success h4,
+.settings-alert-success h5,
+.settings-alert-success p,
+.settings-alert-success li,
+.settings-alert-success strong,
+.settings-alert-success span,
+.settings-alert-success div {
+  color: var(--settings-success) !important;
+}
+
+/* 警告提示（黄色） */
+.settings-alert-warning {
+  background: rgba(224, 175, 104, 0.08) !important;
+  border-color: rgba(224, 175, 104, 0.25) !important;
+}
+
+.settings-alert-warning,
+.settings-alert-warning h4,
+.settings-alert-warning h5,
+.settings-alert-warning p,
+.settings-alert-warning li,
+.settings-alert-warning strong,
+.settings-alert-warning span,
+.settings-alert-warning div {
+  color: var(--settings-warning) !important;
+}
+
+/* 错误提示（红色） */
+.settings-alert-error {
+  background: rgba(247, 118, 142, 0.08) !important;
+  border-color: rgba(247, 118, 142, 0.25) !important;
+}
+
+.settings-alert-error,
+.settings-alert-error h4,
+.settings-alert-error h5,
+.settings-alert-error p,
+.settings-alert-error li,
+.settings-alert-error strong,
+.settings-alert-error span,
+.settings-alert-error div {
+  color: var(--settings-error) !important;
+}
+
+/* 提示框内的 SVG 图标颜色继承 */
+.settings-alert svg {
+  flex-shrink: 0;
+}
+
+.settings-alert-info svg { color: var(--settings-accent) !important; }
+.settings-alert-success svg { color: var(--settings-success) !important; }
+.settings-alert-warning svg { color: var(--settings-warning) !important; }
+.settings-alert-error svg { color: var(--settings-error) !important; }
 
 /* ==================== 订阅及付费 ==================== */
 

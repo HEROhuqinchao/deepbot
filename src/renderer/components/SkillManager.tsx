@@ -7,6 +7,7 @@ import { X, Search, Package, Download, Upload, Trash2, Info, Settings, FolderOpe
 import '../styles/settings.css';
 import { api } from '../api';
 import { t, getLanguage } from '../i18n';
+import { Tooltip } from './Tooltip';
 
 interface Skill {
   name: string;        // slug
@@ -482,34 +483,37 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
 
             {/* 右侧操作图标 */}
             <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px', alignItems: 'center' }}>
-              <button
-                onClick={() => { setExportSelection(new Set()); setShowExportDialog(true); }}
-                disabled={installedSkills.length === 0}
-                className="skill-icon-button"
-                title={lang === 'zh' ? '导出' : 'Export'}
-              >
-                <Download size={16} />
-              </button>
-              <button
-                onClick={handleImport}
-                disabled={importing}
-                className="skill-icon-button"
-                title={lang === 'zh' ? '导入' : 'Import'}
-              >
-                <Upload size={16} />
-              </button>
-              {(window as any).deepbot?.openPath && (
+              <Tooltip content={lang === 'zh' ? '导出' : 'Export'}>
                 <button
-                  onClick={async () => {
-                    const result = await api.getWorkspaceSettings();
-                    const dir = result?.settings?.defaultSkillDir || '~/.agents/skills';
-                    (window as any).deepbot.openPath(dir);
-                  }}
+                  onClick={() => { setExportSelection(new Set()); setShowExportDialog(true); }}
+                  disabled={installedSkills.length === 0}
                   className="skill-icon-button"
-                  title={lang === 'zh' ? '打开文件夹' : 'Open Folder'}
                 >
-                  <FolderOpen size={16} />
+                  <Download size={16} />
                 </button>
+              </Tooltip>
+              <Tooltip content={lang === 'zh' ? '导入' : 'Import'}>
+                <button
+                  onClick={handleImport}
+                  disabled={importing}
+                  className="skill-icon-button"
+                >
+                  <Upload size={16} />
+                </button>
+              </Tooltip>
+              {(window as any).deepbot?.openPath && (
+                <Tooltip content={lang === 'zh' ? '打开文件夹' : 'Open Folder'}>
+                  <button
+                    onClick={async () => {
+                      const result = await api.getWorkspaceSettings();
+                      const dir = result?.settings?.defaultSkillDir || '~/.agents/skills';
+                      (window as any).deepbot.openPath(dir);
+                    }}
+                    className="skill-icon-button"
+                  >
+                    <FolderOpen size={16} />
+                  </button>
+                </Tooltip>
               )}
             </div>
 

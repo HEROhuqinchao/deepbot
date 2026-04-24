@@ -352,7 +352,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
           </div>
 
           {/* 安装 */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="settings-alert settings-alert-info">
             <h5 className="text-sm font-semibold text-blue-900 mb-2">{lang === 'zh' ? '📦 安装' : '📦 Install'}</h5>
             <p className="text-sm text-blue-800 mb-2">
               {lang === 'zh'
@@ -477,7 +477,7 @@ SMTP_FROM=your@163.com`}
           </div>
 
           {/* 安全提示 */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="settings-alert settings-alert-warning">
             <h5 className="text-sm font-semibold text-yellow-900 mb-2">{lang === 'zh' ? '🔒 安全提示' : '🔒 Security Tips'}</h5>
             <ul className="text-sm text-yellow-800 space-y-1 list-disc list-inside">
               {lang === 'zh' ? (

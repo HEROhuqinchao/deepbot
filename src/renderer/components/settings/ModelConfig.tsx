@@ -211,7 +211,7 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
     <div className="space-y-6">
       {/* 环境变量配置提示 */}
       {isFromEnv && (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+        <div className="settings-alert settings-alert-info">
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -232,7 +232,7 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
 
       {/* 顶部提示 */}
       {isConfigLoaded && !config.apiKey && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+        <div className="settings-alert settings-alert-warning">
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
