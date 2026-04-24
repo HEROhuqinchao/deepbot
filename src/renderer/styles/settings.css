@@ -779,7 +779,7 @@ button.settings-close-button:hover:not(:disabled) {
 .settings-alert h4,
 .settings-alert h5 {
   font-size: 13px !important;
-  font-weight: 600 !important;
+  font-weight: normal !important;
   margin-bottom: 6px !important;
 }
 

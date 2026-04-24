@@ -110,12 +110,12 @@ export const api = {
 
   async getDisabledTools(): Promise<{ success: boolean; disabledTools?: string[]; error?: string }> {
     if (isElectron()) return (window as any).deepbot.getDisabledTools();
-    return { success: true, disabledTools: [] };
+    return webClient.get('/api/config/disabled-tools');
   },
 
   async saveDisabledTools(disabledTools: string[]): Promise<{ success: boolean; error?: string }> {
     if (isElectron()) return (window as any).deepbot.saveDisabledTools(disabledTools);
-    return { success: true };
+    return webClient.post('/api/config/disabled-tools', { disabledTools });
   },
 
   async getWorkspaceSettings(): Promise<any> {

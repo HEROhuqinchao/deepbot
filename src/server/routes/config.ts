@@ -64,6 +64,40 @@ export function createConfigRouter(gatewayAdapter: GatewayAdapter): Router {
       res.json({ success: false, value: null });
     }
   }) as RequestHandler);
+
+  // 获取禁用工具列表
+  router.get('/disabled-tools', (async (_req, res) => {
+    try {
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      res.json({ success: true, disabledTools: store.getDisabledTools() });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  }) as RequestHandler);
+
+  // 保存禁用工具列表
+  router.post('/disabled-tools', (async (req, res) => {
+    try {
+      const { disabledTools } = req.body;
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+
+      // 先清空所有禁用，再写入新的
+      const current = store.getDisabledTools();
+      for (const name of current) store.setToolDisabled(name, false);
+      for (const name of (disabledTools || [])) store.setToolDisabled(name, true);
+
+      // 重置所有 AgentRuntime
+      const { getGatewayInstance } = await import('../../main/gateway');
+      const gateway = getGatewayInstance();
+      if (gateway) await gateway.reloadToolConfig();
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  }) as RequestHandler);
   
   return router;
 }

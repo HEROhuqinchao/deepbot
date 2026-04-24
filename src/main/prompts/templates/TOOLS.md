@@ -443,7 +443,6 @@ cp ~/path/to/"my file.txt" ~/another/path/
 
 ### 工具列表
 - `api_get_config` - 获取系统配置
-- `api_set_model_config` - 设置模型配置
 - `api_set_image_generation_config` - 设置图片生成工具配置
 - `api_set_web_search_config` - 设置 Web 搜索工具配置
 - `api_get_session_file_path` - 获取当前 Tab 的 Session 文件路径
@@ -465,9 +464,6 @@ cp ~/path/to/"my file.txt" ~/another/path/
 
 // 查询工作目录配置
 { "tool": "api_get_config", "configType": "workspace" }
-
-// 更新模型配置
-{ "tool": "api_set_model_config", "providerType": "qwen", "modelName": "qwen-max", "apiKey": "sk-xxx" }
 
 // 更新图片生成工具配置
 { "tool": "api_set_image_generation_config", "model": "qwen-image-2.0-pro", "apiKey": "sk-xxx" }
