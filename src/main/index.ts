@@ -753,6 +753,59 @@ function registerIpcHandlers() {
     }
   });
 
+  // 重命名 Tab
+  ipcMain.handle(IPC_CHANNELS.RENAME_TAB, async (_event, { tabId, title }) => {
+    try {
+      if (!gateway) return { success: false, error: 'Gateway 未初始化' };
+      const tabManager = gateway.getTabManager();
+      
+      // 获取 tab 信息，连接器 tab 自动加前缀
+      const allTabs = tabManager.getAllTabs();
+      const tab = allTabs.find(t => t.id === tabId);
+      let finalTitle = title;
+      if (tab?.type === 'connector') {
+        if (tab.connectorId === 'feishu' && !title.startsWith('FS-')) {
+          finalTitle = `FS-${title}`;
+        } else if (tab.connectorId?.startsWith('wechat') && !title.startsWith('WX-')) {
+          finalTitle = `WX-${title}`;
+        }
+      }
+      
+      // 检查重名
+      const duplicate = allTabs.find(t => t.id !== tabId && t.title === finalTitle);
+      if (duplicate) {
+        return { success: false, error: `名称 "${finalTitle}" 已被其他 Tab 使用` };
+      }
+      
+      // 更新 tab 标题
+      tabManager.updateTabTitle(tabId, finalTitle);
+      
+      // 更新 agentName（提示符和系统提示词用的是 agentName）
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      store.updateTabAgentName(tabId, title); // 存原始名字（不带前缀）
+      
+      // 同步更新内存中 tab 的 agentName
+      if (tab) tab.agentName = title;
+      
+      // 发送前端通知更新提示符
+      const mainWindow = gateway.getMainWindow();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('name-config:updated', {
+          tabId,
+          agentName: finalTitle,
+        });
+      }
+      
+      // 标记系统提示词需要重建
+      gateway.invalidateAllSystemPrompts();
+      
+      return { success: true, title: finalTitle };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 上传图片（保存到临时目录）
   ipcMain.handle(IPC_CHANNELS.UPLOAD_IMAGE, async (_event, { name, dataUrl, size }) => {
     try {

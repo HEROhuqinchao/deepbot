@@ -178,7 +178,7 @@ export const apiToolPlugin: ToolPlugin = {
         description: '查询智能体名字和用户称呼',
         parameters: Type.Object({}),
         execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
-          return handlers.handleGetNameConfig(signal);
+          return handlers.handleGetNameConfig(sessionId, signal);
         },
       },
       

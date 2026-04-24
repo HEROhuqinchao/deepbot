@@ -167,6 +167,66 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
 
   router.post('/:tabId/model-config', setTabModelConfig);
   router.get('/:tabId/model-config', getTabModelConfig);
+
+  // 重命名 Tab
+  const renameTab: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { title } = req.body;
+      if (!title) return res.status(400).json({ success: false, error: 'title is required' });
+
+      const { getGatewayInstance } = await import('../../main/gateway');
+      const gateway = getGatewayInstance();
+      if (!gateway) return res.status(500).json({ success: false, error: 'Gateway 未初始化' });
+
+      const tabManager = gateway.getTabManager();
+      const allTabs = tabManager.getAllTabs();
+      const tab = allTabs.find(t => t.id === tabId);
+      let finalTitle = title;
+      if (tab?.type === 'connector') {
+        if (tab.connectorId === 'feishu' && !title.startsWith('FS-')) {
+          finalTitle = `FS-${title}`;
+        } else if (tab.connectorId?.startsWith('wechat') && !title.startsWith('WX-')) {
+          finalTitle = `WX-${title}`;
+        }
+      }
+
+      // 检查重名
+      const duplicate = allTabs.find(t => t.id !== tabId && t.title === finalTitle);
+      if (duplicate) {
+        return res.json({ success: false, error: `名称 "${finalTitle}" 已被其他 Tab 使用` });
+      }
+
+      // 更新 tab 标题
+      tabManager.updateTabTitle(tabId as string, finalTitle);
+
+      // 更新 agentName
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      store.updateTabAgentName(tabId as string, title);
+
+      // 同步更新内存中 tab 的 agentName
+      if (tab) tab.agentName = title;
+
+      // 发送前端通知更新提示符（通过虚拟窗口 → WebSocket）
+      const mainWindow = gateway.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('name-config:updated', {
+          tabId: tabId as string,
+          agentName: finalTitle,
+        });
+      }
+
+      // 标记系统提示词需要重建
+      gateway.invalidateAllSystemPrompts();
+
+      res.json({ success: true, title: finalTitle });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  router.post('/:tabId/rename', renameTab);
   
   return router;
 }

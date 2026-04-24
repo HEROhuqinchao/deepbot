@@ -74,6 +74,7 @@ const IPC_CHANNELS = {
   CONNECTOR_REMOVE_WECHAT: 'connector:remove-wechat',
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',
   GET_TAB_MODEL_CONFIG: 'tab:get-model-config',
+  RENAME_TAB: 'tab:rename',
 } as const;
 
 /**
@@ -381,6 +382,10 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   getTabModelConfig: (tabId: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_MODEL_CONFIG, { tabId });
+  },
+
+  renameTab: (tabId: string, title: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.RENAME_TAB, { tabId, title });
   },
 
   // 监听待授权用户数量变化

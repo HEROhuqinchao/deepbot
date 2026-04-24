@@ -278,6 +278,11 @@ export const api = {
     return webClient.post(`/api/tabs/${tabId}/model-config`, { modelConfig });
   },
 
+  async renameTab(tabId: string, title: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.renameTab(tabId, title);
+    return webClient.post(`/api/tabs/${tabId}/rename`, { title });
+  },
+
   async getTabModelConfig(tabId: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.getTabModelConfig(tabId);
     return webClient.get(`/api/tabs/${tabId}/model-config`);
