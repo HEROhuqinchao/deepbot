@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Search, Package, Download, Trash2, Info, Settings } from 'lucide-react';
+import { X, Search, Package, Download, Upload, Trash2, Info, Settings, FolderOpen } from 'lucide-react';
 import '../styles/settings.css';
 import { api } from '../api';
 import { t, getLanguage } from '../i18n';
@@ -71,6 +71,10 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportSelection, setExportSelection] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
+
+  // 导入状态
+  const [importing, setImporting] = useState(false);
+  const importFileRef = React.useRef<HTMLInputElement>(null);
 
   // 加载已安装的 Skill
   useEffect(() => {
@@ -266,6 +270,80 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
     }
   };
 
+  // 导入 Skill
+  const handleImport = async () => {
+    const isElectronMode = !!(window as any).deepbot?.showOpenZipDialog;
+
+    if (isElectronMode) {
+      // Electron 模式：使用系统文件选择对话框
+      const openResult = await (window as any).deepbot.showOpenZipDialog();
+      if (!openResult.success || openResult.canceled) return;
+
+      setImporting(true);
+      try {
+        const result = await api.importSkillZip(openResult.path);
+        handleImportResult(result);
+      } catch (error) {
+        console.error('导入 Skill 失败:', error);
+        alert(lang === 'zh' ? '导入失败' : 'Import failed');
+      } finally {
+        setImporting(false);
+      }
+    } else {
+      // Docker 模式：触发隐藏的 file input
+      importFileRef.current?.click();
+    }
+  };
+
+  // Docker 模式：文件选择后上传
+  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // 重置 input，允许重复选择同一文件
+    e.target.value = '';
+
+    if (!file.name.endsWith('.zip')) {
+      alert(lang === 'zh' ? '请选择 .zip 文件' : 'Please select a .zip file');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      // 读取文件为 base64
+      const buffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const result = await api.importSkillZip('', base64, file.name);
+      handleImportResult(result);
+    } catch (error) {
+      console.error('导入 Skill 失败:', error);
+      alert(lang === 'zh' ? '导入失败' : 'Import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // 处理导入结果
+  const handleImportResult = (result: any) => {
+    if (result.success || result.imported) {
+      const imported = result.imported || [];
+      const skipped = result.skipped || [];
+      const errors = result.errors || [];
+
+      let msg = '';
+      if (imported.length > 0) msg += (lang === 'zh' ? `✅ 导入成功: ${imported.join(', ')}` : `✅ Imported: ${imported.join(', ')}`);
+      if (skipped.length > 0) msg += `\n${lang === 'zh' ? `⏭️ 已跳过（已存在）: ${skipped.join(', ')}` : `⏭️ Skipped (exists): ${skipped.join(', ')}`}`;
+      if (errors.length > 0) msg += `\n${lang === 'zh' ? `❌ 失败: ${errors.join(', ')}` : `❌ Failed: ${errors.join(', ')}`}`;
+
+      if (msg) alert(msg);
+      if (imported.length > 0) {
+        loadInstalledSkills();
+        setActiveTab('installed');
+      }
+    } else {
+      alert(result.error || (lang === 'zh' ? '导入失败' : 'Import failed'));
+    }
+  };
+
   // 修复异常 Skill
   const handleFix = (skill: Skill) => {
     const prompt = `请修复 Skill "${skill.name}" 的 SKILL.md 文件格式。错误原因：${skill.invalidReason || '格式错误'}。请读取该文件，修正 YAML frontmatter 格式后写回。修复完成后，请调用 skill_manager 工具执行 list 操作来验证修复结果。`;
@@ -342,7 +420,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
         </div>
 
         {/* 搜索栏 */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--settings-border)' }}>
+        <div style={{ padding: '16px 24px' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             <div style={{ flex: 1, position: 'relative' }}>
               <Search 
@@ -383,59 +461,68 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
           </p>
         </div>
 
-        {/* 标签页 */}
-        <div style={{ display: 'flex', gap: '16px', padding: '12px 24px', borderBottom: '1px solid var(--settings-border)' }}>
-          <button
-            onClick={() => setActiveTab('installed')}
-            className="settings-button"
-            style={{
-              background: activeTab === 'installed' ? 'var(--settings-accent)' : 'transparent',
-              color: activeTab === 'installed' ? 'var(--settings-bg)' : 'var(--settings-text-dim)',
-              borderColor: activeTab === 'installed' ? 'var(--settings-accent)' : 'var(--settings-border)',
-            }}
-          >
-            {t('skill.tab_installed')} ({installedSkills.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('available')}
-            className="settings-button"
-            style={{
-              background: activeTab === 'available' ? 'var(--settings-accent)' : 'transparent',
-              color: activeTab === 'available' ? 'var(--settings-bg)' : 'var(--settings-text-dim)',
-              borderColor: activeTab === 'available' ? 'var(--settings-accent)' : 'var(--settings-border)',
-            }}
-          >
-            {t('skill.tab_available')} ({availableSkills.length})
-          </button>
-          {installedSkills.length > 0 && (
-            <button
-              onClick={() => {
-                setExportSelection(new Set());
-                setShowExportDialog(true);
-              }}
-              className="settings-button skill-action-button"
-              style={{ marginLeft: 'auto' }}
-            >
-              {lang === 'zh' ? '导出' : 'Export'}
-            </button>
-          )}
-          {(window as any).deepbot?.openPath && (
-            <button
-              onClick={async () => {
-                const result = await api.getWorkspaceSettings();
-                const dir = result?.settings?.defaultSkillDir || '~/.agents/skills';
-                (window as any).deepbot.openPath(dir);
-              }}
-              className="settings-button skill-action-button"
-              style={{ marginLeft: installedSkills.length > 0 ? '0' : 'auto' }}
-            >
-              {lang === 'zh' ? '打开文件夹' : 'Open Folder'}
-            </button>
-          )}
-        </div>
-
         {/* Skill 列表 */}
         <div className="settings-panel">
+          {/* 标签页 + 操作按钮 */}
+          <div className="border-b border-gray-200" style={{ display: 'flex', alignItems: 'center', margin: '-24px -24px 16px -24px', padding: '0 24px' }}>
+            <nav className="-mb-px flex space-x-1">
+              <button
+                onClick={() => setActiveTab('installed')}
+                className={`settings-tab ${activeTab === 'installed' ? 'active' : ''}`}
+              >
+                {t('skill.tab_installed')} ({installedSkills.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('available')}
+                className={`settings-tab ${activeTab === 'available' ? 'active' : ''}`}
+              >
+                {t('skill.tab_available')} ({availableSkills.length})
+              </button>
+            </nav>
+
+            {/* 右侧操作图标 */}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <button
+                onClick={() => { setExportSelection(new Set()); setShowExportDialog(true); }}
+                disabled={installedSkills.length === 0}
+                className="skill-icon-button"
+                title={lang === 'zh' ? '导出' : 'Export'}
+              >
+                <Download size={16} />
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={importing}
+                className="skill-icon-button"
+                title={lang === 'zh' ? '导入' : 'Import'}
+              >
+                <Upload size={16} />
+              </button>
+              {(window as any).deepbot?.openPath && (
+                <button
+                  onClick={async () => {
+                    const result = await api.getWorkspaceSettings();
+                    const dir = result?.settings?.defaultSkillDir || '~/.agents/skills';
+                    (window as any).deepbot.openPath(dir);
+                  }}
+                  className="skill-icon-button"
+                  title={lang === 'zh' ? '打开文件夹' : 'Open Folder'}
+                >
+                  <FolderOpen size={16} />
+                </button>
+              )}
+            </div>
+
+            {/* 隐藏的文件选择 input（Docker 模式用） */}
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".zip"
+              style={{ display: 'none' }}
+              onChange={handleImportFileChange}
+            />
+          </div>
+
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-text-secondary">{t('skill.loading')}</div>
@@ -720,7 +807,7 @@ const SkillCard: React.FC<SkillCardProps> = ({
       <div className="flex gap-2 mt-3">
         <button
           onClick={() => onViewDetails(skill.name, isInstalled)}
-          className="flex items-center gap-1 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors"
+          className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors"
         >
           <Info size={14} />
           <span>{t('skill.detail')}</span>
@@ -729,7 +816,7 @@ const SkillCard: React.FC<SkillCardProps> = ({
         {isInstalled && onEnvEdit && (
           <button
             onClick={() => onEnvEdit(skill.name)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors"
+            className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors"
           >
             <Settings size={14} />
             <span>{t('skill.env_vars')}</span>
@@ -739,7 +826,7 @@ const SkillCard: React.FC<SkillCardProps> = ({
         {isInstalled ? (
           <button
             onClick={() => onUninstall(skill.name)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded transition-colors"
+            className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded transition-colors"
           >
             <Trash2 size={14} />
             <span>{t('skill.uninstall')}</span>
@@ -760,7 +847,7 @@ const SkillCard: React.FC<SkillCardProps> = ({
         ) : (
           <button
             onClick={() => onInstall(skill.name)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-brand-500 text-white hover:bg-brand-600 rounded transition-colors"
+            className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs bg-brand-500 text-white hover:bg-brand-600 rounded transition-colors"
           >
             <Download size={14} />
             <span>{t('skill.install')}</span>

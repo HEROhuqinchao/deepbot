@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import type Database from '../../../shared/utils/sqlite-adapter';
 import type { InstalledSkill, SkillInfo } from './types';
-import { getAllSkillPaths } from '../../config/skill-paths';
+import { getAllSkillPaths, getDefaultSkillPath } from '../../config/skill-paths';
 import { parseSkillMetadata, scanDirectory } from './utils';
 import { isDirectory, isFile, safeReadFile, safeRemove, ensureDirectoryExists } from '../../../shared/utils/fs-utils';
 import { safeJsonParse } from '../../../shared/utils/json-utils';
@@ -386,4 +386,100 @@ function copyDirRecursive(src: string, dest: string): void {
       fs.copyFileSync(srcPath, destPath);
     }
   }
+}
+
+/**
+ * 导入 Skill（从 zip 文件解压并安装）
+ * 
+ * @param zipPath - zip 文件路径
+ * @param db - 数据库实例
+ * @returns 导入结果
+ */
+export async function importSkills(zipPath: string, db: Database.Database): Promise<{ imported: string[]; skipped: string[]; errors: string[] }> {
+  const os = require('os');
+  const AdmZip = (await import('adm-zip')).default;
+
+  const imported: string[] = [];
+  const skipped: string[] = [];
+  const errors: string[] = [];
+
+  // 1. 解压到临时目录
+  const tmpDir = path.join(os.tmpdir(), `deepbot-skill-import-${Date.now()}`);
+  ensureDirectoryExists(tmpDir);
+
+  try {
+    const zip = new AdmZip(zipPath);
+    zip.extractAllTo(tmpDir, true);
+
+    // 2. 扫描解压后的目录，查找包含 SKILL.md 的子目录
+    const entries = fs.readdirSync(tmpDir);
+    
+    // 判断结构：可能是单个 skill（根目录直接有 SKILL.md）或多个 skill（每个子目录有 SKILL.md）
+    const skillDirs: Array<{ name: string; dir: string }> = [];
+
+    if (isFile(path.join(tmpDir, 'SKILL.md'))) {
+      // 根目录就是一个 skill，用 zip 文件名作为 skill 名
+      const zipBaseName = path.basename(zipPath, '.zip');
+      skillDirs.push({ name: zipBaseName, dir: tmpDir });
+    } else {
+      // 扫描子目录
+      for (const entry of entries) {
+        const entryPath = path.join(tmpDir, entry);
+        if (isDirectory(entryPath) && isFile(path.join(entryPath, 'SKILL.md'))) {
+          skillDirs.push({ name: entry, dir: entryPath });
+        }
+      }
+    }
+
+    if (skillDirs.length === 0) {
+      throw new Error('zip 中未找到有效的 Skill（缺少 SKILL.md 文件）');
+    }
+
+    // 3. 逐个安装
+    const SKILLS_DIR = getDefaultSkillPath();
+    ensureDirectoryExists(SKILLS_DIR);
+
+    for (const { name, dir } of skillDirs) {
+      try {
+        const targetDir = path.join(SKILLS_DIR, name);
+
+        // 检查是否已安装
+        if (isDirectory(targetDir) && isFile(path.join(targetDir, 'SKILL.md'))) {
+          skipped.push(name);
+          continue;
+        }
+
+        // 复制到 skill 目录
+        copyDirRecursive(dir, targetDir);
+
+        // 解析 SKILL.md 元数据
+        const metadata = parseSkillMetadata(targetDir);
+
+        // 写入数据库（如果已有记录先删除）
+        db.prepare('DELETE FROM skills WHERE name = ?').run(name);
+        db.prepare(`
+          INSERT INTO skills (name, version, enabled, repository, metadata)
+          VALUES (?, ?, 1, ?, ?)
+        `).run(
+          name,
+          metadata.version || '1.0.0',
+          'local-import',
+          JSON.stringify(metadata)
+        );
+
+        imported.push(name);
+        console.log(`[Skill Manager] ✅ 导入成功: ${name}`);
+      } catch (error) {
+        const msg = `${name}: ${error instanceof Error ? error.message : String(error)}`;
+        errors.push(msg);
+        console.error(`[Skill Manager] ❌ 导入失败: ${msg}`);
+      }
+    }
+  } finally {
+    // 清理临时目录
+    safeRemove(tmpDir);
+  }
+
+  console.log(`[Skill Manager] 导入完成: ${imported.length} 成功, ${skipped.length} 跳过, ${errors.length} 失败`);
+  return { imported, skipped, errors };
 }

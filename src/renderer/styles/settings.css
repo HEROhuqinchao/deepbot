@@ -395,10 +395,10 @@
   padding-right: 2.5rem !important;
 }
 
-/* ========== 所有按钮统一 ========== */
+/* ========== 所有按钮统一（排除 tab 按钮） ========== */
 .settings-button,
-.settings-panel button,
-.fixed button {
+.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action),
+.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action) {
   background: transparent !important;
   border: 1px solid var(--settings-accent) !important;
   color: var(--settings-accent) !important;
@@ -417,41 +417,118 @@
   font-size: 12px !important;
 }
 
+/* ========== Settings Tab 按钮（下划线样式，不被全局按钮规则覆盖） ========== */
+button.settings-tab {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  color: var(--settings-text-dim) !important;
+  padding: 12px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  box-shadow: none !important;
+}
+
+button.settings-tab:hover {
+  color: var(--settings-text) !important;
+  border-bottom-color: var(--settings-border) !important;
+  background: var(--terminal-accent-bg) !important;
+  box-shadow: none !important;
+}
+
+button.settings-tab.active {
+  color: var(--settings-accent) !important;
+  border-bottom-color: var(--settings-accent) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Skill 图标按钮（导出、导入、打开文件夹） */
+.skill-icon-button {
+  background: transparent !important;
+  border: 1px solid var(--settings-border) !important;
+  color: var(--settings-text-dim) !important;
+  padding: 6px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: inherit !important;
+  box-shadow: none !important;
+}
+
+.skill-icon-button:hover:not(:disabled) {
+  color: var(--settings-accent) !important;
+  border-color: var(--settings-accent) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.skill-icon-button:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
+
+/* Skill 卡片操作按钮（详情、环境变量、卸载、安装） */
+button.skill-card-action {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-family: inherit !important;
+}
+
+button.skill-card-action:hover {
+  opacity: 0.8 !important;
+  box-shadow: none !important;
+}
+
 /* 英文模式下按钮取消大写 */
 [data-lang="en"] .settings-button,
-[data-lang="en"] .settings-panel button,
-[data-lang="en"] .fixed button {
+[data-lang="en"] .settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action),
+[data-lang="en"] .fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action) {
   text-transform: none !important;
   letter-spacing: normal !important;
 }
 
 .settings-button:hover:not(:disabled),
-.settings-panel button:hover:not(:disabled),
-.fixed button:hover:not(:disabled) {
+.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):hover:not(:disabled),
+.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):hover:not(:disabled) {
   background: var(--settings-accent) !important;
   color: var(--settings-bg) !important;
   box-shadow: 0 0 16px var(--terminal-accent-glow) !important;
 }
 
 .settings-button:disabled,
-.settings-panel button:disabled,
-.fixed button:disabled {
+.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):disabled,
+.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):disabled {
   opacity: 0.3 !important;
   cursor: not-allowed !important;
 }
 
 /* 危险按钮（删除、取消等） */
 .settings-button.danger,
-.settings-panel button[class*="text-red"],
-.fixed button[class*="text-red"] {
+.settings-panel button[class*="text-red"]:not(.skill-card-action),
+.fixed button[class*="text-red"]:not(.skill-card-action) {
   border-color: var(--settings-error) !important;
   color: var(--settings-error) !important;
   background: transparent !important;
 }
 
 .settings-button.danger:hover,
-.settings-panel button[class*="text-red"]:hover,
-.fixed button[class*="text-red"]:hover {
+.settings-panel button[class*="text-red"]:not(.skill-card-action):hover,
+.fixed button[class*="text-red"]:not(.skill-card-action):hover {
   background: var(--settings-error) !important;
   color: var(--settings-bg) !important;
 }

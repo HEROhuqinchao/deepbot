@@ -389,6 +389,14 @@ export const api = {
     return webClient.post('/api/skills', request);
   },
 
+  // 导入 Skill（Docker 模式：上传 zip；Electron 模式：直接传路径）
+  async importSkillZip(zipPath: string, zipData?: string, fileName?: string): Promise<any> {
+    if (isElectron()) {
+      return (window as any).deepbot.skillManager({ action: 'import', zipPath });
+    }
+    return webClient.post('/api/skills/import', { zipData, fileName });
+  },
+
   async invalidateSystemPrompts(): Promise<void> {
     if (isElectron()) return (window as any).deepbot.invalidateSystemPrompts();
     return webClient.post('/api/invalidate-system-prompts', {});

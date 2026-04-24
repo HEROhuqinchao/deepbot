@@ -698,6 +698,22 @@ function registerIpcHandlers() {
     }
   });
 
+  // 打开文件选择对话框（选择 zip 文件）
+  ipcMain.handle('dialog:open-zip', async () => {
+    try {
+      const result = await dialog.showOpenDialog({
+        filters: [{ name: 'ZIP', extensions: ['zip'] }],
+        properties: ['openFile'],
+      });
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, canceled: true };
+      }
+      return { success: true, path: result.filePaths[0] };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 设置 Tab 模型配置
   ipcMain.handle(IPC_CHANNELS.SET_TAB_MODEL_CONFIG, async (_event, { tabId, modelConfig }) => {
     try {

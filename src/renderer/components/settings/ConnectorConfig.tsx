@@ -245,7 +245,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
         <nav className="-mb-px flex space-x-1">
           {(['config', 'pairing', 'guide'] as TabType[]).map(tab => (
             <button key={tab} onClick={() => { setActiveTab(tab); if (tab === 'pairing') loadPairingRecords(); }}
-              className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'}`}>
+              className={`settings-tab ${activeTab === tab ? 'active' : ''}`}>
               {tab === 'config' ? (lang === 'zh' ? '基础配置' : 'Basic Config') : tab === 'pairing' ? (lang === 'zh' ? 'Pairing 管理' : 'Pairing') : (lang === 'zh' ? '配置说明' : 'Setup Guide')}
               {tab === 'pairing' && pairingRecords.filter(r => !r.approved).length > 0 && (
                 <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">{pairingRecords.filter(r => !r.approved).length}</span>
@@ -568,7 +568,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
             return (
             <button key={connector.id}
               onClick={() => { setSelectedConnector(connector.id); setActiveTab('config'); if (!isWechatTab) loadConnectorConfig(connector.id); }}
-              className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${selectedConnector === connector.id || (isWechatTab && selectedConnector?.startsWith('wechat')) ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'}`}>
+              className={`settings-tab ${selectedConnector === connector.id || (isWechatTab && selectedConnector?.startsWith('wechat')) ? 'active' : ''}`}>
               {displayName}
               {!isWechatTab && connector.enabled && health === 'healthy' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">{lang === 'zh' ? '运行中' : 'Running'}</span>}
               {!isWechatTab && connector.enabled && health === 'unhealthy' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{lang === 'zh' ? '连接失败' : 'Failed'}</span>}

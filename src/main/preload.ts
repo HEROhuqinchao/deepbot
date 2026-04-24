@@ -163,6 +163,11 @@ contextBridge.exposeInMainWorld('deepbot', {
     return ipcRenderer.invoke('dialog:save-file', { defaultName });
   },
 
+  // 打开文件选择对话框（选择 zip 文件，仅 Electron）
+  showOpenZipDialog: () => {
+    return ipcRenderer.invoke('dialog:open-zip');
+  },
+
   // 上传图片
   uploadImage: (name: string, dataUrl: string, size: number) => {
     return ipcRenderer.invoke(IPC_CHANNELS.UPLOAD_IMAGE, { name, dataUrl, size });
