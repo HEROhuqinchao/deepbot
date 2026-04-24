@@ -413,16 +413,23 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
                 setExportSelection(new Set());
                 setShowExportDialog(true);
               }}
-              className="settings-button"
-              style={{
-                marginLeft: 'auto',
-                background: 'transparent',
-                color: 'var(--settings-text-dim)',
-                borderColor: 'var(--settings-border)',
-                fontSize: '12px',
-              }}
+              className="settings-button skill-action-button"
+              style={{ marginLeft: 'auto' }}
             >
-              {lang === 'zh' ? '📦 导出' : '📦 Export'}
+              {lang === 'zh' ? '导出' : 'Export'}
+            </button>
+          )}
+          {(window as any).deepbot?.openPath && (
+            <button
+              onClick={async () => {
+                const result = await api.getWorkspaceSettings();
+                const dir = result?.settings?.defaultSkillDir || '~/.agents/skills';
+                (window as any).deepbot.openPath(dir);
+              }}
+              className="settings-button skill-action-button"
+              style={{ marginLeft: installedSkills.length > 0 ? '0' : 'auto' }}
+            >
+              {lang === 'zh' ? '打开文件夹' : 'Open Folder'}
             </button>
           )}
         </div>
