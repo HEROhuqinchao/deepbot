@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api';
 import { showToast } from '../../utils/toast';
 import { getLanguage } from '../../i18n';
+import { Check, Shield, Trash2, Copy, Link, Play, Square } from 'lucide-react';
 
 interface ConnectorConfigProps {
   onClose: () => void;
@@ -168,6 +169,15 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
   const handleStart = async (connectorId: string) => {
     setStartingMap(prev => ({ ...prev, [connectorId]: true }));
     try {
+      // 飞书：启动前自动保存配置
+      if (connectorId === 'feishu') {
+        if (!feishuConfig.appId.trim() || !feishuConfig.appSecret.trim()) {
+          showToast('error', lang === 'zh' ? '请输入 App ID 和 App Secret' : 'Please enter App ID and App Secret');
+          setStartingMap(prev => ({ ...prev, [connectorId]: false }));
+          return;
+        }
+        await api.connectorSaveConfig('feishu', { ...feishuConfig, enabled: false });
+      }
       if (connectorId.startsWith('wechat')) {
         await api.connectorSaveConfig(connectorId, { enabled: false });
       }
@@ -216,24 +226,25 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
     const connectorData = connectors.find(c => c.id === connectorId);
     const isStarting = startingMap[connectorId] || false;
 
-    return (
-    <div className="flex space-x-3 pt-4">
-      {connectorData?.enabled ? (
+    if (connectorData?.enabled) {
+      return (
         <button onClick={() => handleStop(connectorId)} disabled={isStarting}
-          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
-          {isStarting ? (lang === 'zh' ? '停止中...' : 'Stopping...') : (lang === 'zh' ? '停止连接器' : 'Stop Connector')}
+          className="skill-icon-button connector-stop-button">
+          <Square size={14} />
+          <span>{isStarting ? (lang === 'zh' ? '停止中...' : 'Stopping...') : (lang === 'zh' ? '停止连接器' : 'Stop Connector')}</span>
         </button>
-      ) : (
-        <button onClick={() => handleStart(connectorId)} disabled={isStarting || (connectorId === 'feishu' && !connectorData?.hasConfig)}
-          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
-          {isStarting
-            ? (lang === 'zh' ? '启动中...' : 'Starting...')
-            : connectorId.startsWith('wechat')
-              ? (lang === 'zh' ? '启动连接器（扫码登录）' : 'Start Connector (QR Login)')
-              : (lang === 'zh' ? '启动连接器' : 'Start Connector')}
-        </button>
-      )}
-    </div>
+      );
+    }
+    return (
+      <button onClick={() => handleStart(connectorId)} disabled={isStarting}
+        className="skill-icon-button connector-start-button">
+        <Play size={14} />
+        <span>{isStarting
+          ? (lang === 'zh' ? '启动中...' : 'Starting...')
+          : connectorId.startsWith('wechat')
+            ? (lang === 'zh' ? '启动连接器（扫码登录）' : 'Start Connector (QR Login)')
+            : (lang === 'zh' ? '启动连接器' : 'Start Connector')}</span>
+      </button>
     );
   };
 
@@ -245,7 +256,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
         <nav className="-mb-px flex space-x-1">
           {(['config', 'pairing', 'guide'] as TabType[]).map(tab => (
             <button key={tab} onClick={() => { setActiveTab(tab); if (tab === 'pairing') loadPairingRecords(); }}
-              className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'}`}>
+              className={`settings-tab ${activeTab === tab ? 'active' : ''}`}>
               {tab === 'config' ? (lang === 'zh' ? '基础配置' : 'Basic Config') : tab === 'pairing' ? (lang === 'zh' ? 'Pairing 管理' : 'Pairing') : (lang === 'zh' ? '配置说明' : 'Setup Guide')}
               {tab === 'pairing' && pairingRecords.filter(r => !r.approved).length > 0 && (
                 <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">{pairingRecords.filter(r => !r.approved).length}</span>
@@ -277,13 +288,10 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
               <p className="text-xs text-gray-500 mt-0.5">{feishuConfig.requirePairing ? (lang === 'zh' ? '用户首次私聊需要管理员批准' : 'Users need admin approval') : (lang === 'zh' ? '所有用户可直接对话' : 'All users can chat directly')}</p>
             </div>
           </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <div className="settings-alert settings-alert-info">
             <p className="text-sm text-blue-800"><strong>{lang === 'zh' ? '群组规则：' : 'Group Rule: '}</strong>{lang === 'zh' ? '群组中必须 @ 机器人才会触发回复' : '@mention the bot in groups to trigger replies'}</p>
           </div>
-          <div className="flex space-x-3 pt-4">
-            <button onClick={handleFeishuSave} disabled={saving} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
-              {saving ? (lang === 'zh' ? '保存中...' : 'Saving...') : (lang === 'zh' ? '保存配置' : 'Save Config')}
-            </button>
+          <div className="flex items-center gap-2 pt-4">
             {renderStartStopButtons('feishu')}
           </div>
         </div>
@@ -317,7 +325,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
 
     return (
       <div className="space-y-4">
-        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+        <div className="settings-alert settings-alert-success">
           <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '微信连接器说明' : 'WeChat Connector Info'}</h4>
           <p className="text-sm text-green-800">
             {lang === 'zh'
@@ -357,9 +365,10 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
                             showToast('error', `${lang === 'zh' ? '删除失败' : 'Delete failed'}: ${e instanceof Error ? e.message : ''}`);
                           }
                         }}
-                        className="px-2 py-1 text-xs text-red-500 hover:text-red-700 transition-colors"
+                        className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs text-red-600 rounded transition-colors"
                       >
-                        {lang === 'zh' ? '删除' : 'Delete'}
+                        <Trash2 size={14} />
+                        <span>{lang === 'zh' ? '删除' : 'Delete'}</span>
                       </button>
                     )}
                   </div>
@@ -378,9 +387,10 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
                     </div>
                     <button
                       onClick={() => { navigator.clipboard.writeText(qrUrl); showToast('success', lang === 'zh' ? '链接已复制' : 'Link copied'); }}
-                      className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                      className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs text-text-secondary rounded transition-colors"
                     >
-                      {lang === 'zh' ? '复制链接' : 'Copy Link'}
+                      <Copy size={14} />
+                      <span>{lang === 'zh' ? '复制链接' : 'Copy Link'}</span>
                     </button>
                   </div>
                 )}
@@ -405,9 +415,11 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
               showToast('error', `${lang === 'zh' ? '创建失败' : 'Create failed'}: ${e instanceof Error ? e.message : ''}`);
             }
           }}
-          className="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
+          className="skill-icon-button skill-icon-button-accent"
+          style={{ padding: '4px 12px', gap: '4px', display: 'inline-flex', alignItems: 'center', fontSize: '12px' }}
         >
-          {lang === 'zh' ? '+ 新增微信连接' : '+ Add WeChat Connection'}
+          <Link size={14} />
+          <span>{lang === 'zh' ? '新增微信连接' : 'Add WeChat'}</span>
         </button>
       </div>
     );
@@ -416,7 +428,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
   // ── Pairing 管理面板 ─────────────────────────────────────────────
   const renderPairingPanel = () => (
     <div className="space-y-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+      <div className="settings-alert settings-alert-info">
         <h4 className="text-sm font-medium text-blue-900 mb-2">{lang === 'zh' ? 'Pairing 说明' : 'Pairing Instructions'}</h4>
         <p className="text-sm text-blue-800">{lang === 'zh' ? '用户首次私聊机器人时会收到配对码，管理员在此批准后用户才能使用。' : 'Users receive a pairing code on first message. Admin must approve it here.'}</p>
       </div>
@@ -445,12 +457,13 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
                   </div>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  {!record.approved && <button onClick={() => handleApprovePairing(record.pairingCode)} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors">{lang === 'zh' ? '批准' : 'Approve'}</button>}
+                  {!record.approved && <button onClick={() => handleApprovePairing(record.pairingCode)} className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs text-green-600 rounded transition-colors"><Check size={14} /><span>{lang === 'zh' ? '批准' : 'Approve'}</span></button>}
                   <button onClick={() => handleSetAdmin(record.connectorId, record.userId, !record.isAdmin)}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${record.isAdmin ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-                    {record.isAdmin ? (lang === 'zh' ? '管理员 ✓' : 'Admin ✓') : (lang === 'zh' ? '设为管理员' : 'Set Admin')}
+                    className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs text-text-secondary rounded transition-colors">
+                    <Shield size={14} />
+                    <span>{record.isAdmin ? (lang === 'zh' ? '管理员 ✓' : 'Admin ✓') : (lang === 'zh' ? '设为管理员' : 'Set Admin')}</span>
                   </button>
-                  <button onClick={() => handleDeletePairing(record.connectorId, record.userId)} className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors">{lang === 'zh' ? '删除' : 'Delete'}</button>
+                  <button onClick={() => handleDeletePairing(record.connectorId, record.userId)} className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs text-red-600 rounded transition-colors"><Trash2 size={14} /><span>{lang === 'zh' ? '删除' : 'Delete'}</span></button>
                 </div>
               </div>
             </div>
@@ -568,7 +581,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
             return (
             <button key={connector.id}
               onClick={() => { setSelectedConnector(connector.id); setActiveTab('config'); if (!isWechatTab) loadConnectorConfig(connector.id); }}
-              className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${selectedConnector === connector.id || (isWechatTab && selectedConnector?.startsWith('wechat')) ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'}`}>
+              className={`settings-tab ${selectedConnector === connector.id || (isWechatTab && selectedConnector?.startsWith('wechat')) ? 'active' : ''}`}>
               {displayName}
               {!isWechatTab && connector.enabled && health === 'healthy' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">{lang === 'zh' ? '运行中' : 'Running'}</span>}
               {!isWechatTab && connector.enabled && health === 'unhealthy' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{lang === 'zh' ? '连接失败' : 'Failed'}</span>}

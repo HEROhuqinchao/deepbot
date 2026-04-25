@@ -188,51 +188,31 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
         <nav className="-mb-px flex space-x-1">
           <button
             onClick={() => setActiveTab('image')}
-            className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'image'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-            }`}
+            className={`settings-tab ${activeTab === 'image' ? 'active' : ''}`}
           >
             {lang === 'zh' ? '图片生成' : 'Image Generation'}
           </button>
           <button
             onClick={() => setActiveTab('websearch')}
-            className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'websearch'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-            }`}
+            className={`settings-tab ${activeTab === 'websearch' ? 'active' : ''}`}
           >
             {lang === 'zh' ? '网络搜索' : 'Web Search'}
           </button>
           <button
             onClick={() => setActiveTab('browser')}
-            className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'browser'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-            }`}
+            className={`settings-tab ${activeTab === 'browser' ? 'active' : ''}`}
           >
             {lang === 'zh' ? '浏览器' : 'Browser'}
           </button>
           <button
             onClick={() => setActiveTab('email')}
-            className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'email'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-            }`}
+            className={`settings-tab ${activeTab === 'email' ? 'active' : ''}`}
           >
             {lang === 'zh' ? '邮件发送' : 'Email'}
           </button>
           <button
             onClick={() => setActiveTab('manage')}
-            className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'manage'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-            }`}
+            className={`settings-tab ${activeTab === 'manage' ? 'active' : ''}`}
           >
             {lang === 'zh' ? '工具管理' : 'Tool Management'}
           </button>
@@ -372,7 +352,7 @@ export function ToolConfig({ onClose }: ToolConfigProps) {
           </div>
 
           {/* 安装 */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="settings-alert settings-alert-info">
             <h5 className="text-sm font-semibold text-blue-900 mb-2">{lang === 'zh' ? '📦 安装' : '📦 Install'}</h5>
             <p className="text-sm text-blue-800 mb-2">
               {lang === 'zh'
@@ -497,7 +477,7 @@ SMTP_FROM=your@163.com`}
           </div>
 
           {/* 安全提示 */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="settings-alert settings-alert-warning">
             <h5 className="text-sm font-semibold text-yellow-900 mb-2">{lang === 'zh' ? '🔒 安全提示' : '🔒 Security Tips'}</h5>
             <ul className="text-sm text-yellow-800 space-y-1 list-disc list-inside">
               {lang === 'zh' ? (

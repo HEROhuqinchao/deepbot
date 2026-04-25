@@ -61,16 +61,16 @@ export const apiToolPlugin: ToolPlugin = {
       //   },
       // },
       
-      // 设置模型配置
-      {
-        name: TOOL_NAMES.API_SET_MODEL_CONFIG,
-        label: '设置模型配置',
-        description: '更新 DeepBot 的模型配置。可以设置提供商、模型、API 地址、API Key',
-        parameters: schemas.SetModelConfigSchema,
-        execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
-          return handlers.handleSetModelConfig(args, signal);
-        },
-      },
+      // 设置模型配置（暂时屏蔽，由用户通过 UI 手动配置）
+      // {
+      //   name: TOOL_NAMES.API_SET_MODEL_CONFIG,
+      //   label: '设置模型配置',
+      //   description: '更新 DeepBot 的模型配置。可以设置提供商、模型、API 地址、API Key',
+      //   parameters: schemas.SetModelConfigSchema,
+      //   execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
+      //     return handlers.handleSetModelConfig(args, signal);
+      //   },
+      // },
       
       // 设置图片生成工具配置
       {
@@ -178,7 +178,7 @@ export const apiToolPlugin: ToolPlugin = {
         description: '查询智能体名字和用户称呼',
         parameters: Type.Object({}),
         execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
-          return handlers.handleGetNameConfig(signal);
+          return handlers.handleGetNameConfig(sessionId, signal);
         },
       },
       

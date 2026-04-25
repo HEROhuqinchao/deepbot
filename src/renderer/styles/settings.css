@@ -22,7 +22,7 @@
   --settings-bg: #ffffff;
   --settings-bg-light: #f8f8fa;
   --settings-text: #1d1d1f;
-  --settings-text-dim: #8e8e93;
+  --settings-text-dim: #636366;
   --settings-border: #d1d1d6;
   --settings-accent: #007aff;
   --settings-accent-hover: #0056b3;
@@ -395,10 +395,10 @@
   padding-right: 2.5rem !important;
 }
 
-/* ========== 所有按钮统一 ========== */
+/* ========== 所有按钮统一（排除 tab 按钮） ========== */
 .settings-button,
-.settings-panel button,
-.fixed button {
+.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action),
+.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action) {
   background: transparent !important;
   border: 1px solid var(--settings-accent) !important;
   color: var(--settings-accent) !important;
@@ -417,75 +417,202 @@
   font-size: 12px !important;
 }
 
+/* ========== Settings Tab 按钮（下划线样式，不被全局按钮规则覆盖） ========== */
+button.settings-tab {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  color: var(--settings-text-dim) !important;
+  padding: 12px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  box-shadow: none !important;
+}
+
+button.settings-tab:hover {
+  color: var(--settings-text) !important;
+  border-bottom-color: var(--settings-border) !important;
+  background: var(--terminal-accent-bg) !important;
+  box-shadow: none !important;
+}
+
+button.settings-tab.active {
+  color: var(--settings-accent) !important;
+  border-bottom-color: var(--settings-accent) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Skill 图标按钮（导出、导入、打开文件夹） */
+.skill-icon-button {
+  background: transparent !important;
+  border: 1px solid var(--settings-border) !important;
+  color: var(--settings-text-dim) !important;
+  padding: 6px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: inherit !important;
+  box-shadow: none !important;
+}
+
+.skill-icon-button:hover:not(:disabled) {
+  color: var(--settings-accent) !important;
+  border-color: var(--settings-accent) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.skill-icon-button:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
+
+/* 强调色图标按钮（如添加工作目录） */
+button.skill-icon-button.skill-icon-button-accent {
+  color: var(--settings-accent) !important;
+  border-color: var(--settings-accent) !important;
+  padding: 4px 12px !important;
+  gap: 4px !important;
+  font-size: 12px !important;
+}
+
+button.skill-icon-button.skill-icon-button-accent:hover:not(:disabled) {
+  background: var(--settings-accent) !important;
+  color: var(--settings-bg) !important;
+}
+
+/* 连接器启动按钮（绿色，全宽） */
+button.skill-icon-button.connector-start-button {
+  width: 100% !important;
+  color: var(--settings-success) !important;
+  border-color: var(--settings-success) !important;
+  padding: 8px 16px !important;
+  gap: 6px !important;
+  font-size: 13px !important;
+  justify-content: center !important;
+}
+
+button.skill-icon-button.connector-start-button:hover:not(:disabled) {
+  background: var(--settings-success) !important;
+  color: var(--settings-bg) !important;
+  border-color: var(--settings-success) !important;
+}
+
+/* 连接器停止按钮（红色，全宽） */
+button.skill-icon-button.connector-stop-button {
+  width: 100% !important;
+  color: var(--settings-error) !important;
+  border-color: var(--settings-error) !important;
+  padding: 8px 16px !important;
+  gap: 6px !important;
+  font-size: 13px !important;
+  justify-content: center !important;
+}
+
+button.skill-icon-button.connector-stop-button:hover:not(:disabled) {
+  background: var(--settings-error) !important;
+  color: var(--settings-bg) !important;
+  border-color: var(--settings-error) !important;
+}
+
+/* Skill 卡片操作按钮（详情、环境变量、卸载、安装） */
+button.skill-card-action,
+button.skill-card-action:hover,
+button.skill-card-action:hover:not(:disabled) {
+  background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-family: inherit !important;
+}
+
+button.skill-card-action:hover {
+  opacity: 0.8 !important;
+}
+
 /* 英文模式下按钮取消大写 */
 [data-lang="en"] .settings-button,
-[data-lang="en"] .settings-panel button,
-[data-lang="en"] .fixed button {
+[data-lang="en"] .settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action),
+[data-lang="en"] .fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action) {
   text-transform: none !important;
   letter-spacing: normal !important;
 }
 
 .settings-button:hover:not(:disabled),
-.settings-panel button:hover:not(:disabled),
-.fixed button:hover:not(:disabled) {
+.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):hover:not(:disabled),
+.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):hover:not(:disabled) {
   background: var(--settings-accent) !important;
   color: var(--settings-bg) !important;
   box-shadow: 0 0 16px var(--terminal-accent-glow) !important;
 }
 
 .settings-button:disabled,
-.settings-panel button:disabled,
-.fixed button:disabled {
+.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):disabled,
+.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):disabled {
   opacity: 0.3 !important;
   cursor: not-allowed !important;
 }
 
 /* 危险按钮（删除、取消等） */
 .settings-button.danger,
-.settings-panel button[class*="text-red"],
-.fixed button[class*="text-red"] {
+.settings-panel button[class*="text-red"]:not(.skill-card-action),
+.fixed button[class*="text-red"]:not(.skill-card-action) {
   border-color: var(--settings-error) !important;
   color: var(--settings-error) !important;
   background: transparent !important;
 }
 
 .settings-button.danger:hover,
-.settings-panel button[class*="text-red"]:hover,
-.fixed button[class*="text-red"]:hover {
+.settings-panel button[class*="text-red"]:not(.skill-card-action):hover,
+.fixed button[class*="text-red"]:not(.skill-card-action):hover {
   background: var(--settings-error) !important;
   color: var(--settings-bg) !important;
 }
 
 /* 成功按钮 */
 .settings-button.success,
-.settings-panel button[class*="text-green"],
-.fixed button[class*="text-green"] {
+.settings-panel button[class*="text-green"]:not(.skill-card-action),
+.fixed button[class*="text-green"]:not(.skill-card-action) {
   border-color: var(--settings-success) !important;
   color: var(--settings-success) !important;
   background: transparent !important;
 }
 
 .settings-button.success:hover,
-.settings-panel button[class*="text-green"]:hover,
-.fixed button[class*="text-green"]:hover {
+.settings-panel button[class*="text-green"]:not(.skill-card-action):hover,
+.fixed button[class*="text-green"]:not(.skill-card-action):hover {
   background: var(--settings-success) !important;
   color: var(--settings-bg) !important;
 }
 
 /* 警告按钮 */
-.settings-panel button[class*="text-orange"],
-.settings-panel button[class*="text-yellow"],
-.fixed button[class*="text-orange"],
-.fixed button[class*="text-yellow"] {
+.settings-panel button[class*="text-orange"]:not(.skill-card-action),
+.settings-panel button[class*="text-yellow"]:not(.skill-card-action),
+.fixed button[class*="text-orange"]:not(.skill-card-action),
+.fixed button[class*="text-yellow"]:not(.skill-card-action) {
   border-color: var(--settings-warning) !important;
   color: var(--settings-warning) !important;
   background: transparent !important;
 }
 
-.settings-panel button[class*="text-orange"]:hover,
-.settings-panel button[class*="text-yellow"]:hover,
-.fixed button[class*="text-orange"]:hover,
-.fixed button[class*="text-yellow"]:hover {
+.settings-panel button[class*="text-orange"]:not(.skill-card-action):hover,
+.settings-panel button[class*="text-yellow"]:not(.skill-card-action):hover,
+.fixed button[class*="text-orange"]:not(.skill-card-action):hover,
+.fixed button[class*="text-yellow"]:not(.skill-card-action):hover {
   background: var(--settings-warning) !important;
   color: var(--settings-bg) !important;
 }
@@ -638,6 +765,107 @@ button.settings-close-button:hover:not(:disabled) {
   background: transparent !important;
   box-shadow: none !important;
 }
+
+/* ==================== 信息提示框（统一样式） ==================== */
+
+/* 基础提示框 */
+.settings-alert {
+  border-radius: 8px !important;
+  padding: 16px !important;
+  border: 1px solid !important;
+  font-size: 13px !important;
+}
+
+.settings-alert h4,
+.settings-alert h5 {
+  font-size: 13px !important;
+  font-weight: normal !important;
+  margin-bottom: 6px !important;
+}
+
+.settings-alert p,
+.settings-alert li,
+.settings-alert div {
+  font-size: 13px !important;
+}
+
+/* 信息提示（蓝色） */
+.settings-alert-info {
+  background: rgba(122, 162, 247, 0.08) !important;
+  border-color: rgba(122, 162, 247, 0.25) !important;
+}
+
+.settings-alert-info,
+.settings-alert-info h4,
+.settings-alert-info h5,
+.settings-alert-info p,
+.settings-alert-info li,
+.settings-alert-info strong,
+.settings-alert-info span,
+.settings-alert-info div {
+  color: var(--settings-accent) !important;
+}
+
+/* 成功提示（绿色） */
+.settings-alert-success {
+  background: rgba(158, 206, 106, 0.08) !important;
+  border-color: rgba(158, 206, 106, 0.25) !important;
+}
+
+.settings-alert-success,
+.settings-alert-success h4,
+.settings-alert-success h5,
+.settings-alert-success p,
+.settings-alert-success li,
+.settings-alert-success strong,
+.settings-alert-success span,
+.settings-alert-success div {
+  color: var(--settings-success) !important;
+}
+
+/* 警告提示（黄色） */
+.settings-alert-warning {
+  background: rgba(224, 175, 104, 0.08) !important;
+  border-color: rgba(224, 175, 104, 0.25) !important;
+}
+
+.settings-alert-warning,
+.settings-alert-warning h4,
+.settings-alert-warning h5,
+.settings-alert-warning p,
+.settings-alert-warning li,
+.settings-alert-warning strong,
+.settings-alert-warning span,
+.settings-alert-warning div {
+  color: var(--settings-warning) !important;
+}
+
+/* 错误提示（红色） */
+.settings-alert-error {
+  background: rgba(247, 118, 142, 0.08) !important;
+  border-color: rgba(247, 118, 142, 0.25) !important;
+}
+
+.settings-alert-error,
+.settings-alert-error h4,
+.settings-alert-error h5,
+.settings-alert-error p,
+.settings-alert-error li,
+.settings-alert-error strong,
+.settings-alert-error span,
+.settings-alert-error div {
+  color: var(--settings-error) !important;
+}
+
+/* 提示框内的 SVG 图标颜色继承 */
+.settings-alert svg {
+  flex-shrink: 0;
+}
+
+.settings-alert-info svg { color: var(--settings-accent) !important; }
+.settings-alert-success svg { color: var(--settings-success) !important; }
+.settings-alert-warning svg { color: var(--settings-warning) !important; }
+.settings-alert-error svg { color: var(--settings-error) !important; }
 
 /* ==================== 订阅及付费 ==================== */
 

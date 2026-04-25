@@ -12,7 +12,7 @@ import { api } from '../api'; // 🔥 使用统一 API 适配器
 import { isElectron, isMacOS } from '../utils/platform'; // 🔥 平台检测
 import { getLanguage } from '../i18n';
 import { ModelConfig } from './settings/ModelConfig';
-import { X } from 'lucide-react';
+import { X, Pencil, Settings } from 'lucide-react';
 interface ChatWindowProps {
   messages: Message[];
   onSendMessage: (content: string, images?: import('../../types/message').UploadedImage[], files?: import('../../types/message').UploadedFile[]) => void;
@@ -68,6 +68,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   // Tab 右键菜单和模型选择
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tabId: string } | null>(null);
   const [showModelPicker, setShowModelPicker] = useState<string | null>(null); // tabId
+  const [showRenameDialog, setShowRenameDialog] = useState<string | null>(null); // tabId
+  const [renameValue, setRenameValue] = useState('');
   
   // 🔥 获取当前 Tab 类型
   const currentTab = tabs?.find(t => t.id === activeTabId);
@@ -476,6 +478,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 onClick={() => onTabClick(tab.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
+                  onTabClick(tab.id);
                   setContextMenu({ x: e.clientX, y: e.clientY, tabId: tab.id });
                 }}
               >
@@ -517,13 +520,27 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         >
           <div
             className="tab-context-menu-item"
-            onClick={async () => {
+            onClick={() => {
+              const tabId = contextMenu.tabId;
+              const tab = tabs?.find(t => t.id === tabId);
+              setContextMenu(null);
+              setRenameValue(tab?.title || '');
+              setShowRenameDialog(tabId);
+            }}
+          >
+            <Pencil size={14} style={{ marginRight: '6px' }} />
+            {lang === 'zh' ? '取名' : 'Rename'}
+          </div>
+          <div
+            className="tab-context-menu-item"
+            onClick={() => {
               const tabId = contextMenu.tabId;
               setContextMenu(null);
               setShowModelPicker(tabId);
             }}
           >
-            {lang === 'zh' ? '⚙️ 设置模型' : '⚙️ Set Model'}
+            <Settings size={14} style={{ marginRight: '6px' }} />
+            {lang === 'zh' ? '设置模型' : 'Set Model'}
           </div>
         </div>
       )}
@@ -550,6 +567,69 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             </div>
             <div className="settings-panel tab-model-picker-panel">
               <ModelConfig onClose={() => setShowModelPicker(null)} tabId={showModelPicker} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 取名弹窗 */}
+      {showRenameDialog && (
+        <div className="settings-overlay" onClick={() => setShowRenameDialog(null)}>
+          <div
+            className="settings-container tab-model-picker-container"
+            style={{ width: '400px', maxHeight: '200px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">
+                {lang === 'zh' ? 'Tab 取名' : 'Rename Tab'}
+              </h2>
+              <button className="settings-close-button" onClick={() => setShowRenameDialog(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px', display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                value={renameValue}
+                onChange={(e) => { if (e.target.value.length <= 10) setRenameValue(e.target.value); }}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter' && renameValue.trim()) {
+                    const result = await api.renameTab(showRenameDialog, renameValue.trim());
+                    if (result.success) {
+                      const name = renameValue.trim();
+                      setShowRenameDialog(null);
+                      const msg = lang === 'zh' ? `已经给你取了新名字叫「${result.title || name}」，你不用再设置，我已经设置好了` : `I've given you a new name: "${result.title || name}". No need to set it yourself, it's already done.`;
+                      onSendMessage(msg);
+                    } else {
+                      alert(result.error || (lang === 'zh' ? '重命名失败' : 'Rename failed'));
+                    }
+                  }
+                }}
+                className="settings-input"
+                style={{ flex: 1 }}
+                placeholder={lang === 'zh' ? '输入名称' : 'Enter name'}
+                autoFocus
+              />
+              <button
+                onClick={async () => {
+                  if (renameValue.trim()) {
+                    const result = await api.renameTab(showRenameDialog, renameValue.trim());
+                    if (result.success) {
+                      const name = renameValue.trim();
+                      setShowRenameDialog(null);
+                      const msg = lang === 'zh' ? `已经给你取了新名字叫「${result.title || name}」，你不用再设置，我已经设置好了` : `I've given you a new name: "${result.title || name}". No need to set it yourself, it's already done.`;
+                      onSendMessage(msg);
+                    } else {
+                      alert(result.error || (lang === 'zh' ? '重命名失败' : 'Rename failed'));
+                    }
+                  }
+                }}
+                className="skill-icon-button skill-icon-button-accent"
+                style={{ padding: '6px 16px', fontSize: '12px' }}
+              >
+                {lang === 'zh' ? '确定' : 'OK'}
+              </button>
             </div>
           </div>
         </div>

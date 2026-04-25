@@ -110,12 +110,12 @@ export const api = {
 
   async getDisabledTools(): Promise<{ success: boolean; disabledTools?: string[]; error?: string }> {
     if (isElectron()) return (window as any).deepbot.getDisabledTools();
-    return { success: true, disabledTools: [] };
+    return webClient.get('/api/config/disabled-tools');
   },
 
   async saveDisabledTools(disabledTools: string[]): Promise<{ success: boolean; error?: string }> {
     if (isElectron()) return (window as any).deepbot.saveDisabledTools(disabledTools);
-    return { success: true };
+    return webClient.post('/api/config/disabled-tools', { disabledTools });
   },
 
   async getWorkspaceSettings(): Promise<any> {
@@ -278,6 +278,11 @@ export const api = {
     return webClient.post(`/api/tabs/${tabId}/model-config`, { modelConfig });
   },
 
+  async renameTab(tabId: string, title: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.renameTab(tabId, title);
+    return webClient.post(`/api/tabs/${tabId}/rename`, { title });
+  },
+
   async getTabModelConfig(tabId: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.getTabModelConfig(tabId);
     return webClient.get(`/api/tabs/${tabId}/model-config`);
@@ -387,6 +392,14 @@ export const api = {
   async skillManager(request: any): Promise<any> {
     if (isElectron()) return (window as any).deepbot.skillManager(request);
     return webClient.post('/api/skills', request);
+  },
+
+  // 导入 Skill（Docker 模式：上传 zip；Electron 模式：直接传路径）
+  async importSkillZip(zipPath: string, zipData?: string, fileName?: string): Promise<any> {
+    if (isElectron()) {
+      return (window as any).deepbot.skillManager({ action: 'import', zipPath });
+    }
+    return webClient.post('/api/skills/import', { zipData, fileName });
   },
 
   async invalidateSystemPrompts(): Promise<void> {

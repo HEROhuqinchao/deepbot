@@ -17,7 +17,7 @@ import { initDatabase } from './database';
 import { searchSkillsOnGitHub } from './search';
 import { installSkill } from './install';
 import type { ToolPlugin, ToolCreateOptions } from '../registry/tool-interface';
-import { listInstalledSkills, uninstallSkill, getSkillInfo, getSkillEnv, setSkillEnv, exportSkills } from './manage';
+import { listInstalledSkills, uninstallSkill, getSkillInfo, getSkillEnv, setSkillEnv, exportSkills, importSkills } from './manage';
 import { resetShellPathCache } from '../shell-env';
 
 /**
@@ -151,6 +151,15 @@ export function createSkillManagerTool(): AgentTool {
               if (!names || names.length === 0) throw new Error('缺少参数: names');
               const zipPath = await exportSkills(names, savePath);
               result = { success: true, zipPath, savedPath: savePath || zipPath, message: `Exported ${names.length} skill(s)` };
+            }
+            break;
+          
+          case 'import':
+            {
+              const zipPath = (params as any).zipPath as string;
+              if (!zipPath) throw new Error('缺少参数: zipPath');
+              result = await importSkills(zipPath, db);
+              result.success = true;
             }
             break;
           

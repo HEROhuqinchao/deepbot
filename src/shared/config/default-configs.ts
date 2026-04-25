@@ -12,14 +12,14 @@ export const PROVIDER_PRESETS = {
   deepbot: {
     name: 'DeepBot',
     baseUrl: 'https://www.im-director.com/api/llm-v1',
-    defaultModelId: 'minimax-m2.7',
+    defaultModelId: 'minimax-m2.5',
     defaultModelId2: 'minimax-m2.5',  // 快速模型
     apiType: 'openai-completions',
   },
   qwen: {
     name: 'Qwen',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    defaultModelId: 'qwen3.5-plus',
+    defaultModelId: 'qwen3.6-plus',
     defaultModelId2: 'qwen-plus',  // 快速模型
     apiType: 'openai-completions',
   },
@@ -88,7 +88,7 @@ export const WEB_SEARCH_PROVIDER_PRESETS = {
   qwen: {
     name: 'Qwen',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    defaultModelId: 'qwen3.5-plus',
+    defaultModelId: 'qwen3.6-plus',
   },
   gemini: {
     name: 'Google Gemini',

@@ -25,6 +25,7 @@ const logger = createLogger('Name-Session-Handlers');
  * 获取名字配置
  */
 export async function handleGetNameConfig(
+  sessionId?: string,
   signal?: AbortSignal
 ): Promise<ToolResult> {
   try {
@@ -34,6 +35,14 @@ export async function handleGetNameConfig(
     
     const store = await getSystemConfigStore();
     const nameConfig = store.getNameConfig();
+    
+    // 如果是非主 Tab，检查是否有独立的 agentName
+    if (sessionId && sessionId !== 'default') {
+      const tabConfig = store.getTabConfig(sessionId);
+      if (tabConfig?.agentName) {
+        nameConfig.agentName = tabConfig.agentName;
+      }
+    }
     
     return createSuccessResponse(
       formatters.formatGetNameConfigResult(nameConfig),
@@ -200,6 +209,8 @@ export async function handleSetNameConfig(
                   isPersistent: tab.isPersistent,
                   createdAt: tab.createdAt,
                   lastActiveAt: tab.lastActiveAt,
+                  connectorId: tab.connectorId,
+                  conversationId: tab.conversationId,
                 });
               }
             }

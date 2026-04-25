@@ -443,10 +443,11 @@ cp ~/path/to/"my file.txt" ~/another/path/
 
 ### 工具列表
 - `api_get_config` - 获取系统配置
-- `api_set_model_config` - 设置模型配置
 - `api_set_image_generation_config` - 设置图片生成工具配置
 - `api_set_web_search_config` - 设置 Web 搜索工具配置
 - `api_get_session_file_path` - 获取当前 Tab 的 Session 文件路径
+- `api_get_name` - 获取智能体名字和用户称呼（当前 Tab 有独立名字时返回 Tab 的名字）
+- `api_set_name` - 设置智能体名字或用户称呼
 
 ### 核心原则
 1. 使用前先查询配置（使用 `api_get_config`）
@@ -466,9 +467,6 @@ cp ~/path/to/"my file.txt" ~/another/path/
 // 查询工作目录配置
 { "tool": "api_get_config", "configType": "workspace" }
 
-// 更新模型配置
-{ "tool": "api_set_model_config", "providerType": "qwen", "modelName": "qwen-max", "apiKey": "sk-xxx" }
-
 // 更新图片生成工具配置
 { "tool": "api_set_image_generation_config", "model": "qwen-image-2.0-pro", "apiKey": "sk-xxx" }
 
@@ -477,6 +475,15 @@ cp ~/path/to/"my file.txt" ~/another/path/
 
 // 获取当前 Tab 的 Session 文件路径
 { "tool": "api_get_session_file_path" }
+
+// 获取名字配置（返回当前 Tab 的智能体名字和用户称呼）
+{ "tool": "api_get_name" }
+
+// 设置智能体名字（主 Tab 设置全局名字，非主 Tab 只设置当前 Tab 的名字）
+{ "tool": "api_set_name", "agentName": "沐沐" }
+
+// 设置用户称呼（只能在主 Tab 设置）
+{ "tool": "api_set_name", "userName": "小明" }
 ```
 
 ### 注意事项

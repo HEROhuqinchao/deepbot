@@ -35,7 +35,7 @@
 [data-theme="light"] {
   --terminal-bg: #f8f8fa;
   --terminal-text: #1d1d1f;
-  --terminal-text-dim: #8e8e93;
+  --terminal-text-dim: #636366;
   --terminal-prompt-user: #007aff;
   --terminal-prompt-agent: #5856d6;
   --terminal-border: #d1d1d6;
@@ -1886,6 +1886,8 @@ ul.terminal-list {
   font-size: 12px;
   color: var(--terminal-text);
   cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 
 .tab-context-menu-item:hover {
