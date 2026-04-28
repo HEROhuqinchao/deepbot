@@ -230,16 +230,10 @@ export class Gateway {
   async reloadModelConfig(): Promise<void> {
     console.log('[Gateway] 🔄 重新加载模型配置...');
     
-    // 清除 AI 连接缓存
-    const { clearAICache } = await import('./utils/ai-client');
-    clearAICache();
-    
     // 销毁所有现有的 AgentRuntime（下次使用时会用新模型配置重新创建）
     this.destroyAllRuntimes();
     
     console.log('[Gateway] ✅ 模型配置已重新加载');
-    
-    // AI 连接缓存已清除，将在下次调用时重新建立
     
     // 检查是否需要发送欢迎消息（首次配置模型的场景）
     this.tabManager.checkAndSendWelcomeMessage().catch(error => {

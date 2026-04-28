@@ -334,12 +334,6 @@ export class GatewayMessageHandler {
         console.warn(`[MessageHandler] 错误类型: ${isAIConnectionError ? 'AI连接错误' : 'Agent状态错误'}`);
         
         try {
-          if (isAIConnectionError) {
-            console.log('[MessageHandler] 🔄 清理 AI 连接缓存...');
-            const { clearAICache } = await import('./utils/ai-client');
-            clearAICache();
-          }
-          
           console.log('[MessageHandler] 🔄 重置 Runtime 状态...');
           await runtime.stopGeneration();
           await sleep(1000);

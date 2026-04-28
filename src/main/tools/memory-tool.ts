@@ -74,10 +74,6 @@ const MemoryToolSchema = Type.Object({
     description: '用户消息（用于 update 操作）',
   })),
   
-  context: Type.Optional(Type.String({
-    description: '执行上下文（用于 update 操作，可选）',
-  })),
-  
   deleteContent: Type.Optional(Type.String({
     description: '要删除的记忆内容描述（用于 delete 操作）。大模型会根据描述从记忆中移除匹配的条目',
   })),
@@ -315,7 +311,6 @@ ${sourceMemory}
  */
 async function refineMemory(
   userMessage: string,
-  context: string | undefined,
   currentMemory: string,
   signal?: AbortSignal
 ): Promise<string> {
@@ -337,8 +332,6 @@ ${currentMemory}
 """
 ${userMessage}
 """
-
-${context ? `执行结果：\n"""\n${context}\n"""\n` : ''}
 
 任务：
 1. 分析用户的意图，判断需要记住什么
@@ -487,7 +480,6 @@ export const memoryToolPlugin: ToolPlugin = {
           const params = args as {
             action: 'read' | 'update' | 'merge';
             userMessage?: string;
-            context?: string;
             updateMainMemory?: boolean;
             sourceTabName?: string;
           };
@@ -500,7 +492,7 @@ export const memoryToolPlugin: ToolPlugin = {
               throw err;
             }
 
-            const { action: rawAction, userMessage, context, updateMainMemory = false, sourceTabName } = params;
+            const { action: rawAction, userMessage, updateMainMemory = false, sourceTabName } = params;
             const action: string = rawAction;
             
             console.log(`[Memory Tool] 执行操作: ${action}, Tab ID: ${tabId || 'default'}, 更新主记忆: ${updateMainMemory}`);
@@ -726,7 +718,7 @@ ${memoryContent}
                 console.log('='.repeat(80));
                 
                 console.log('[Memory Tool] 🤖 使用大模型提炼主记忆...');
-                const updatedMainMemory = await refineMemory(userMessage, context, mainMemory, signal);
+                const updatedMainMemory = await refineMemory(userMessage, mainMemory, signal);
                 
                 console.log('\n' + '='.repeat(80));
                 console.log('[Memory Tool] 📤 更新后的主记忆内容:');
@@ -748,7 +740,7 @@ ${memoryContent}
                   console.log('='.repeat(80));
                   
                   console.log('[Memory Tool] 🤖 使用大模型提炼 Tab 记忆...');
-                  const updatedTabMemory = await refineMemory(userMessage, context, currentTabMemory, signal);
+                  const updatedTabMemory = await refineMemory(userMessage, currentTabMemory, signal);
                   
                   console.log('\n' + '='.repeat(80));
                   console.log('[Memory Tool] 📤 更新后的 Tab 记忆内容:');
@@ -791,7 +783,7 @@ ${memoryContent}
                 console.log('='.repeat(80));
                 
                 console.log('[Memory Tool] 🤖 使用大模型提炼记忆...');
-                const updatedMemory = await refineMemory(userMessage, context, currentMemory, signal);
+                const updatedMemory = await refineMemory(userMessage, currentMemory, signal);
                 
                 console.log('\n' + '='.repeat(80));
                 console.log('[Memory Tool] 📤 更新后的记忆内容:');
