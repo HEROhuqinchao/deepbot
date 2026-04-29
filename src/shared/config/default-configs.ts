@@ -12,7 +12,7 @@ export const PROVIDER_PRESETS = {
   deepbot: {
     name: 'DeepBot',
     baseUrl: 'https://www.im-director.com/api/llm-v1',
-    defaultModelId: 'minimax-m2.5',
+    defaultModelId: 'qwen3.6-flash',
     defaultModelId2: 'minimax-m2.5',  // 快速模型
     apiType: 'openai-completions',
   },
@@ -40,7 +40,7 @@ export const PROVIDER_PRESETS = {
   minimax: {
     name: 'MiniMax',
     baseUrl: 'https://api.minimaxi.com/v1',
-    defaultModelId: 'MiniMax-M2.5',
+    defaultModelId: 'MiniMax-M2.7',
     defaultModelId2: 'MiniMax-M2.5-highspeed',  // 快速模型
     apiType: 'openai-completions',
   },

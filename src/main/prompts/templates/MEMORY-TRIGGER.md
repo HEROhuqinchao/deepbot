@@ -82,8 +82,7 @@
 ```json
 {
   "action": "update",
-  "userMessage": "记住这个错误，下次不要再用 rm -rf",
-  "context": "用户误删了重要文件"
+  "userMessage": "记住这个错误，下次不要再用 rm -rf"
 }
 ```
 
@@ -146,8 +145,7 @@
 ```json
 {
   "action": "update",
-  "userMessage": "用户的原始消息（必填）",
-  "context": "执行结果或补充说明（可选）"
+  "userMessage": "用户的原始消息（必填）"
 }
 ```
 

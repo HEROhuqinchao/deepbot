@@ -41,8 +41,11 @@ export function getContextWindowFromModelId(modelId: string): number {
   }
 
   // Qwen (通义千问) 系列
-  if (lowerModelId.includes('qwen3.5-plus') || lowerModelId.includes('qwen3.6-plus') || lowerModelId.includes('qwen-long')) {
+  if (lowerModelId.includes('qwen3.5-plus') || lowerModelId.includes('qwen3.5-flash') || lowerModelId.includes('qwen3.6-plus') || lowerModelId.includes('qwen-long')) {
     return 1000000;
+  }
+  if (lowerModelId.includes('qwen3.6-flash')) {
+    return 250000;
   }
   if (lowerModelId.includes('qwen3-coder')) {
     return 262000;
