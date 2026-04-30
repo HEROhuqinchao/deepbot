@@ -216,8 +216,8 @@ export const browserToolPlugin: ToolPlugin = {
         parameters: BrowserToolSchema,
         
         execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
-          // 🔥 3分钟超时保护：防止浏览器操作卡住导致 Agent 永远不停止
-          const executeCore = async () => {
+          // 🔥 60秒超时保护：防止浏览器操作卡住导致 Agent 永远不停止
+          const executeCore = async (): Promise<any> => {
           try {
             // Docker 模式：强制使用 headless Chromium（Playwright），CDP 端口 9222
             // 非 Docker 模式：连接用户系统 Chrome，CDP 端口 9222
@@ -999,7 +999,7 @@ export const browserToolPlugin: ToolPlugin = {
             const msg = getErrorMessage(error);
             console.error(`[Browser Tool] ❌ 执行超时或异常: ${msg}`);
             return {
-              content: [{ type: 'text', text: `❌ ${msg}` }],
+              content: [{ type: 'text' as const, text: `❌ ${msg}` }],
               details: { success: false, error: msg },
               isError: true,
             };
