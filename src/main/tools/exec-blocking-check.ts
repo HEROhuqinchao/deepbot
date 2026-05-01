@@ -84,8 +84,20 @@ export function isBlockingInteractiveCommand(command: string): boolean {
         }
       }
       
-      // 特殊处理：远程连接总是阻塞
+      // 特殊处理：远程连接
       if (['ssh', 'telnet', 'ftp'].includes(blocked)) {
+        // ssh host "command" 或 ssh -o BatchMode=yes 是非交互式的
+        if (blocked === 'ssh' && args) {
+          // 有参数时，检查是否带了远程命令（引号包裹的命令或最后一个参数不像主机名）
+          // ssh host "tail -20 /var/log/xxx" → 非交互
+          // ssh -o BatchMode=yes host "cmd" → 非交互
+          // ssh host → 交互
+          const hasRemoteCommand = /"[^"]*"/.test(args) || /'[^']*'/.test(args);
+          const hasBatchMode = args.includes('BatchMode=yes');
+          if (hasRemoteCommand || hasBatchMode) {
+            return false; // 非交互式 ssh，不拦截
+          }
+        }
         return true;
       }
     }
@@ -118,7 +130,7 @@ export function getBlockingCommandSuggestion(command: string): string {
     node: '使用 `node script.js` 执行脚本',
     mysql: '使用 `mysql -e "SQL"` 执行 SQL 语句',
     psql: '使用 `psql -c "SQL"` 执行 SQL 语句',
-    ssh: 'SSH 连接需要交互式操作，AI Agent 无法执行',
+    ssh: '使用 `ssh host "command"` 执行远程命令，或添加 `-o BatchMode=yes` 避免交互',
     telnet: 'Telnet 连接需要交互式操作，AI Agent 无法执行',
     ftp: 'FTP 连接需要交互式操作，AI Agent 无法执行',
   };

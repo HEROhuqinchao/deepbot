@@ -103,7 +103,6 @@ export class AgentMessageProcessor {
     // 🔥 没有工具调用，检查响应内容
     const cleanResponse = this.removeThinkingContent(response);
     console.log(`   清理后的响应长度: ${cleanResponse.length}`);
-    console.log(`   清理后的响应预览: ${cleanResponse.substring(0, 200)}`);
 
     // 🔥 假执行检测：响应中包含明确的"开始执行"意图，但全程没有任何工具调用
     const planKeywords = [
@@ -125,43 +124,36 @@ export class AgentMessageProcessor {
     console.log('🤖 [detectUnfinishedIntent] 使用 AI 判断是否需要继续...');
     
     try {
-      // 只取最后 200 个字符判断，结尾部分最能反映任务状态
-      const tailResponse = cleanResponse.slice(-200);
-      const prompt = `你是一个任务完成度判断助手。请判断以下 AI 助手的回复结尾是否表明任务已经完成，还是仅仅是说明了意图但还没有执行。
+      // 截取合理长度给AI判断（最多2000字符，取尾部，尾部最能反映最终状态）
+      const maxLen = 2000;
+      const responseForAI = cleanResponse.length > maxLen
+        ? '...' + cleanResponse.slice(-maxLen)
+        : cleanResponse;
 
-AI 助手的回复结尾：
+      const prompt = `判断以下AI助手的回复是否已经完成了用户的任务。
+
+回复内容：
 """
-${tailResponse}
+${responseForAI}
 """
 
-判断规则：
-1. 如果回复中包含"我会"、"我将"、"让我"等意图关键词，但没有实际执行结果（如"已完成"、"已创建"、"已修改"等），则判断为"未完成"
-2. 如果回复中包含实际执行结果或确认信息，则判断为"已完成"
-3. 如果回复中询问用户更多信息，则判断为"已完成"（等待用户输入）
-4. 如果回复是问候语、开场白、或在等待用户指令（如"需要我帮你做什么吗"、"随时告诉我"、"有什么可以帮你"），则判断为"已完成"（等待用户输入）
-5. 如果回复是对话式的闲聊或自我介绍，没有具体任务要执行，则判断为"已完成"
-6. 如果回复表明当前步骤已执行完毕，正在等待外部异步结果（如"已发送消息，等待回复"、"已提交，等待处理"），则判断为"已完成"（当前任务已完成，等待外部响应）
-7. 规则 6 优先于规则 1：如果同时包含"我会"等意图词和"已发送/已完成"等完成词，说明当前步骤已完成，判断为"已完成"
-8. 如果回复是对内容的描述、分析、解读、简单回答（如图片描述、文件内容总结、数据分析、截图内容解读、简单的回答），属于信息输出而非操作执行，则判断为"已完成"
+全程是否调用过工具：${anyRoundHasToolCalls ? '是' : '否'}
 
-请只回复"已完成"或"未完成"，不要有其他内容。`;
+判断标准：
+- "未完成"：回复中说了要做什么（如"我会"、"我将"、"让我来"、"现在开始"），但没有实际执行（没有工具调用结果、没有"已完成"等确认）
+- "已完成"：其他所有情况，包括：已执行完毕、在等待用户输入、闲聊问候、信息回答、内容分析、等待异步结果等
+
+只回复"已完成"或"未完成"。`;
 
       const aiResponse = await callAI([
-        {
-          role: 'system',
-          content: '你是一个判断助手，只回答"已完成"或"未完成"，不要解释。',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
+        { role: 'user', content: prompt },
       ], {
         temperature: 0,
-        maxTokens: 2000,
+        maxTokens: 1000,
         useFastModel: true,
       });
       
-      const decision = aiResponse.content.trim().toLowerCase();
+      const decision = aiResponse.content.trim();
       console.log(`   AI 判断结果: ${decision}`);
       
       const shouldContinue = decision.includes('未完成');
@@ -170,7 +162,7 @@ ${tailResponse}
       return shouldContinue;
     } catch (error) {
       console.error('❌ [detectUnfinishedIntent] AI 判断失败:', getErrorMessage(error));
-      // 如果 AI 判断失败，默认不继续（保守策略）
+      // AI 判断失败，默认不继续（保守策略）
       return false;
     }
   }

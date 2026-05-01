@@ -141,6 +141,12 @@ const DANGEROUS_PATTERNS = [
  * @throws 如果包含不安全路径会抛出异常
  */
 function checkCommandPathSecurity(command: string): void {
+  // 🔥 先剥离引号内的字符串内容，避免误匹配数据中的路径
+  // 例如：obsidian create content="cd /root/xxx" 中的 /root/xxx 是数据，不是实际命令
+  const sanitizedCommand = command
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""')   // 双引号内容替换为空
+    .replace(/'(?:[^'\\]|\\.)*'/g, "''");  // 单引号内容替换为空
+
   // 🔥 系统路径白名单（这些是安全的系统路径）
   const SYSTEM_PATH_WHITELIST = [
     // Unix/Linux/macOS 标准设备文件（精确匹配）
@@ -233,7 +239,7 @@ function checkCommandPathSecurity(command: string): void {
   // 🔥 额外检查：提取文件操作命令中所有路径参数（包括 flags 后面的路径）
   // 例如：ls -la ~/Downloads/ 中的 ~/Downloads/
   const fileOpMultiArgPattern = /(?:^|\s)(cp|mv|rm|mkdir|rmdir|touch|cat|ls|find|grep)\s+(.*?)(?=\s*(?:&&|\|\||;|$))/gi;
-  const fileOpMatches = Array.from(command.matchAll(fileOpMultiArgPattern));
+  const fileOpMatches = Array.from(sanitizedCommand.matchAll(fileOpMultiArgPattern));
   for (const match of fileOpMatches) {
     const args = match[2].trim().split(/\s+/);
     for (const arg of args) {
@@ -255,7 +261,7 @@ function checkCommandPathSecurity(command: string): void {
   }
   
   for (const { pattern, name } of pathPatterns) {
-    const matches = Array.from(command.matchAll(pattern));
+    const matches = Array.from(sanitizedCommand.matchAll(pattern));
     
     for (const match of matches) {
       // 根据不同的模式提取路径
