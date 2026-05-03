@@ -386,7 +386,7 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
           />
         )}
         <p className="mt-1 text-xs text-gray-500">
-          {config.providerType === 'deepbot' && (lang === 'zh' ? '从列表选择或输入自定义模型 ID' : 'Select from the list or enter a custom model ID')}
+          {config.providerType === 'deepbot' && (lang === 'zh' ? '推荐 DeepSeek V4 模型，从列表选择或输入自定义模型 ID' : 'DeepSeek V4 models recommended. Select from the list or enter a custom model ID')}
           {config.providerType === 'qwen' && (lang === 'zh' ? '推荐: qwen-max（高质量）或 qwen-plus（平衡）' : 'Recommended: qwen-max (high quality) or qwen-plus (balanced)')}
           {config.providerType === 'deepseek' && (lang === 'zh' ? '推荐: deepseek-chat' : 'Recommended: deepseek-chat')}
           {config.providerType === 'gemini' && (lang === 'zh' ? '推荐: gemini-3-pro-preview（高质量）或 gemini-3-flash-preview（快速）' : 'Recommended: gemini-3-pro-preview (high quality) or gemini-3-flash-preview (fast)')}

@@ -34,7 +34,7 @@ export function getContextWindowFromModelId(modelId: string): number {
 
   // DeepSeek 系列
   if (lowerModelId.includes('deepseek-v4')) {
-    return 1000000;
+    return 500000;
   }
   if (lowerModelId.includes('deepseek')) {
     return 164000;
