@@ -22,6 +22,7 @@ export interface TabConfigRow {
   connector_id: string | null;
   conversation_id: string | null;
   model_config: string | null;  // JSON 格式的模型覆盖配置
+  work_prompt: string | null;   // 工作提示词（注入系统提示词）
 }
 
 /**
@@ -40,6 +41,7 @@ export interface TabConfig {
   connectorId?: string;
   conversationId?: string;
   modelConfig?: TabModelConfig | null;  // Tab 独立模型配置（覆盖全局）
+  workPrompt?: string | null;           // 工作提示词（注入系统提示词）
 }
 
 /**
@@ -80,6 +82,13 @@ export function initTabConfigTable(db: Database.Database): void {
   // 兼容旧数据库：添加 model_config 列
   try {
     db.exec('ALTER TABLE agent_tabs ADD COLUMN model_config TEXT');
+  } catch {
+    // 列已存在，忽略
+  }
+
+  // 兼容旧数据库：添加 work_prompt 列
+  try {
+    db.exec('ALTER TABLE agent_tabs ADD COLUMN work_prompt TEXT');
   } catch {
     // 列已存在，忽略
   }
@@ -237,6 +246,21 @@ export function updateTabMemoryFile(db: Database.Database, tabId: string, memory
 }
 
 /**
+ * 更新 Tab 的工作提示词
+ */
+export function updateTabWorkPrompt(db: Database.Database, tabId: string, workPrompt: string | null): void {
+  const stmt = db.prepare(`
+    UPDATE agent_tabs 
+    SET work_prompt = ?
+    WHERE id = ?
+  `);
+  
+  stmt.run(workPrompt, tabId);
+  
+  console.log(`[TabConfig] 📝 已更新 Tab 工作提示词: ${tabId} (${workPrompt ? workPrompt.length + '字符' : '清空'})`);
+}
+
+/**
  * 删除 Tab 配置
  */
 export function deleteTabConfig(db: Database.Database, tabId: string): void {
@@ -283,5 +307,6 @@ function rowToConfig(row: TabConfigRow): TabConfig {
     connectorId: row.connector_id || undefined,
     conversationId: row.conversation_id || undefined,
     modelConfig,
+    workPrompt: row.work_prompt || undefined,
   };
 }

@@ -35,6 +35,31 @@ export class AgentInitializer {
   }
 
   /**
+   * 创建 transformContext hook
+   * 在每次 LLM 调用前注入工作提示词，放在 system prompt + tools 之后，最大化前缀缓存命中率
+   */
+  private createTransformContext(): (messages: AgentMessage[]) => Promise<AgentMessage[]> {
+    const sessionId = this.sessionId;
+    return async (messages: AgentMessage[]) => {
+      try {
+        const store = SystemConfigStore.getInstance();
+        const tabConfig = store.getTabConfig(sessionId);
+        if (tabConfig?.workPrompt) {
+          const workPromptMessage = {
+            role: 'user' as const,
+            content: `[系统指令 - 工作提示词（最高优先级）]\n\n以下是用户为当前会话设定的工作提示词，优先级高于所有默认指导。当工作提示词与其他系统指令冲突时，必须以工作提示词为准。\n\n${tabConfig.workPrompt}`,
+            timestamp: 0,
+          };
+          return [workPromptMessage, ...messages];
+        }
+      } catch {
+        // 静默处理
+      }
+      return messages;
+    };
+  }
+
+  /**
    * 初始化 Agent
    * 
    * @returns Agent 实例和工具列表
@@ -60,6 +85,7 @@ export class AgentInitializer {
         messages: [],
       },
       getApiKey: async () => this.apiKey,
+      transformContext: this.createTransformContext(),
     });
     
     console.log('✅ Agent 实例创建完成');
@@ -185,6 +211,7 @@ export class AgentInitializer {
         messages: oldMessages, // 保留消息历史
       },
       getApiKey: async () => this.apiKey,
+      transformContext: this.createTransformContext(),
     });
     
     console.log('✅ Agent 实例已重新创建');

@@ -115,6 +115,8 @@ export const IPC_CHANNELS = {
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',
   GET_TAB_MODEL_CONFIG: 'tab:get-model-config',
   RENAME_TAB: 'tab:rename',
+  GET_TAB_WORK_PROMPT: 'tab:get-work-prompt',
+  SET_TAB_WORK_PROMPT: 'tab:set-work-prompt',
   
   // 应用信息
 } as const;

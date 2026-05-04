@@ -871,6 +871,41 @@ function registerIpcHandlers() {
     }
   });
 
+  // 获取 Tab 工作提示词
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_WORK_PROMPT, async (_event, { tabId }) => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId);
+      return { success: true, workPrompt: tabConfig?.workPrompt || '' };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 设置 Tab 工作提示词
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_WORK_PROMPT, async (_event, { tabId, workPrompt }) => {
+    try {
+      const { updateTabWorkPrompt } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      
+      // 限制最大 10000 字符
+      const trimmed = workPrompt ? workPrompt.substring(0, 10000) : null;
+      updateTabWorkPrompt(db, tabId, trimmed);
+      
+      // 标记该会话的系统提示词需要重建
+      if (gateway) {
+        gateway.invalidateSessionSystemPrompt(tabId);
+      }
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 上传图片（保存到临时目录）
   ipcMain.handle(IPC_CHANNELS.UPLOAD_IMAGE, async (_event, { name, dataUrl, size }) => {
     try {

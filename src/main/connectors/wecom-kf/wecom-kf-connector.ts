@@ -127,12 +127,6 @@ export class WecomKfConnector implements Connector {
         content: params.content,
         msgid: params.replyToMessageId,
       }));
-
-      console.log('[WecomKfConnector] 📤 发送消息:', {
-        touser: externalUserId,
-        open_kfid: openKfId,
-        contentLength: params.content.length,
-      });
     },
   };
 
@@ -285,16 +279,6 @@ export class WecomKfConnector implements Connector {
       const kfName = msg.kf_name || msg.open_kfid || '未知客服';
       const externalUserId = msg.external_userid || '';
       const openKfId = msg.open_kfid || '';
-
-      console.log('[WecomKfConnector] 📨 消息详情:', {
-        msgid: msgId,
-        external_userid: externalUserId,
-        open_kfid: openKfId,
-        nickname,
-        kfName,
-        msgtype: msg.msgtype,
-        text: text.substring(0, 50),
-      });
 
       // 构建内部消息格式
       // conversationId 使用 external_userid + open_kfid 组合，确保同一客户在同一客服下的消息路由到同一 Tab

@@ -94,7 +94,7 @@ export async function buildSystemPrompt(params: SystemPromptParams, sessionId?: 
 
   // 6. 运行时信息（已移至每条用户消息的 systemHint 动态注入，保持系统提示词静态可 cache）
 
-  // 7. 已安装的 Skills（放在最后，框架会在此之后追加 ## Tools）
+  // 8. 已安装的 Skills
   try {
     const db = initDatabase();
     const skills = listInstalledSkills(db, { enabled: true });
@@ -109,6 +109,9 @@ export async function buildSystemPrompt(params: SystemPromptParams, sessionId?: 
   } catch (error) {
     // Skills 加载失败不影响主流程
   }
+
+  // 注意：工作提示词不在 systemPrompt 中注入，而是通过 Agent 的 transformContext hook
+  // 在每次 LLM 调用前作为消息注入，放在 tools 定义之后，最大化前缀缓存命中率
 
   const prompt = lines.filter(Boolean).join('\n');
 

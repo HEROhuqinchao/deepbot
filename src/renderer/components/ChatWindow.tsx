@@ -12,7 +12,14 @@ import { api } from '../api'; // 🔥 使用统一 API 适配器
 import { isElectron, isMacOS } from '../utils/platform'; // 🔥 平台检测
 import { getLanguage } from '../i18n';
 import { ModelConfig } from './settings/ModelConfig';
-import { X, Pencil, Settings } from 'lucide-react';
+import { X, Pencil, Settings, FileText } from 'lucide-react';
+
+// 从 Tab 标题中提取企微客服名称：QW-{客服名}-{用户} → 客服名
+const getWecomKfName = (title: string): string => {
+  const match = title.match(/^QW-(.+?)-/);
+  return match ? match[1] : '';
+};
+
 interface ChatWindowProps {
   messages: Message[];
   onSendMessage: (content: string, images?: import('../../types/message').UploadedImage[], files?: import('../../types/message').UploadedFile[]) => void;
@@ -66,15 +73,102 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   // Tab 右键菜单和模型选择
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tabId: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tabId: string; isGroup?: boolean; groupTabIds?: string[] } | null>(null);
   const [showModelPicker, setShowModelPicker] = useState<string | null>(null); // tabId
   const [showRenameDialog, setShowRenameDialog] = useState<string | null>(null); // tabId
   const [renameValue, setRenameValue] = useState('');
+  const [showWorkPromptDialog, setShowWorkPromptDialog] = useState<string | null>(null); // tabId
+  const [workPromptValue, setWorkPromptValue] = useState('');
+  const workPromptGroupRef = useRef<string[] | null>(null); // 分组工作提示词时的 Tab ID 列表
+  
+  // 企微客服分组相关
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null); // 当前展开的分组名
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 }); // 下拉列表位置
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({}); // tabId -> 未读消息数
+  const modelPickerGroupRef = useRef<string[] | null>(null); // 分组模型设置时的 Tab ID 列表
   
   // 🔥 获取当前 Tab 类型
   const currentTab = tabs?.find(t => t.id === activeTabId);
   const isConnectorTab = currentTab?.type === 'connector';
-  
+
+  // 企微客服 Tab 未读消息追踪（按用户消息轮次计数，一轮对话只算 1）
+  const prevTabUserMsgCountsRef = useRef<Record<string, number>>({});
+  const activeTabIdRef = useRef(activeTabId);
+  activeTabIdRef.current = activeTabId;
+  const unreadCountsRef = useRef(unreadCounts);
+  unreadCountsRef.current = unreadCounts;
+
+  useEffect(() => {
+    if (!tabs) return;
+    const prevCounts = prevTabUserMsgCountsRef.current;
+    const newUnread: Record<string, number> = {};
+    for (const tab of tabs) {
+      if (tab.connectorId !== 'wecom-kf') continue;
+      const userMsgCount = (tab.messages || []).filter(m => m.role === 'user').length;
+      const prevCount = prevCounts[tab.id] || 0;
+      if (userMsgCount > prevCount && tab.id !== activeTabIdRef.current) {
+        newUnread[tab.id] = (unreadCountsRef.current[tab.id] || 0) + (userMsgCount - prevCount);
+      }
+      prevCounts[tab.id] = userMsgCount;
+    }
+    if (Object.keys(newUnread).length > 0) {
+      setUnreadCounts(prev => ({ ...prev, ...newUnread }));
+    }
+  }, [tabs]);
+
+  // 切换 Tab 时清除该 Tab 的未读计数
+  useEffect(() => {
+    if (activeTabId && unreadCounts[activeTabId]) {
+      setUnreadCounts(prev => {
+        const next = { ...prev };
+        delete next[activeTabId];
+        return next;
+      });
+    }
+  }, [activeTabId]);
+
+  // 点击分组外部区域关闭下拉列表
+  useEffect(() => {
+    if (!expandedGroup) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // 点击在分组区域内（包括 dropdown）不关闭
+      if (target.closest('.agent-tab-group') || target.closest('.agent-tab-group-dropdown')) {
+        return;
+      }
+      setExpandedGroup(null);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [expandedGroup]);
+
+  const { normalTabs, wecomGroups } = React.useMemo(() => {
+    if (!tabs) return { normalTabs: [] as AgentTab[], wecomGroups: {} as Record<string, AgentTab[]> };
+    const sorted = [...tabs].sort((a, b) => {
+      if (a.id === 'default') return -1;
+      if (b.id === 'default') return 1;
+      return (a.createdAt || 0) - (b.createdAt || 0);
+    });
+    const normal: AgentTab[] = [];
+    const groups: Record<string, AgentTab[]> = {};
+    for (const tab of sorted) {
+      if (tab.connectorId === 'wecom-kf') {
+        const key = getWecomKfName(tab.title || '') || 'unknown';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(tab);
+      } else {
+        normal.push(tab);
+      }
+    }
+    return { normalTabs: normal, wecomGroups: groups };
+  }, [tabs]);
+
+  const getGroupActiveTab = (groupTabs: AgentTab[]) => {
+    return groupTabs.find(t => t.id === activeTabId) || groupTabs[0];
+  };
+
   // 🔥 计算要显示的消息（从最新的开始）
   const displayedMessages = messages.slice(-displayCount);
   const hasMoreMessages = messages.length > displayCount;
@@ -471,11 +565,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
       {tabs && activeTabId && onTabClick && onTabClose && onTabCreate && (
         <div className="agent-tabs-wrapper">
           <div className="agent-tabs-container">
-            {[...tabs].sort((a, b) => {
-              if (a.id === 'default') return -1;
-              if (b.id === 'default') return 1;
-              return (a.createdAt || 0) - (b.createdAt || 0);
-            }).map((tab) => (
+            {/* 普通 Tab */}
+            {normalTabs.map((tab) => (
               <div
                 key={tab.id}
                 className={`agent-tab ${tab.id === activeTabId ? 'active' : ''}`}
@@ -501,6 +592,47 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 )}
               </div>
             ))}
+
+            {/* 企微客服分组 Tab */}
+            {Object.entries(wecomGroups).map(([kfName, groupTabs]) => {
+              const activeGroupTab = getGroupActiveTab(groupTabs);
+              const isGroupActive = groupTabs.some(t => t.id === activeTabId);
+              const isExpanded = expandedGroup === kfName;
+              const groupTabIds = groupTabs.map(t => t.id);
+
+              return (
+                <div key={`group-${kfName}`} className={`agent-tab-group ${isGroupActive ? 'active' : ''}`}>
+                  <div
+                    className={`agent-tab ${isGroupActive ? 'active' : ''}`}
+                    onClick={() => onTabClick(activeGroupTab.id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setContextMenu({ x: e.clientX, y: e.clientY, tabId: activeGroupTab.id, isGroup: true, groupTabIds });
+                    }}
+                  >
+                    <span className="agent-tab-title">{activeGroupTab.title}</span>
+                    <button
+                      className="agent-tab-group-toggle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isExpanded) {
+                          setExpandedGroup(null);
+                        } else {
+                          const rect = (e.currentTarget.closest('.agent-tab-group') as HTMLElement)?.getBoundingClientRect();
+                          if (rect) {
+                            setDropdownPos({ top: rect.bottom, left: rect.left });
+                          }
+                          setExpandedGroup(kfName);
+                        }
+                      }}
+                      title={lang === 'zh' ? '展开分组' : 'Expand group'}
+                    >
+                      {groupTabs.length}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
             
             {tabs.length < MAX_TABS && (
               <button
@@ -515,6 +647,39 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         </div>
       )}
 
+      {/* 企微客服分组下拉列表 - 渲染在 Tab 栏外部，避免被 overflow/z-index 裁剪 */}
+      {expandedGroup && wecomGroups[expandedGroup] && (
+        <div className="agent-tab-group-dropdown" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
+          {wecomGroups[expandedGroup].map((tab) => (
+            <div
+              key={tab.id}
+              className={`agent-tab-group-item ${tab.id === activeTabId ? 'active' : ''}`}
+              onClick={() => {
+                onTabClick?.(tab.id);
+                setExpandedGroup(null);
+              }}
+            >
+              <span className="agent-tab-group-item-title">{tab.title}</span>
+              {(unreadCounts[tab.id] || 0) > 0 && (
+                <span className="agent-tab-group-item-badge">
+                  {(unreadCounts[tab.id] || 0) > 99 ? '99+' : unreadCounts[tab.id]}
+                </span>
+              )}
+              <button
+                className="agent-tab-group-item-close"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTabClose?.(tab.id);
+                }}
+                title={lang === 'zh' ? '关闭' : 'Close'}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Tab 右键菜单 */}
       {contextMenu && (
         <div
@@ -522,29 +687,63 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={() => setContextMenu(null)}
         >
+          {/* 分组 Tab 不显示取名选项 */}
+          {!contextMenu.isGroup && (
+            <div
+              className="tab-context-menu-item"
+              onClick={() => {
+                const tabId = contextMenu.tabId;
+                const tab = tabs?.find(t => t.id === tabId);
+                setContextMenu(null);
+                setRenameValue(tab?.title || '');
+                setShowRenameDialog(tabId);
+              }}
+            >
+              <Pencil size={14} style={{ marginRight: '6px' }} />
+              {lang === 'zh' ? '取名' : 'Rename'}
+            </div>
+          )}
           <div
             className="tab-context-menu-item"
             onClick={() => {
               const tabId = contextMenu.tabId;
-              const tab = tabs?.find(t => t.id === tabId);
+              const groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
-              setRenameValue(tab?.title || '');
-              setShowRenameDialog(tabId);
-            }}
-          >
-            <Pencil size={14} style={{ marginRight: '6px' }} />
-            {lang === 'zh' ? '取名' : 'Rename'}
-          </div>
-          <div
-            className="tab-context-menu-item"
-            onClick={() => {
-              const tabId = contextMenu.tabId;
-              setContextMenu(null);
+              // 分组模式：存储分组信息，模型设置后对所有 Tab 生效
               setShowModelPicker(tabId);
+              if (groupTabIds) {
+                modelPickerGroupRef.current = groupTabIds;
+              } else {
+                modelPickerGroupRef.current = null;
+              }
             }}
           >
             <Settings size={14} style={{ marginRight: '6px' }} />
             {lang === 'zh' ? '设置模型' : 'Set Model'}
+          </div>
+          <div
+            className="tab-context-menu-item"
+            onClick={async () => {
+              const tabId = contextMenu.tabId;
+              const groupTabIds = contextMenu.groupTabIds;
+              setContextMenu(null);
+              // 加载当前工作提示词
+              try {
+                const result = await api.getTabWorkPrompt(tabId);
+                setWorkPromptValue(result?.workPrompt || '');
+              } catch {
+                setWorkPromptValue('');
+              }
+              setShowWorkPromptDialog(tabId);
+              if (groupTabIds) {
+                workPromptGroupRef.current = groupTabIds;
+              } else {
+                workPromptGroupRef.current = null;
+              }
+            }}
+          >
+            <FileText size={14} style={{ marginRight: '6px' }} />
+            {lang === 'zh' ? '工作提示词' : 'Work Prompt'}
           </div>
         </div>
       )}
@@ -570,7 +769,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               </button>
             </div>
             <div className="settings-panel tab-model-picker-panel">
-              <ModelConfig onClose={() => setShowModelPicker(null)} tabId={showModelPicker} />
+              <ModelConfig onClose={async () => {
+                // 分组模式：将模型配置同步到分组内所有其他 Tab
+                if (modelPickerGroupRef.current && showModelPicker) {
+                  try {
+                    const tabResult = await api.getTabModelConfig(showModelPicker);
+                    const modelConfig = tabResult?.modelConfig || null;
+                    for (const otherTabId of modelPickerGroupRef.current) {
+                      if (otherTabId !== showModelPicker) {
+                        await api.setTabModelConfig(otherTabId, modelConfig);
+                      }
+                    }
+                  } catch (err) {
+                    console.error('同步分组模型配置失败:', err);
+                  }
+                  modelPickerGroupRef.current = null;
+                }
+                setShowModelPicker(null);
+              }} tabId={showModelPicker} />
             </div>
           </div>
         </div>
@@ -637,7 +853,96 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             </div>
           </div>
         </div>
-      )}      {/* 消息列表区域 */}
+      )}
+
+      {/* 工作提示词弹窗 */}
+      {showWorkPromptDialog && (
+        <div className="settings-overlay" onClick={() => setShowWorkPromptDialog(null)}>
+          <div
+            className="settings-container tab-model-picker-container"
+            style={{ width: '700px', maxHeight: '80vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">
+                {lang === 'zh' ? '工作提示词' : 'Work Prompt'}
+              </h2>
+              <button className="settings-close-button" onClick={() => setShowWorkPromptDialog(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px' }}>
+              <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px' }}>
+                <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 什么是工作提示词？' : '💡 What is a Work Prompt?'}</h4>
+                <p className="text-sm text-green-800">
+                  {lang === 'zh'
+                    ? '工作提示词可以告诉 AI 它应该扮演什么角色、用什么语气回复、需要注意哪些事项。设置后，AI 在每次对话中都会遵循这些指导。例如：「你是一个专业的售后客服，回复要简洁友好，遇到退款问题引导用户联系人工客服。」'
+                    : 'Work prompts tell the AI what role to play, what tone to use, and what to pay attention to. Once set, the AI will follow these guidelines in every conversation.'}
+                </p>
+              </div>
+              <textarea
+                value={workPromptValue}
+                onChange={(e) => { if (e.target.value.length <= 10000) setWorkPromptValue(e.target.value); }}
+                className="settings-input"
+                style={{ width: '100%', minHeight: '375px', maxHeight: '50vh', resize: 'vertical', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
+                placeholder={lang === 'zh' ? '例如：\n你是一个专业的客服助手，请注意以下几点：\n1. 回复要简洁友好，不超过 200 字\n2. 遇到技术问题，先询问具体情况再给建议\n3. 无法解决的问题，引导用户联系人工客服' : 'e.g. You are a professional customer service assistant...'}
+                autoFocus
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--terminal-text-dim)' }}>
+                  {workPromptValue.length} / 10000
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {workPromptValue && (
+                    <button
+                      onClick={async () => {
+                        // 清空工作提示词
+                        await api.setTabWorkPrompt(showWorkPromptDialog, null);
+                        // 分组模式：同步清空所有 Tab
+                        if (workPromptGroupRef.current) {
+                          for (const otherTabId of workPromptGroupRef.current) {
+                            if (otherTabId !== showWorkPromptDialog) {
+                              await api.setTabWorkPrompt(otherTabId, null);
+                            }
+                          }
+                          workPromptGroupRef.current = null;
+                        }
+                        setShowWorkPromptDialog(null);
+                      }}
+                      className="skill-icon-button"
+                      style={{ padding: '6px 16px', fontSize: '12px' }}
+                    >
+                      {lang === 'zh' ? '清空' : 'Clear'}
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      const prompt = workPromptValue.trim() || null;
+                      await api.setTabWorkPrompt(showWorkPromptDialog, prompt);
+                      // 分组模式：同步到所有 Tab
+                      if (workPromptGroupRef.current) {
+                        for (const otherTabId of workPromptGroupRef.current) {
+                          if (otherTabId !== showWorkPromptDialog) {
+                            await api.setTabWorkPrompt(otherTabId, prompt);
+                          }
+                        }
+                        workPromptGroupRef.current = null;
+                      }
+                      setShowWorkPromptDialog(null);
+                    }}
+                    className="skill-icon-button skill-icon-button-accent"
+                    style={{ padding: '6px 16px', fontSize: '12px' }}
+                  >
+                    {lang === 'zh' ? '保存' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 消息列表区域 */}
       <div ref={messagesContainerRef} className="terminal-content flex-1">
         {isInitializing ? (
           // 初始化提示 - 显示在提示符后面

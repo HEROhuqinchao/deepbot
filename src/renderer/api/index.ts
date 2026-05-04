@@ -283,6 +283,16 @@ export const api = {
     return webClient.post(`/api/tabs/${tabId}/rename`, { title });
   },
 
+  async getTabWorkPrompt(tabId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getTabWorkPrompt(tabId);
+    return webClient.get(`/api/tabs/${tabId}/work-prompt`);
+  },
+
+  async setTabWorkPrompt(tabId: string, workPrompt: string | null): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.setTabWorkPrompt(tabId, workPrompt);
+    return webClient.post(`/api/tabs/${tabId}/work-prompt`, { workPrompt });
+  },
+
   async getTabModelConfig(tabId: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.getTabModelConfig(tabId);
     return webClient.get(`/api/tabs/${tabId}/model-config`);
