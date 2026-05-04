@@ -74,9 +74,6 @@ export function getAllowedDirectories(): string[] {
  * @returns 是否允许访问
  */
 export function isPathAllowed(filePath: string): boolean {
-  // Docker 模式下跳过路径检查（容器内目录已固定，无需限制）
-  if (isDockerMode()) return true;
-
   // 展开 ~ 为用户主目录
   const expandedPath = expandHomePath(filePath);
   
@@ -84,6 +81,12 @@ export function isPathAllowed(filePath: string): boolean {
   const resolvedPath = path.resolve(expandedPath);
   const normalizedPath = path.normalize(resolvedPath);
   
+  // Docker 模式：强制限制在 /data/ 目录下
+  if (isDockerMode()) {
+    const dockerAllowed = ['/data/', '/tmp/', '/private/tmp/'];
+    return dockerAllowed.some(prefix => normalizedPath.startsWith(prefix) || normalizedPath === prefix.slice(0, -1));
+  }
+
   // 获取所有允许的目录
   const allowedDirs = getAllowedDirectories();
   
