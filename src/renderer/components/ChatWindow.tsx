@@ -97,6 +97,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [groupSelectedTab, setGroupSelectedTab] = useState<Record<string, string>>({}); // 分组名 -> 最后选中的 tabId
   const modelPickerGroupRef = useRef<string[] | null>(null); // 分组模型设置时的 Tab ID 列表
   
+  // 企微客服 Tab 回复模式（按 Tab 保存）
+  const [wecomReplyModes, setWecomReplyModes] = useState<Record<string, 'agent' | 'direct'>>({}); // tabId -> 回复模式
+  const currentWecomReplyMode = activeTabId ? (wecomReplyModes[activeTabId] || 'agent') : 'agent';
+  
   // 🔥 获取当前 Tab 类型
   const currentTab = tabs?.find(t => t.id === activeTabId);
   const isConnectorTab = currentTab?.type === 'connector';
@@ -208,6 +212,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     };
     
     loadTabAgentName();
+
+    // 🔥 加载企微客服 Tab 的回复模式
+    const loadTabReplyMode = async () => {
+      const tabId = activeTabId || 'default';
+      const tab = tabs?.find(t => t.id === tabId);
+      if (tab?.connectorId === 'wecom-kf' && !wecomReplyModes[tabId]) {
+        try {
+          const result = await api.getTabReplyMode(tabId);
+          if (result.success) {
+            setWecomReplyModes(prev => ({ ...prev, [tabId]: result.replyMode || 'agent' }));
+          }
+        } catch {
+          // 默认 agent 模式
+        }
+      }
+    };
+    loadTabReplyMode();
     
     // 🔥 切换 Tab 时，根据 Tab 类型重置初始化状态
     const currentTabId = activeTabId || 'default';
@@ -1386,8 +1407,46 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         )}
       </div>
 
-      {/* 输入框 - 连接器 Tab 不显示输入框 */}
-      {tabs && activeTabId && tabs.find(t => t.id === activeTabId)?.type === 'connector' ? null : (
+      {/* 输入框 - 企微客服 Tab 显示特殊输入框 */}
+      {tabs && activeTabId && tabs.find(t => t.id === activeTabId)?.type === 'connector' ? (
+        // 企微客服 Tab：显示带模式切换的输入框
+        currentTab?.connectorId === 'wecom-kf' ? (
+          <MessageInput
+            ref={messageInputRef}
+            onSend={handleSendMessage}
+            onStop={onStopGeneration}
+            disabled={isLoading || isLocked || isInitializing}
+            isGenerating={isLoading}
+            userName={userName}
+            disableStop={isLocked}
+            isConnectorTab={true}
+            activeTabId={activeTabId}
+            isWecomKfTab={true}
+            wecomReplyMode={currentWecomReplyMode}
+            onWecomReplyModeChange={async (mode) => {
+              // 保存到本地状态
+              setWecomReplyModes(prev => ({ ...prev, [activeTabId]: mode }));
+              // 持久化到后端
+              try {
+                await api.setTabReplyMode(activeTabId, mode);
+              } catch {
+                // 静默处理
+              }
+            }}
+            onDirectReply={async (content) => {
+              // 人工直接回复：调用后端 API 直接发送给客户
+              try {
+                const result = await api.connectorDirectReply(activeTabId, content);
+                if (!result.success) {
+                  console.error('直接回复失败:', result.error);
+                }
+              } catch (error) {
+                console.error('直接回复异常:', error);
+              }
+            }}
+          />
+        ) : null
+      ) : (
         <MessageInput 
           ref={messageInputRef}
           onSend={handleSendMessage}

@@ -741,6 +741,37 @@ export class Gateway {
   async sendResponseToConnector(tabId: string, response: string): Promise<void> {
     await this.connectorHandler.sendResponseToConnector(tabId, response);
   }
+
+  /**
+   * 人工直接回复连接器消息
+   * 统一处理：发送到连接器 → 保存历史 → 通知前端显示
+   */
+  async sendManualReply(tabId: string, content: string): Promise<void> {
+    // 1. 发送到连接器
+    await this.connectorHandler.sendResponseToConnector(tabId, content);
+
+    // 2. 保存到历史记录
+    if (this.sessionManager) {
+      await this.sessionManager.saveAssistantMessage(tabId, `[人工回复] ${content}`);
+    }
+
+    // 3. 通知前端显示（Electron 模式通过 BrowserWindow，Web 模式通过虚拟窗口 → GatewayAdapter）
+    if (this.mainWindow) {
+      const manualMsgId = generateMessageId();
+      sendToWindow(this.mainWindow, 'message:stream', {
+        messageId: manualMsgId,
+        content: `[人工回复] ${content}`,
+        done: false,
+        sessionId: tabId,
+      });
+      sendToWindow(this.mainWindow, 'message:stream', {
+        messageId: manualMsgId,
+        content: '',
+        done: true,
+        sessionId: tabId,
+      });
+    }
+  }
   
   /**
    * 查找 Tab（基于 conversationKey）

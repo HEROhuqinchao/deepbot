@@ -414,19 +414,21 @@ export function AppWeb() {
           timestamp: Date.now(),
         };
         
+        const shouldLoad = !(chunk as any).skipLoading; // 人工模式不显示 Processing
+        
         requestAnimationFrame(() => {
           setTabs(prev => prev.map(tab => {
             if (tab.id !== targetTabId) return tab;
             return { 
               ...tab, 
               messages: [...(tab.messages || []), userMessage],
-              isLoading: true,
+              isLoading: shouldLoad,
             };
           }));
           
           if (targetTabId === activeTabId) {
             setMessages(prev => [...prev, userMessage]);
-            setIsLoading(true);
+            if (shouldLoad) setIsLoading(true);
           }
         });
         

@@ -352,6 +352,37 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
 
   router.get('/:tabId/workspace-dirs', getTabWorkspaceDirs);
   router.post('/:tabId/workspace-dirs', setTabWorkspaceDirs);
+
+  // 回复模式
+  const getTabReplyMode: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { getTabConfig } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const db = SystemConfigStore.getInstance().getDb();
+      const config = getTabConfig(db, tabId as string);
+      res.json({ success: true, replyMode: config?.replyMode || 'agent' });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabReplyMode: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { replyMode } = req.body;
+      const { updateTabReplyMode } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const db = SystemConfigStore.getInstance().getDb();
+      updateTabReplyMode(db, tabId as string, replyMode);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/reply-mode', getTabReplyMode);
+  router.post('/:tabId/reply-mode', setTabReplyMode);
   
   return router;
 }

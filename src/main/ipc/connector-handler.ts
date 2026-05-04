@@ -432,4 +432,19 @@ export function registerConnectorHandlers(): void {
       }
     }
   );
+
+  // 人工直接回复连接器消息
+  registerIpcHandler<{ tabId: string; content: string }, { success: boolean; error?: string }>(
+    IPC_CHANNELS.CONNECTOR_DIRECT_REPLY,
+    async (_event, request): Promise<{ success: boolean; error?: string }> => {
+      try {
+        if (!gateway) throw new Error('Gateway 未初始化');
+        await gateway.sendManualReply(request.tabId, request.content);
+        return { success: true };
+      } catch (error) {
+        console.error('[IPC] 人工直接回复失败:', error);
+        return { success: false, error: getErrorMessage(error) };
+      }
+    }
+  );
 }

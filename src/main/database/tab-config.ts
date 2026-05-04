@@ -25,6 +25,7 @@ export interface TabConfigRow {
   work_prompt: string | null;   // 工作提示词（注入系统提示词）
   skill_whitelist: string | null; // Skill 白名单（JSON 数组）
   workspace_dirs: string | null;  // 自定义工作目录（JSON 数组，null=继承系统）
+  reply_mode: string | null;      // 回复模式：'agent' | 'direct'（企微客服 Tab 用）
 }
 
 /**
@@ -46,6 +47,7 @@ export interface TabConfig {
   workPrompt?: string | null;           // 工作提示词（注入系统提示词）
   skillWhitelist?: string[] | null;     // Skill 白名单（企微客服用）
   workspaceDirs?: string[] | null;     // 自定义工作目录（null=继承系统）
+  replyMode?: 'agent' | 'direct';     // 回复模式（企微客服 Tab 用）
 }
 
 /**
@@ -107,6 +109,13 @@ export function initTabConfigTable(db: Database.Database): void {
   // 兼容旧数据库：添加 workspace_dirs 列
   try {
     db.exec('ALTER TABLE agent_tabs ADD COLUMN workspace_dirs TEXT');
+  } catch {
+    // 列已存在，忽略
+  }
+
+  // 兼容旧数据库：添加 reply_mode 列（企微客服 Tab 回复模式）
+  try {
+    db.exec("ALTER TABLE agent_tabs ADD COLUMN reply_mode TEXT DEFAULT 'agent'");
   } catch {
     // 列已存在，忽略
   }
@@ -309,6 +318,19 @@ export function updateTabWorkspaceDirs(db: Database.Database, tabId: string, dir
 }
 
 /**
+ * 更新 Tab 的回复模式（企微客服 Tab 用）
+ */
+export function updateTabReplyMode(db: Database.Database, tabId: string, replyMode: 'agent' | 'direct'): void {
+  const stmt = db.prepare(`
+    UPDATE agent_tabs 
+    SET reply_mode = ?
+    WHERE id = ?
+  `);
+  
+  stmt.run(replyMode, tabId);
+}
+
+/**
  * 删除 Tab 配置
  */
 export function deleteTabConfig(db: Database.Database, tabId: string): void {
@@ -358,5 +380,6 @@ function rowToConfig(row: TabConfigRow): TabConfig {
     workPrompt: row.work_prompt || undefined,
     skillWhitelist: row.skill_whitelist ? (() => { try { return JSON.parse(row.skill_whitelist); } catch { return undefined; } })() : undefined,
     workspaceDirs: row.workspace_dirs ? (() => { try { return JSON.parse(row.workspace_dirs); } catch { return undefined; } })() : undefined,
+    replyMode: (row.reply_mode === 'agent' || row.reply_mode === 'direct') ? row.reply_mode : undefined,
   };
 }

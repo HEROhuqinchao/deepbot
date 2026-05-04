@@ -72,6 +72,9 @@ const IPC_CHANNELS = {
   CONNECTOR_PENDING_COUNT_UPDATED: 'connector:pending-count-updated',
   CONNECTOR_CREATE_WECHAT: 'connector:create-wechat',
   CONNECTOR_REMOVE_WECHAT: 'connector:remove-wechat',
+  CONNECTOR_DIRECT_REPLY: 'connector:direct-reply',
+  GET_TAB_REPLY_MODE: 'tab:get-reply-mode',
+  SET_TAB_REPLY_MODE: 'tab:set-reply-mode',
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',
   GET_TAB_MODEL_CONFIG: 'tab:get-model-config',
   RENAME_TAB: 'tab:rename',
@@ -382,6 +385,11 @@ contextBridge.exposeInMainWorld('deepbot', {
     return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_REMOVE_WECHAT, { connectorId });
   },
 
+  // 人工直接回复连接器消息
+  connectorDirectReply: (tabId: string, content: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_DIRECT_REPLY, { tabId, content });
+  },
+
   setTabModelConfig: (tabId: string, modelConfig: any) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_MODEL_CONFIG, { tabId, modelConfig });
   },
@@ -416,6 +424,14 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   setTabWorkspaceDirs: (tabId: string, dirs: string[] | null) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_WORKSPACE_DIRS, { tabId, dirs });
+  },
+
+  getTabReplyMode: (tabId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_REPLY_MODE, { tabId });
+  },
+
+  setTabReplyMode: (tabId: string, replyMode: 'agent' | 'direct') => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_REPLY_MODE, { tabId, replyMode });
   },
 
   // 监听待授权用户数量变化

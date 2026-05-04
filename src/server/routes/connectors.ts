@@ -234,6 +234,26 @@ export function createConnectorsRouter(gatewayAdapter: GatewayAdapter): Router {
 
   router.post('/wechat/create', createWechat);
   router.delete('/:connectorId', removeWechat);
+
+  // 人工直接回复
+  const directReply: RequestHandler = async (req, res) => {
+    try {
+      const { tabId, content } = req.body;
+      if (!tabId || !content) {
+        res.status(400).json({ success: false, error: '缺少 tabId 或 content' });
+        return;
+      }
+      const { getGatewayInstance } = await import('../../main/gateway');
+      const gw = getGatewayInstance();
+      if (!gw) throw new Error('Gateway 未初始化');
+      await gw.sendManualReply(tabId, content);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  router.post('/direct-reply', directReply);
   
   return router;
 }

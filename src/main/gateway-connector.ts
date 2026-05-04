@@ -501,13 +501,52 @@ export class GatewayConnectorHandler {
     });
 
     try {
-      // 启动进度提醒定时器
-      this.startProgressTimers(tabId);
+      // 检查 Tab 的回复模式（企微客服 Tab 支持人工模式）
+      let replyMode: 'agent' | 'direct' = 'agent';
+      if (tab.connectorId === 'wecom-kf') {
+        try {
+          const store = SystemConfigStore.getInstance();
+          const db = store.getDb();
+          const { getTabConfig } = require('./database/tab-config');
+          const config = getTabConfig(db, tabId);
+          if (config?.replyMode === 'direct') {
+            replyMode = 'direct';
+          }
+        } catch {
+          // 读取失败，默认 agent 模式
+        }
+      }
 
-      // 发送给 agent 处理
-      await this.handleSendMessageFn(message.content, tabId, message.displayContent);
+      if (replyMode === 'direct') {
+        // 人工模式：只在前端显示用户消息，不触发 Agent 回复
+        logger.info('👤 人工模式：只显示消息，不触发 Agent');
+        
+        // 保存用户消息到历史记录
+        if (this.sessionManager) {
+          await this.sessionManager.saveUserMessage(tabId, message.displayContent || message.content);
+        }
+        
+        // 发送用户消息到前端显示
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          sendToWindow(this.mainWindow, IPC_CHANNELS.MESSAGE_STREAM, {
+            messageId: generateUserMessageId(),
+            content: message.displayContent || message.content,
+            done: true,
+            role: 'user',
+            sessionId: tabId,
+            skipLoading: true, // 人工模式：不显示 Processing
+          });
+        }
+      } else {
+        // Agent 模式：正常处理
+        // 启动进度提醒定时器
+        this.startProgressTimers(tabId);
 
-      logger.info('✅ 消息处理完成:', { messageId: message.messageId });
+        // 发送给 agent 处理
+        await this.handleSendMessageFn(message.content, tabId, message.displayContent);
+
+        logger.info('✅ 消息处理完成:', { messageId: message.messageId });
+      }
     } catch (error) {
       logger.error('❌ 处理消息失败:', error);
     } finally {
@@ -1253,6 +1292,13 @@ Use the file_read tool to read the file content.`
         const { updateTabWorkspaceDirs } = require('./database/tab-config');
         updateTabWorkspaceDirs(db, newTabId, siblingConfig.workspaceDirs);
         logger.info(`✅ 新 Tab ${newTabId} 继承工作目录 (来自 ${siblingTab.id})`);
+      }
+
+      // 复制回复模式
+      if (siblingConfig.replyMode) {
+        const { updateTabReplyMode } = require('./database/tab-config');
+        updateTabReplyMode(db, newTabId, siblingConfig.replyMode);
+        logger.info(`✅ 新 Tab ${newTabId} 继承回复模式: ${siblingConfig.replyMode} (来自 ${siblingTab.id})`);
       }
     } catch (error) {
       logger.error('❌ 继承分组配置失败:', error);

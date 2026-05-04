@@ -110,6 +110,11 @@ export const IPC_CHANNELS = {
   CONNECTOR_PENDING_COUNT_UPDATED: 'connector:pending-count-updated', // 待授权用户数量变化推送
   CONNECTOR_CREATE_WECHAT: 'connector:create-wechat',   // 创建微信实例
   CONNECTOR_REMOVE_WECHAT: 'connector:remove-wechat',   // 删除微信实例
+  CONNECTOR_DIRECT_REPLY: 'connector:direct-reply',     // 人工直接回复连接器消息
+  
+  // Tab 回复模式
+  GET_TAB_REPLY_MODE: 'tab:get-reply-mode',
+  SET_TAB_REPLY_MODE: 'tab:set-reply-mode',
   
   // Tab 模型配置
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',

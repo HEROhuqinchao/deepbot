@@ -393,6 +393,8 @@ function App() {
           timestamp: Date.now(),
         };
         
+        const shouldLoad = !(chunk as any).skipLoading; // 人工模式不显示 Processing
+        
         // 🔥 批量更新：使用 requestAnimationFrame 减少重渲染
         requestAnimationFrame(() => {
           // 更新目标 Tab 的消息，并设置为加载状态
@@ -401,14 +403,14 @@ function App() {
             return { 
               ...tab, 
               messages: [...(tab.messages || []), userMessage],
-              isLoading: true,
+              isLoading: shouldLoad,
             };
           }));
           
           // 如果是当前 Tab，同步更新 messages 和 isLoading 状态
           if (targetTabId === activeTabId) {
             setMessages(prev => [...prev, userMessage]);
-            setIsLoading(true);
+            if (shouldLoad) setIsLoading(true);
           }
         });
         

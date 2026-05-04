@@ -968,6 +968,34 @@ function registerIpcHandlers() {
     }
   });
 
+  // 获取 Tab 回复模式
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_REPLY_MODE, async (_event, { tabId }) => {
+    try {
+      const { getTabConfig } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      const config = getTabConfig(db, tabId);
+      return { success: true, replyMode: config?.replyMode || 'agent' };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error), replyMode: 'agent' };
+    }
+  });
+
+  // 设置 Tab 回复模式
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_REPLY_MODE, async (_event, { tabId, replyMode }) => {
+    try {
+      const { updateTabReplyMode } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      updateTabReplyMode(db, tabId, replyMode);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 上传图片（保存到临时目录）
   ipcMain.handle(IPC_CHANNELS.UPLOAD_IMAGE, async (_event, { name, dataUrl, size }) => {
     try {
