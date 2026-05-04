@@ -906,6 +906,34 @@ function registerIpcHandlers() {
     }
   });
 
+  // 获取 Tab Skill 白名单
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_SKILL_WHITELIST, async (_event, { tabId }) => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId);
+      return { success: true, whitelist: tabConfig?.skillWhitelist || [] };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 设置 Tab Skill 白名单
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_SKILL_WHITELIST, async (_event, { tabId, whitelist }) => {
+    try {
+      const { updateTabSkillWhitelist } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      
+      updateTabSkillWhitelist(db, tabId, whitelist);
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 上传图片（保存到临时目录）
   ipcMain.handle(IPC_CHANNELS.UPLOAD_IMAGE, async (_event, { name, dataUrl, size }) => {
     try {

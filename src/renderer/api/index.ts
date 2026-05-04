@@ -293,6 +293,16 @@ export const api = {
     return webClient.post(`/api/tabs/${tabId}/work-prompt`, { workPrompt });
   },
 
+  async getTabSkillWhitelist(tabId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getTabSkillWhitelist(tabId);
+    return webClient.get(`/api/tabs/${tabId}/skill-whitelist`);
+  },
+
+  async setTabSkillWhitelist(tabId: string, whitelist: string[] | null): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.setTabSkillWhitelist(tabId, whitelist);
+    return webClient.post(`/api/tabs/${tabId}/skill-whitelist`, { whitelist });
+  },
+
   async getTabModelConfig(tabId: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.getTabModelConfig(tabId);
     return webClient.get(`/api/tabs/${tabId}/model-config`);

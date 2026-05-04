@@ -23,6 +23,7 @@ export interface TabConfigRow {
   conversation_id: string | null;
   model_config: string | null;  // JSON 格式的模型覆盖配置
   work_prompt: string | null;   // 工作提示词（注入系统提示词）
+  skill_whitelist: string | null; // Skill 白名单（JSON 数组）
 }
 
 /**
@@ -42,6 +43,7 @@ export interface TabConfig {
   conversationId?: string;
   modelConfig?: TabModelConfig | null;  // Tab 独立模型配置（覆盖全局）
   workPrompt?: string | null;           // 工作提示词（注入系统提示词）
+  skillWhitelist?: string[] | null;     // Skill 白名单（企微客服用）
 }
 
 /**
@@ -89,6 +91,13 @@ export function initTabConfigTable(db: Database.Database): void {
   // 兼容旧数据库：添加 work_prompt 列
   try {
     db.exec('ALTER TABLE agent_tabs ADD COLUMN work_prompt TEXT');
+  } catch {
+    // 列已存在，忽略
+  }
+
+  // 兼容旧数据库：添加 skill_whitelist 列
+  try {
+    db.exec('ALTER TABLE agent_tabs ADD COLUMN skill_whitelist TEXT');
   } catch {
     // 列已存在，忽略
   }
@@ -261,6 +270,21 @@ export function updateTabWorkPrompt(db: Database.Database, tabId: string, workPr
 }
 
 /**
+ * 更新 Tab 的 Skill 白名单
+ */
+export function updateTabSkillWhitelist(db: Database.Database, tabId: string, whitelist: string[] | null): void {
+  const stmt = db.prepare(`
+    UPDATE agent_tabs 
+    SET skill_whitelist = ?
+    WHERE id = ?
+  `);
+  
+  stmt.run(whitelist && whitelist.length > 0 ? JSON.stringify(whitelist) : null, tabId);
+  
+  console.log(`[TabConfig] 🔧 已更新 Tab Skill 白名单: ${tabId} (${whitelist ? whitelist.length + '个' : '清空'})`);
+}
+
+/**
  * 删除 Tab 配置
  */
 export function deleteTabConfig(db: Database.Database, tabId: string): void {
@@ -308,5 +332,6 @@ function rowToConfig(row: TabConfigRow): TabConfig {
     conversationId: row.conversation_id || undefined,
     modelConfig,
     workPrompt: row.work_prompt || undefined,
+    skillWhitelist: row.skill_whitelist ? (() => { try { return JSON.parse(row.skill_whitelist); } catch { return undefined; } })() : undefined,
   };
 }

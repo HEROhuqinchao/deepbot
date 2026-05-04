@@ -12,7 +12,7 @@ import { api } from '../api'; // 🔥 使用统一 API 适配器
 import { isElectron, isMacOS } from '../utils/platform'; // 🔥 平台检测
 import { getLanguage } from '../i18n';
 import { ModelConfig } from './settings/ModelConfig';
-import { X, Pencil, Settings, FileText } from 'lucide-react';
+import { X, Pencil, Settings, FileText, Shield } from 'lucide-react';
 
 // 从 Tab 标题中提取企微客服名称：QW-{客服名}-{用户} → 客服名
 const getWecomKfName = (title: string): string => {
@@ -80,6 +80,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [showWorkPromptDialog, setShowWorkPromptDialog] = useState<string | null>(null); // tabId
   const [workPromptValue, setWorkPromptValue] = useState('');
   const workPromptGroupRef = useRef<string[] | null>(null); // 分组工作提示词时的 Tab ID 列表
+  const [showSkillWhitelistDialog, setShowSkillWhitelistDialog] = useState<string | null>(null); // tabId
+  const [allSkills, setAllSkills] = useState<{ name: string; description?: string }[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
+  const skillWhitelistGroupRef = useRef<string[] | null>(null);
   
   // 企微客服分组相关
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null); // 当前展开的分组名
@@ -707,15 +711,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             className="tab-context-menu-item"
             onClick={() => {
               const tabId = contextMenu.tabId;
-              const groupTabIds = contextMenu.groupTabIds;
+              let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
-              // 分组模式：存储分组信息，模型设置后对所有 Tab 生效
-              setShowModelPicker(tabId);
-              if (groupTabIds) {
-                modelPickerGroupRef.current = groupTabIds;
-              } else {
-                modelPickerGroupRef.current = null;
+              
+              // 企微客服 Tab：自动查找同分组的所有 Tab
+              if (!groupTabIds) {
+                const tab = tabs?.find(t => t.id === tabId);
+                if (tab?.connectorId === 'wecom-kf') {
+                  const kfName = getWecomKfName(tab.title || '');
+                  if (kfName && wecomGroups[kfName]) {
+                    groupTabIds = wecomGroups[kfName].map(t => t.id);
+                  }
+                }
               }
+              
+              setShowModelPicker(tabId);
+              modelPickerGroupRef.current = groupTabIds || null;
             }}
           >
             <Settings size={14} style={{ marginRight: '6px' }} />
@@ -725,8 +736,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             className="tab-context-menu-item"
             onClick={async () => {
               const tabId = contextMenu.tabId;
-              const groupTabIds = contextMenu.groupTabIds;
+              let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
+              
+              // 企微客服 Tab：自动查找同分组的所有 Tab
+              if (!groupTabIds) {
+                const tab = tabs?.find(t => t.id === tabId);
+                if (tab?.connectorId === 'wecom-kf') {
+                  const kfName = getWecomKfName(tab.title || '');
+                  if (kfName && wecomGroups[kfName]) {
+                    groupTabIds = wecomGroups[kfName].map(t => t.id);
+                  }
+                }
+              }
+              
               // 加载当前工作提示词
               try {
                 const result = await api.getTabWorkPrompt(tabId);
@@ -735,16 +758,54 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 setWorkPromptValue('');
               }
               setShowWorkPromptDialog(tabId);
-              if (groupTabIds) {
-                workPromptGroupRef.current = groupTabIds;
-              } else {
-                workPromptGroupRef.current = null;
-              }
+              workPromptGroupRef.current = groupTabIds || null;
             }}
           >
             <FileText size={14} style={{ marginRight: '6px' }} />
             {lang === 'zh' ? '工作提示词' : 'Work Prompt'}
           </div>
+          {/* Skill 白名单（仅企微客服分组显示） */}
+          {contextMenu.isGroup && (
+            <div
+              className="tab-context-menu-item"
+              onClick={async () => {
+                const tabId = contextMenu.tabId;
+                let groupTabIds = contextMenu.groupTabIds;
+                setContextMenu(null);
+                
+                // 企微客服 Tab：自动查找同分组的所有 Tab
+                if (!groupTabIds) {
+                  const tab = tabs?.find(t => t.id === tabId);
+                  if (tab?.connectorId === 'wecom-kf') {
+                    const kfName = getWecomKfName(tab.title || '');
+                    if (kfName && wecomGroups[kfName]) {
+                      groupTabIds = wecomGroups[kfName].map(t => t.id);
+                    }
+                  }
+                }
+                
+                // 加载当前白名单
+                try {
+                  const configResult = await api.getTabSkillWhitelist(tabId);
+                  setSelectedSkills(new Set(configResult?.whitelist || []));
+                } catch {
+                  setSelectedSkills(new Set());
+                }
+                // 获取已安装 Skill 列表
+                try {
+                  const result = await api.skillManager({ action: 'list' });
+                  setAllSkills(result?.skills || []);
+                } catch {
+                  setAllSkills([]);
+                }
+                setShowSkillWhitelistDialog(tabId);
+                skillWhitelistGroupRef.current = groupTabIds || null;
+              }}
+            >
+              <Shield size={14} style={{ marginRight: '6px' }} />
+              {lang === 'zh' ? 'Skill 白名单' : 'Skill Whitelist'}
+            </div>
+          )}
         </div>
       )}
 
@@ -936,6 +997,93 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                     {lang === 'zh' ? '保存' : 'Save'}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Skill 白名单弹窗 */}
+      {showSkillWhitelistDialog && (
+        <div className="settings-overlay" onClick={() => setShowSkillWhitelistDialog(null)}>
+          <div
+            className="settings-container tab-model-picker-container"
+            style={{ width: '500px', maxHeight: '70vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">
+                {lang === 'zh' ? 'Skill 白名单' : 'Skill Whitelist'}
+              </h2>
+              <button className="settings-close-button" onClick={() => setShowSkillWhitelistDialog(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px' }}>
+              <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px' }}>
+                <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '🔒 Skill 安全控制' : '🔒 Skill Security'}</h4>
+                <p className="text-sm text-green-800">
+                  {lang === 'zh'
+                    ? '勾选允许在企微客服会话中使用的 Skill。未勾选的 Skill 将被禁止执行，确保客服场景的安全性。'
+                    : 'Select Skills allowed in WeCom KF sessions. Unchecked Skills will be blocked for security.'}
+                </p>
+              </div>
+              {allSkills.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--terminal-text-dim)' }}>
+                  {lang === 'zh' ? '暂无已安装的 Skill' : 'No installed Skills'}
+                </div>
+              ) : (
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  {allSkills.map((skill) => (
+                    <label
+                      key={skill.name}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 4px', cursor: 'pointer', borderBottom: '1px solid var(--terminal-border)' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSkills.has(skill.name)}
+                        onChange={(e) => {
+                          const next = new Set(selectedSkills);
+                          if (e.target.checked) {
+                            next.add(skill.name);
+                          } else {
+                            next.delete(skill.name);
+                          }
+                          setSelectedSkills(next);
+                        }}
+                        style={{ flexShrink: 0 }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 500 }}>{skill.name}</div>
+                        {skill.description && (
+                          <div style={{ fontSize: '11px', color: 'var(--terminal-text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{skill.description}</div>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+                <button
+                  onClick={async () => {
+                    const whitelist = selectedSkills.size > 0 ? Array.from(selectedSkills) : null;
+                    await api.setTabSkillWhitelist(showSkillWhitelistDialog, whitelist);
+                    // 分组模式：同步到所有 Tab
+                    if (skillWhitelistGroupRef.current) {
+                      for (const otherTabId of skillWhitelistGroupRef.current) {
+                        if (otherTabId !== showSkillWhitelistDialog) {
+                          await api.setTabSkillWhitelist(otherTabId, whitelist);
+                        }
+                      }
+                      skillWhitelistGroupRef.current = null;
+                    }
+                    setShowSkillWhitelistDialog(null);
+                  }}
+                  className="skill-icon-button skill-icon-button-accent"
+                  style={{ padding: '6px 16px', fontSize: '12px' }}
+                >
+                  {lang === 'zh' ? '保存' : 'Save'}
+                </button>
               </div>
             </div>
           </div>

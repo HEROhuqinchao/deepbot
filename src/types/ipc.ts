@@ -117,6 +117,8 @@ export const IPC_CHANNELS = {
   RENAME_TAB: 'tab:rename',
   GET_TAB_WORK_PROMPT: 'tab:get-work-prompt',
   SET_TAB_WORK_PROMPT: 'tab:set-work-prompt',
+  GET_TAB_SKILL_WHITELIST: 'tab:get-skill-whitelist',
+  SET_TAB_SKILL_WHITELIST: 'tab:set-skill-whitelist',
   
   // 应用信息
 } as const;

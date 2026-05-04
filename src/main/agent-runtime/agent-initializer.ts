@@ -60,6 +60,174 @@ export class AgentInitializer {
   }
 
   /**
+   * 获取当前 Tab 的 connectorId（动态查找）
+   */
+  private getConnectorId(): string | undefined {
+    try {
+      const { getGatewayInstance } = require('../gateway');
+      const gateway = getGatewayInstance();
+      if (!gateway) return undefined;
+      const tab = gateway.getTabManager().getAllTabs().find((t: any) => t.id === this.sessionId);
+      return tab?.connectorId;
+    } catch {
+      // 静默处理
+    }
+    return undefined;
+  }
+
+  /**
+   * 创建 beforeToolCall hook（企微客服安全沙箱）
+   * 
+   * 每次工具调用时动态检查 connectorId，当 Tab 为 wecom-kf 时：
+   * - 禁止 write、edit 工具
+   * - bash 只允许白名单命令 + Skill 目录下的 Python
+   * - skill_manager 禁止 install/uninstall 等修改操作
+   */
+  private createBeforeToolCall(): (context: any, signal?: AbortSignal) => Promise<any> {
+    const sessionId = this.sessionId;
+
+    // Bash 命令白名单（静态，不需要每次重建）
+    const BASH_WHITELIST = new Set([
+      'cat', 'head', 'tail', 'less', 'more',
+      'ls', 'pwd', 'find', 'tree', 'du', 'df',
+      'grep', 'awk', 'sed', 'sort', 'uniq', 'wc', 'cut', 'tr', 'diff',
+      'date', 'whoami', 'uname', 'hostname', 'uptime', 'which', 'echo', 'printf',
+      'ping', 'dig', 'nslookup', 'traceroute',
+      'jq', 'base64', 'md5', 'shasum', 'file', 'stat',
+      'python', 'python3',
+    ]);
+
+    return async (context: any) => {
+      const connectorId = this.getConnectorId();
+      if (connectorId !== 'wecom-kf') return undefined;
+
+      const store = SystemConfigStore.getInstance();
+      const settings = store.getWorkspaceSettings();
+      const skillDirs = settings.skillDirs || [];
+      const scriptDir = settings.scriptDir || '';
+      const toolName = context.toolCall?.name || '';
+      const args = context.args as Record<string, any> || {};
+
+      // 1. 禁止 write 和 edit 工具
+      if (toolName === 'write' || toolName === 'edit') {
+        console.log(`[WecomKf沙箱] 🚫 拦截 ${toolName}`);
+        return { block: true, reason: '企微客服会话禁止文件写入操作' };
+      }
+
+      // 2. Bash 命令白名单检查
+      if (toolName === 'bash') {
+        const command = (args.command || '').trim();
+        if (!command) return undefined;
+
+        const firstCmd = command.split(/[\s|;&]/)[0].replace(/^.*\//, '');
+
+        if (!BASH_WHITELIST.has(firstCmd)) {
+          console.log(`[WecomKf沙箱] 🚫 拦截 bash: ${firstCmd}`);
+          return { block: true, reason: `企微客服会话禁止执行命令: ${firstCmd}` };
+        }
+
+        if (firstCmd === 'python' || firstCmd === 'python3') {
+          if (command.includes(' -c ') || command.includes(' -c"') || command.includes(" -c'") ||
+              command.includes(' -m ')) {
+            console.log(`[WecomKf沙箱] 🚫 拦截 python: 内联代码`);
+            return { block: true, reason: '企微客服会话禁止执行内联 Python 代码' };
+          }
+
+          const pyFileMatch = command.match(/(?:python3?)\s+(?:[^-]\S*\.py)/);
+          if (!pyFileMatch) {
+            console.log(`[WecomKf沙箱] 🚫 拦截 python: 未指定 .py 文件`);
+            return { block: true, reason: '企微客服会话的 Python 命令必须指定 .py 文件' };
+          }
+
+          const pyPath = command.match(/(?:python3?)\s+(\S+\.py)/)?.[1] || '';
+          const path = require('path');
+          const resolvedPath = path.resolve(pyPath);
+
+          const isInAllowedDir = skillDirs.some((dir: string) => resolvedPath.startsWith(path.resolve(dir))) ||
+            (scriptDir && resolvedPath.startsWith(path.resolve(scriptDir)));
+
+          if (!isInAllowedDir) {
+            console.log(`[WecomKf沙箱] 🚫 拦截 python: 路径不在允许目录`);
+            return { block: true, reason: '企微客服会话只能执行 Skill 目录或脚本目录下的 Python 文件' };
+          }
+
+          const whitelist = store.getTabConfig(sessionId)?.skillWhitelist;
+          if (!whitelist || whitelist.length === 0) {
+            console.log(`[WecomKf沙箱] 🚫 拦截 python: 未设置白名单`);
+            return { block: true, reason: '企微客服会话未设置 Skill 白名单，禁止执行任何 Skill' };
+          }
+          for (const dir of skillDirs) {
+            const resolvedDir = path.resolve(dir);
+            if (resolvedPath.startsWith(resolvedDir)) {
+              const relative = resolvedPath.substring(resolvedDir.length + 1);
+              const skillName = relative.split(path.sep)[0];
+              if (!whitelist.includes(skillName)) {
+                console.log(`[WecomKf沙箱] 🚫 拦截 Skill: ${skillName}`);
+                return { block: true, reason: `Skill "${skillName}" 不在白名单中` };
+              }
+              break;
+            }
+          }
+        }
+
+        return undefined;
+      }
+
+      // 3. Skill Manager 限制
+      if (toolName === 'skill_manager') {
+        const action = args.action || '';
+        const allowedActions = ['list', 'info', 'get-env'];
+        if (!allowedActions.includes(action)) {
+          console.log(`[WecomKf沙箱] 🚫 拦截 skill_manager: ${action}`);
+          return { block: true, reason: `企微客服会话禁止 Skill 管理操作: ${action}` };
+        }
+        return undefined;
+      }
+
+      return undefined;
+    };
+  }
+
+  /**
+   * 创建 afterToolCall hook（企微客服 Skill 白名单过滤）
+   * 
+   * 每次工具调用后动态检查，过滤 skill_manager list 的返回结果
+   */
+  private createAfterToolCall(): (context: any, signal?: AbortSignal) => Promise<any> {
+    const sessionId = this.sessionId;
+
+    return async (context: any) => {
+      // 每次工具调用时动态检查是否是企微客服 Tab
+      const connectorId = this.getConnectorId();
+      if (connectorId !== 'wecom-kf') return undefined;
+
+      const toolName = context.toolCall?.name || '';
+      const args = context.args as Record<string, any> || {};
+
+      if (toolName === 'skill_manager' && args.action === 'list') {
+        const store = SystemConfigStore.getInstance();
+        const whitelist = store.getTabConfig(sessionId)?.skillWhitelist;
+        const result = context.result;
+        if (result?.details?.skills) {
+          const filtered = whitelist && whitelist.length > 0
+            ? result.details.skills.filter((s: any) => whitelist.includes(s.name))
+            : [];
+          const message = filtered.length === 0
+            ? '当前没有可用的 Skill（未设置白名单或白名单为空）'
+            : `共有 ${filtered.length} 个可用的 Skill`;
+          const newDetails = { ...result.details, skills: filtered, count: filtered.length, message };
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(newDetails, null, 2) }],
+            details: newDetails,
+          };
+        }
+      }
+
+      return undefined;
+    };
+  }
+
+  /**
    * 初始化 Agent
    * 
    * @returns Agent 实例和工具列表
@@ -86,6 +254,8 @@ export class AgentInitializer {
       },
       getApiKey: async () => this.apiKey,
       transformContext: this.createTransformContext(),
+      beforeToolCall: this.createBeforeToolCall(),
+      afterToolCall: this.createAfterToolCall(),
     });
     
     console.log('✅ Agent 实例创建完成');
@@ -212,6 +382,8 @@ export class AgentInitializer {
       },
       getApiKey: async () => this.apiKey,
       transformContext: this.createTransformContext(),
+      beforeToolCall: this.createBeforeToolCall(),
+      afterToolCall: this.createAfterToolCall(),
     });
     
     console.log('✅ Agent 实例已重新创建');

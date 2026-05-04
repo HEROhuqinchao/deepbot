@@ -251,6 +251,70 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
   };
 
   router.post('/:tabId/rename', renameTab);
+
+  // 工作提示词
+  const getTabWorkPrompt: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId as string);
+      res.json({ success: true, workPrompt: tabConfig?.workPrompt || '' });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabWorkPrompt: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { workPrompt } = req.body;
+      const { updateTabWorkPrompt } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const trimmed = workPrompt ? workPrompt.substring(0, 10000) : null;
+      updateTabWorkPrompt(store.getDb(), tabId as string, trimmed);
+      const { getGatewayInstance } = await import('../../main/gateway');
+      const gateway = getGatewayInstance();
+      if (gateway) gateway.invalidateSessionSystemPrompt(tabId as string);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/work-prompt', getTabWorkPrompt);
+  router.post('/:tabId/work-prompt', setTabWorkPrompt);
+
+  // Skill 白名单
+  const getTabSkillWhitelist: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId as string);
+      res.json({ success: true, whitelist: tabConfig?.skillWhitelist || [] });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabSkillWhitelist: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { whitelist } = req.body;
+      const { updateTabSkillWhitelist } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      updateTabSkillWhitelist(store.getDb(), tabId as string, whitelist);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/skill-whitelist', getTabSkillWhitelist);
+  router.post('/:tabId/skill-whitelist', setTabSkillWhitelist);
   
   return router;
 }

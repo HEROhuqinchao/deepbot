@@ -77,6 +77,8 @@ const IPC_CHANNELS = {
   RENAME_TAB: 'tab:rename',
   GET_TAB_WORK_PROMPT: 'tab:get-work-prompt',
   SET_TAB_WORK_PROMPT: 'tab:set-work-prompt',
+  GET_TAB_SKILL_WHITELIST: 'tab:get-skill-whitelist',
+  SET_TAB_SKILL_WHITELIST: 'tab:set-skill-whitelist',
 } as const;
 
 /**
@@ -396,6 +398,14 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   setTabWorkPrompt: (tabId: string, workPrompt: string | null) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_WORK_PROMPT, { tabId, workPrompt });
+  },
+
+  getTabSkillWhitelist: (tabId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_SKILL_WHITELIST, { tabId });
+  },
+
+  setTabSkillWhitelist: (tabId: string, whitelist: string[] | null) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_SKILL_WHITELIST, { tabId, whitelist });
   },
 
   // 监听待授权用户数量变化
