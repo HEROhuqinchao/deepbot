@@ -89,6 +89,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null); // 当前展开的分组名
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 }); // 下拉列表位置
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({}); // tabId -> 未读消息数
+  const [groupSelectedTab, setGroupSelectedTab] = useState<Record<string, string>>({}); // 分组名 -> 最后选中的 tabId
   const modelPickerGroupRef = useRef<string[] | null>(null); // 分组模型设置时的 Tab ID 列表
   
   // 🔥 获取当前 Tab 类型
@@ -169,8 +170,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     return { normalTabs: normal, wecomGroups: groups };
   }, [tabs]);
 
-  const getGroupActiveTab = (groupTabs: AgentTab[]) => {
-    return groupTabs.find(t => t.id === activeTabId) || groupTabs[0];
+  const getGroupActiveTab = (groupTabs: AgentTab[], kfName: string) => {
+    // 优先：当前激活的 Tab 在分组内
+    const activeInGroup = groupTabs.find(t => t.id === activeTabId);
+    if (activeInGroup) return activeInGroup;
+    // 其次：上次在该分组中选中的 Tab
+    const lastSelected = groupSelectedTab[kfName];
+    if (lastSelected) {
+      const found = groupTabs.find(t => t.id === lastSelected);
+      if (found) return found;
+    }
+    // 兜底：第一个
+    return groupTabs[0];
   };
 
   // 🔥 计算要显示的消息（从最新的开始）
@@ -599,7 +610,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
 
             {/* 企微客服分组 Tab */}
             {Object.entries(wecomGroups).map(([kfName, groupTabs]) => {
-              const activeGroupTab = getGroupActiveTab(groupTabs);
+              const activeGroupTab = getGroupActiveTab(groupTabs, kfName);
               const isGroupActive = groupTabs.some(t => t.id === activeTabId);
               const isExpanded = expandedGroup === kfName;
               const groupTabIds = groupTabs.map(t => t.id);
@@ -660,6 +671,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               className={`agent-tab-group-item ${tab.id === activeTabId ? 'active' : ''}`}
               onClick={() => {
                 onTabClick?.(tab.id);
+                setGroupSelectedTab(prev => ({ ...prev, [expandedGroup!]: tab.id }));
                 setExpandedGroup(null);
               }}
             >

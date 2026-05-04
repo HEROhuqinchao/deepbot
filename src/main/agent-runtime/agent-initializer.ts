@@ -88,6 +88,7 @@ export class AgentInitializer {
 
     // Bash 命令白名单（静态，不需要每次重建）
     const BASH_WHITELIST = new Set([
+      'cd',
       'cat', 'head', 'tail', 'less', 'more',
       'ls', 'pwd', 'find', 'tree', 'du', 'df',
       'grep', 'awk', 'sed', 'sort', 'uniq', 'wc', 'cut', 'tr', 'diff',
@@ -119,53 +120,76 @@ export class AgentInitializer {
         const command = (args.command || '').trim();
         if (!command) return undefined;
 
-        const firstCmd = command.split(/[\s|;&]/)[0].replace(/^.*\//, '');
-
-        if (!BASH_WHITELIST.has(firstCmd)) {
-          console.log(`[WecomKf沙箱] 🚫 拦截 bash: ${firstCmd}`);
-          return { block: true, reason: `企微客服会话禁止执行命令: ${firstCmd}` };
+        const path = require('path');
+        
+        // 禁止子 shell 和命令替换语法（防止绕过白名单）
+        if (command.includes('$(') || command.includes('`')) {
+          console.log(`[WecomKf沙箱] 🚫 拦截 bash: 禁止子 shell 语法`);
+          return { block: true, reason: '企微客服会话禁止使用子 shell 语法' };
         }
 
-        if (firstCmd === 'python' || firstCmd === 'python3') {
-          if (command.includes(' -c ') || command.includes(' -c"') || command.includes(" -c'") ||
-              command.includes(' -m ')) {
-            console.log(`[WecomKf沙箱] 🚫 拦截 python: 内联代码`);
-            return { block: true, reason: '企微客服会话禁止执行内联 Python 代码' };
+        // 提取所有命令（处理 &&、||、;、| 链式和管道命令）
+        const cmdParts = command.split(/\s*(?:&&|\|\||;|\|)\s*/);
+        let cdDir = ''; // 追踪 cd 切换的目录
+        for (const part of cmdParts) {
+          const trimmedPart = part.trim();
+          if (!trimmedPart) continue;
+          const cmd = trimmedPart.split(/\s/)[0].replace(/^.*\//, '');
+
+          if (!BASH_WHITELIST.has(cmd)) {
+            console.log(`[WecomKf沙箱] 🚫 拦截 bash: ${cmd}`);
+            return { block: true, reason: `企微客服会话禁止执行命令: ${cmd}` };
           }
 
-          const pyFileMatch = command.match(/(?:python3?)\s+(?:[^-]\S*\.py)/);
-          if (!pyFileMatch) {
-            console.log(`[WecomKf沙箱] 🚫 拦截 python: 未指定 .py 文件`);
-            return { block: true, reason: '企微客服会话的 Python 命令必须指定 .py 文件' };
+          // 记住 cd 的目标目录
+          if (cmd === 'cd') {
+            const cdTarget = trimmedPart.replace(/^cd\s+/, '').trim();
+            cdDir = cdTarget ? path.resolve(cdDir || '', cdTarget) : '';
+            continue;
           }
 
-          const pyPath = command.match(/(?:python3?)\s+(\S+\.py)/)?.[1] || '';
-          const path = require('path');
-          const resolvedPath = path.resolve(pyPath);
+          // Python 特殊检查
+          if (cmd === 'python' || cmd === 'python3') {
+            if (trimmedPart.includes(' -c ') || trimmedPart.includes(' -c"') || trimmedPart.includes(" -c'") ||
+                trimmedPart.includes(' -m ')) {
+              console.log(`[WecomKf沙箱] 🚫 拦截 python: 内联代码`);
+              return { block: true, reason: '企微客服会话禁止执行内联 Python 代码' };
+            }
 
-          const isInAllowedDir = skillDirs.some((dir: string) => resolvedPath.startsWith(path.resolve(dir))) ||
-            (scriptDir && resolvedPath.startsWith(path.resolve(scriptDir)));
+            const pyFileMatch = trimmedPart.match(/(?:python3?)\s+(?:[^-]\S*\.py)/);
+            if (!pyFileMatch) {
+              console.log(`[WecomKf沙箱] 🚫 拦截 python: 未指定 .py 文件`);
+              return { block: true, reason: '企微客服会话的 Python 命令必须指定 .py 文件' };
+            }
 
-          if (!isInAllowedDir) {
-            console.log(`[WecomKf沙箱] 🚫 拦截 python: 路径不在允许目录`);
-            return { block: true, reason: '企微客服会话只能执行 Skill 目录或脚本目录下的 Python 文件' };
-          }
+            const pyPath = trimmedPart.match(/(?:python3?)\s+(\S+\.py)/)?.[1] || '';
+            // 如果前面有 cd，基于 cd 的目录解析相对路径
+            const resolvedPath = cdDir ? path.resolve(cdDir, pyPath) : path.resolve(pyPath);
 
-          const whitelist = store.getTabConfig(sessionId)?.skillWhitelist;
-          if (!whitelist || whitelist.length === 0) {
-            console.log(`[WecomKf沙箱] 🚫 拦截 python: 未设置白名单`);
-            return { block: true, reason: '企微客服会话未设置 Skill 白名单，禁止执行任何 Skill' };
-          }
-          for (const dir of skillDirs) {
-            const resolvedDir = path.resolve(dir);
-            if (resolvedPath.startsWith(resolvedDir)) {
-              const relative = resolvedPath.substring(resolvedDir.length + 1);
-              const skillName = relative.split(path.sep)[0];
-              if (!whitelist.includes(skillName)) {
-                console.log(`[WecomKf沙箱] 🚫 拦截 Skill: ${skillName}`);
-                return { block: true, reason: `Skill "${skillName}" 不在白名单中` };
+            const isInAllowedDir = skillDirs.some((dir: string) => resolvedPath.startsWith(path.resolve(dir))) ||
+              (scriptDir && resolvedPath.startsWith(path.resolve(scriptDir)));
+
+            if (!isInAllowedDir) {
+              console.log(`[WecomKf沙箱] 🚫 拦截 python: 路径不在允许目录`);
+              return { block: true, reason: '企微客服会话只能执行 Skill 目录或脚本目录下的 Python 文件' };
+            }
+
+            const whitelist = store.getTabConfig(sessionId)?.skillWhitelist;
+            if (!whitelist || whitelist.length === 0) {
+              console.log(`[WecomKf沙箱] 🚫 拦截 python: 未设置白名单`);
+              return { block: true, reason: '企微客服会话未设置 Skill 白名单，禁止执行任何 Skill' };
+            }
+            for (const dir of skillDirs) {
+              const resolvedDir = path.resolve(dir);
+              if (resolvedPath.startsWith(resolvedDir)) {
+                const relative = resolvedPath.substring(resolvedDir.length + 1);
+                const skillName = relative.split(path.sep)[0];
+                if (!whitelist.includes(skillName)) {
+                  console.log(`[WecomKf沙箱] 🚫 拦截 Skill: ${skillName}`);
+                  return { block: true, reason: `Skill "${skillName}" 不在白名单中` };
+                }
+                break;
               }
-              break;
             }
           }
         }

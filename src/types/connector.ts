@@ -250,8 +250,11 @@ export interface WecomKfIncomingMessage {
     type: 'p2p';
   };
   content: {
-    type: 'text' | 'image';
+    type: 'text' | 'image' | 'file' | 'voice' | 'video';
     text: string;
+    imagePath?: string;       // 本地图片路径
+    filePath?: string;        // 本地文件路径
+    fileName?: string;        // 文件名
   };
   systemContext?: string;
   raw: any;

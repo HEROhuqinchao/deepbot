@@ -2,9 +2,11 @@
  * 企微客服连接器
  * 
  * 通过 WebSocket 连接 wechat-service 接收企微客服消息
- * 支持认证、心跳、自动重连
+ * 支持认证、心跳、自动重连、媒体文件下载
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import type {
   Connector,
   WecomKfConnectorConfig,
@@ -12,6 +14,7 @@ import type {
   HealthStatus,
 } from '../../../types/connector';
 import { getErrorMessage } from '../../../shared/utils/error-handler';
+import { ensureDirectoryExists } from '../../../shared/utils/fs-utils';
 import type { ConnectorManager } from '../connector-manager';
 import { SystemConfigStore } from '../../database/system-config-store';
 
@@ -256,18 +259,44 @@ export class WecomKfConnector implements Connector {
         return;
       }
 
-      // 提取消息文本
+      // 提取消息文本和媒体信息
       let text = '';
+      let contentType: 'text' | 'image' | 'file' | 'voice' | 'video' = 'text';
+      let imagePath: string | undefined;
+      let filePath: string | undefined;
+      let fileName: string | undefined;
+
       if (msg.msgtype === 'text') {
         text = msg.text?.content || '';
       } else if (msg.msgtype === 'image') {
+        contentType = 'image';
         text = '[图片]';
+      } else if (msg.msgtype === 'voice') {
+        // 语音消息：直接回复客户请发送文字，不经过 AI
+        const externalUserId = msg.external_userid || '';
+        const openKfId = msg.open_kfid || '';
+        const conversationId = `${externalUserId}||${openKfId}`;
+        try {
+          await this.outbound.sendMessage({
+            conversationId,
+            content: '暂不支持语音消息，请发送文字消息，谢谢 😊',
+          });
+        } catch (err) {
+          console.error('[WecomKfConnector] ❌ 回复语音提示失败:', getErrorMessage(err));
+        }
+        return;
+      } else if (msg.msgtype === 'video') {
+        contentType = 'video';
+        text = '[视频]';
+      } else if (msg.msgtype === 'file') {
+        contentType = 'file';
+        text = '[文件]';
       } else if (msg.msgtype === 'miniprogram') {
         text = msg.miniprogram?.title || '[小程序]';
       } else if (msg.msgtype === 'link') {
         text = msg.link?.title || '[链接]';
       } else if (msg.msgtype === 'location') {
-        text = `[位置: ${msg.location?.x}, ${msg.location?.y}]`;
+        text = `[位置: ${msg.location?.name || ''} ${msg.location?.address || ''}]`;
       } else {
         text = `[${msg.msgtype || '未知类型'}]`;
       }
@@ -275,14 +304,28 @@ export class WecomKfConnector implements Connector {
       // 跳过空消息
       if (!text) return;
 
+      // 下载媒体文件（如果有 media_url）
+      if (msg.media_url && ['image', 'voice', 'video', 'file'].includes(msg.msgtype)) {
+        try {
+          const downloaded = await this.downloadMedia(msg.media_url, msg.msgtype, msgId);
+          if (downloaded) {
+            if (msg.msgtype === 'image') {
+              imagePath = downloaded.path;
+            } else {
+              filePath = downloaded.path;
+              fileName = downloaded.name;
+            }
+          }
+        } catch (error) {
+          console.warn('[WecomKfConnector] ⚠️ 下载媒体失败:', getErrorMessage(error));
+        }
+      }
+
       const nickname = msg.nickname || '未知用户';
       const kfName = msg.kf_name || msg.open_kfid || '未知客服';
       const externalUserId = msg.external_userid || '';
       const openKfId = msg.open_kfid || '';
 
-      // 构建内部消息格式
-      // conversationId 使用 external_userid + open_kfid 组合，确保同一客户在同一客服下的消息路由到同一 Tab
-      // 使用 || 作为分隔符，避免与 ID 中可能存在的 _ 或 - 冲突
       const conversationId = `${externalUserId}||${openKfId}`;
 
       const parsedMessage: WecomKfIncomingMessage = {
@@ -297,9 +340,11 @@ export class WecomKfConnector implements Connector {
           type: 'p2p',
         },
         content: {
-          // 企微客服只支持 text 和 image 类型，其他类型统一映射为 text
-          type: msg.msgtype === 'image' ? 'image' : 'text',
+          type: contentType,
           text,
+          imagePath,
+          filePath,
+          fileName,
         },
         raw: msg,
       };
@@ -309,6 +354,57 @@ export class WecomKfConnector implements Connector {
     } catch (error) {
       console.error('[WecomKfConnector] ❌ 处理消息失败:', getErrorMessage(error));
     }
+  }
+
+  /**
+   * 下载媒体文件到本地临时目录
+   */
+  private async downloadMedia(mediaUrl: string, msgType: string, msgId: string): Promise<{ path: string; name: string } | null> {
+    const response = await fetch(mediaUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+
+    // 根据消息类型推断扩展名
+    const contentTypeHeader = response.headers.get('content-type') || '';
+    let ext = '.bin';
+    if (msgType === 'image') {
+      ext = contentTypeHeader.includes('png') ? '.png' : '.jpg';
+    } else if (msgType === 'voice') {
+      ext = contentTypeHeader.includes('silk') ? '.silk' : '.amr';
+    } else if (msgType === 'video') {
+      ext = '.mp4';
+    } else if (msgType === 'file') {
+      // 尝试从 Content-Disposition 获取文件名
+      const disposition = response.headers.get('content-disposition') || '';
+      const filenameMatch = disposition.match(/filename="?([^";\s]+)"?/);
+      if (filenameMatch) {
+        const originalName = filenameMatch[1];
+        const dotIdx = originalName.lastIndexOf('.');
+        if (dotIdx > 0) ext = originalName.substring(dotIdx);
+      }
+    }
+
+    const savedName = `wecom-kf-${msgId.substring(0, 16)}${ext}`;
+    const tempDir = this.getTempDir();
+    const savedPath = path.join(tempDir, savedName);
+    fs.writeFileSync(savedPath, buffer);
+
+    console.log(`[WecomKfConnector] 📥 媒体文件已下载: ${savedPath} (${buffer.length} bytes)`);
+    return { path: savedPath, name: savedName };
+  }
+
+  /**
+   * 获取临时文件目录
+   */
+  private getTempDir(): string {
+    const store = SystemConfigStore.getInstance();
+    const settings = store.getWorkspaceSettings();
+    const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
+    ensureDirectoryExists(tempDir);
+    return tempDir;
   }
 
   /**
