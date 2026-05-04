@@ -74,6 +74,12 @@ export class Gateway {
     this.connectorManager.registerConnector(feishuConnector);
     console.log('[Gateway] ✅ 飞书连接器已注册');
 
+    // 注册企微客服连接器
+    const { WecomKfConnector } = require('./connectors/wecom-kf/wecom-kf-connector');
+    const wecomKfConnector = new WecomKfConnector(this.connectorManager);
+    this.connectorManager.registerConnector(wecomKfConnector);
+    console.log('[Gateway] ✅ 企微客服连接器已注册');
+
     // 注册微信连接器（从数据库恢复已有实例，没有则创建默认实例）
     const { WechatConnector } = require('./connectors/wechat/wechat-connector');
     const { SystemConfigStore: ConfigStore } = require('./database/system-config-store');

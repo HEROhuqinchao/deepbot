@@ -83,6 +83,16 @@ export function initTabConfigTable(db: Database.Database): void {
   } catch {
     // 列已存在，忽略
   }
+
+  // 兼容旧数据：将 wecom_kf 类型迁移为 connector
+  try {
+    const result = db.prepare("UPDATE agent_tabs SET type = 'connector' WHERE type = 'wecom_kf'").run();
+    if (result.changes > 0) {
+      console.log(`[TabConfig] 🔄 已将 ${result.changes} 个 wecom_kf Tab 迁移为 connector 类型`);
+    }
+  } catch {
+    // 静默处理
+  }
   
   console.log('[TabConfig] ✅ agent_tabs 表已初始化');
 }

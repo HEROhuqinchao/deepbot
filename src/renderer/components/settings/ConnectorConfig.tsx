@@ -29,6 +29,12 @@ interface FeishuConfig {
   requirePairing?: boolean;
 }
 
+interface WecomKfConfig {
+  wsUrl: string;
+  wsKey: string;
+  enabled?: boolean;
+}
+
 interface PairingRecord {
   connectorId: string;
   userId: string;
@@ -48,6 +54,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
   const [selectedConnector, setSelectedConnector] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('config');
   const [feishuConfig, setFeishuConfig] = useState<FeishuConfig>({ appId: '', appSecret: '', enabled: false, requirePairing: false });
+  const [wecomKfConfig, setWecomKfConfig] = useState<WecomKfConfig>({ wsUrl: '', wsKey: '', enabled: false });
   const [pairingRecords, setPairingRecords] = useState<PairingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -107,11 +114,18 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
         } else {
           setFeishuConfig({ appId: '', appSecret: '', enabled: false, requirePairing: false });
         }
+      } else if (connectorId === 'wecom-kf') {
+        if (actualResult.success && actualResult.config) {
+          setWecomKfConfig({ wsUrl: actualResult.config.wsUrl || '', wsKey: actualResult.config.wsKey || '', enabled: actualResult.enabled || false });
+        } else {
+          setWecomKfConfig({ wsUrl: '', wsKey: '', enabled: false });
+        }
       }
       await loadPairingRecords();
     } catch (error) {
       console.error('加载连接器配置失败:', error);
       if (connectorId === 'feishu') setFeishuConfig({ appId: '', appSecret: '', enabled: false, requirePairing: false });
+      if (connectorId === 'wecom-kf') setWecomKfConfig({ wsUrl: '', wsKey: '', enabled: false });
     }
   };
 
@@ -177,9 +191,15 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
           return;
         }
         await api.connectorSaveConfig('feishu', { ...feishuConfig, enabled: false });
-      }
-      if (connectorId.startsWith('wechat')) {
+      } else if (connectorId.startsWith('wechat')) {
         await api.connectorSaveConfig(connectorId, { enabled: false });
+      } else if (connectorId === 'wecom-kf') {
+        if (!wecomKfConfig.wsUrl.trim() || !wecomKfConfig.wsKey.trim()) {
+          showToast('error', lang === 'zh' ? '请输入 WebSocket 地址和密钥' : 'Please enter WebSocket URL and Key');
+          setStartingMap(prev => ({ ...prev, [connectorId]: false }));
+          return;
+        }
+        await api.connectorSaveConfig('wecom-kf', { ...wecomKfConfig, enabled: false });
       }
       await api.connectorStart(connectorId);
       showToast('success', lang === 'zh' ? '连接器已启动' : 'Connector started');
@@ -425,6 +445,39 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
     );
   };
 
+  // ── 企微客服配置面板 ──────────────────────────────────────────────
+  const renderWecomKfConfig = () => (
+    <div className="space-y-4">
+      <div className="settings-alert settings-alert-success">
+        <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '企微客服连接器说明' : 'WeCom KF Connector Info'}</h4>
+        <p className="text-sm text-green-800">
+          {lang === 'zh'
+            ? '企微客服连接器通过 WebSocket 连接 wechat-service 服务，接收企业微信客服消息。收到消息后会根据客服名称和用户昵称自动创建对应的 Tab。'
+            : 'WeCom KF connector connects to wechat-service via WebSocket to receive customer service messages. Tabs are auto-created based on KF name and user nickname.'}
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">WebSocket URL <span className="text-red-500">*</span></label>
+        <input type="text" value={wecomKfConfig.wsUrl} onChange={(e) => setWecomKfConfig({ ...wecomKfConfig, wsUrl: e.target.value })}
+          placeholder="wss://www.im-director.com/webhook/ws/" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">WebSocket Key <span className="text-red-500">*</span></label>
+        <input type="password" value={wecomKfConfig.wsKey} onChange={(e) => setWecomKfConfig({ ...wecomKfConfig, wsKey: e.target.value })}
+          placeholder={lang === 'zh' ? '请输入 WebSocket 认证密钥' : 'Enter WebSocket authentication key'} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+
+      <div className="settings-alert settings-alert-info">
+        <p className="text-sm text-blue-800"><strong>{lang === 'zh' ? 'Tab 命名规则：' : 'Tab Naming: '}</strong>{lang === 'zh' ? '收到消息后自动创建 Tab，格式为 QW-{客服名称}-{用户昵称}' : 'Tabs are auto-created as QW-{KF Name}-{Nickname}'}</p>
+      </div>
+
+      <div className="flex items-center gap-2 pt-4">
+        {renderStartStopButtons('wecom-kf')}
+      </div>
+    </div>
+  );
+
   // ── Pairing 管理面板 ─────────────────────────────────────────────
   const renderPairingPanel = () => (
     <div className="space-y-4">
@@ -574,7 +627,9 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
               ? (lang === 'zh' ? '微信' : 'WeChat')
               : connector.id === 'feishu'
                 ? (lang === 'zh' ? '飞书' : 'Feishu')
-                : connector.name;
+                : connector.id === 'wecom-kf'
+                  ? (lang === 'zh' ? '企微客服' : 'WeCom KF')
+                  : connector.name;
             // 微信 tab 不显示状态（每个实例内部已有独立状态）
             const health = isWechatTab ? undefined : connectorHealthMap[connector.id];
 
@@ -595,6 +650,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
       {/* 连接器配置面板（根据选中的连接器渲染） */}
       {selectedConnector === 'feishu' && renderFeishuConfig()}
       {selectedConnector?.startsWith('wechat') && renderWechatConfig()}
+      {selectedConnector === 'wecom-kf' && renderWecomKfConfig()}
     </div>
   );
 }

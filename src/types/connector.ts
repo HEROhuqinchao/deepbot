@@ -225,12 +225,44 @@ export interface WechatIncomingMessage {
   raw: any;
 }
 
+// ========== 企微客服特定类型 ==========
+
+/**
+ * 企微客服连接器配置
+ */
+export interface WecomKfConnectorConfig extends ConnectorConfig {
+  wsUrl: string;              // WebSocket 地址
+  wsKey: string;              // WebSocket 认证密钥
+}
+
+/**
+ * 企微客服消息（内部格式）
+ */
+export interface WecomKfIncomingMessage {
+  messageId: string;
+  timestamp: number;
+  sender: {
+    id: string;               // external_userid
+    name: string;             // nickname
+  };
+  conversation: {
+    id: string;               // {external_userid}||{open_kfid}
+    type: 'p2p';
+  };
+  content: {
+    type: 'text' | 'image';
+    text: string;
+  };
+  systemContext?: string;
+  raw: any;
+}
+
 // ========== 通用连接器消息 ==========
 
 /**
  * 通用连接器消息（ConnectorManager 使用）
  */
-export type ConnectorIncomingMessage = FeishuIncomingMessage | WechatIncomingMessage;
+export type ConnectorIncomingMessage = FeishuIncomingMessage | WechatIncomingMessage | WecomKfIncomingMessage;
 
 /**
  * Pairing 记录

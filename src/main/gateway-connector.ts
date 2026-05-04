@@ -178,6 +178,11 @@ export class GatewayConnectorHandler {
             .filter(n => n > 0);
           const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
           title = `WX-用户${nextNum}`;
+        } else if (message.source.connectorId === 'wecom-kf') {
+          // 企微客服消息：使用 kfName + nickname 生成 Tab 标题
+          const kfName = (message.raw as any)?.kf_name || (message.raw as any)?.open_kfid || '客服';
+          const nickname = message.source.senderName || '用户';
+          title = `QW-${kfName}-${nickname}`;
         } else {
           title = message.source.connectorId || 'unknown';
         }
@@ -406,6 +411,13 @@ export class GatewayConnectorHandler {
 注意：
 1. 不要用markdown格式回复内容，微信只能接收纯文本
 2. 绝对不要使用 wechat_send_message 工具回复信息，除非收到明确指令要给具体目标发送消息]`;
+    } else if (message.source.connectorId === 'wecom-kf') {
+      connectorToolsHint = `\n\n[系统提示: 这是企微客服通讯会话，客户通过企业微信客服渠道发送消息。
+
+注意：
+1. 不要用markdown格式回复内容，企微客服只能接收纯文本
+2. 回复时带上用户的名字
+3. 来自信息中包含了发送信息的客户昵称]`;
     }
 
     // 额外系统通知（由连接器按需注入，如首次管理员授权提示）
