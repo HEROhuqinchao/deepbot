@@ -197,7 +197,7 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
       const { tabId } = req.params;
       const { title } = req.body;
       if (!title) return res.status(400).json({ success: false, error: 'title is required' });
-      if (title.length > 10) return res.json({ success: false, error: '名称不能超过 10 个字符' });
+      if (title.length > 20) return res.json({ success: false, error: '名称不能超过 20 个字符' });
 
       const { getGatewayInstance } = await import('../../main/gateway');
       const gateway = getGatewayInstance();

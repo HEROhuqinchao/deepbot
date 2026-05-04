@@ -205,7 +205,7 @@ export function SystemSettings({ isOpen, onClose, activeTabId }: SystemSettingsP
             {activeTab === 'environment' && <EnvironmentConfig onClose={onClose} activeTabId={activeTabId} />}
             {activeTab === 'tools' && <ToolConfig onClose={onClose} />}
             {activeTab === 'workspace' && <WorkspaceConfig onClose={onClose} />}
-            {activeTab === 'connectors' && <ConnectorConfig onClose={onClose} />}
+            {activeTab === 'connectors' && <ConnectorConfig onClose={onClose} onNavigate={(tab) => setActiveTab(tab as any)} />}
             {activeTab === 'version' && <AppVersion initialUpdateInfo={pendingUpdateInfo} />}
             {activeTab === 'subscription' && <Subscription />}
           </div>

@@ -8,10 +8,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api';
 import { showToast } from '../../utils/toast';
 import { getLanguage } from '../../i18n';
-import { Check, Shield, Trash2, Copy, Link, Play, Square } from 'lucide-react';
+import { Check, Shield, Trash2, Copy, Link, Play, Square, X, FileText } from 'lucide-react';
 
 interface ConnectorConfigProps {
   onClose: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
 interface Connector {
@@ -48,7 +49,7 @@ interface PairingRecord {
 
 type TabType = 'config' | 'pairing' | 'guide';
 
-export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
+export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const lang = getLanguage();
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [selectedConnector, setSelectedConnector] = useState<string | null>(null);
@@ -62,6 +63,8 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
   const [loadingPairing, setLoadingPairing] = useState(false);
   const [connectorHealthMap, setConnectorHealthMap] = useState<Record<string, 'healthy' | 'unhealthy' | 'checking'>>({});
   const hasLoadedRef = useRef(false);
+  const [showWecomKfWorkPrompt, setShowWecomKfWorkPrompt] = useState(false);
+  const [wecomKfDefaultWorkPrompt, setWecomKfDefaultWorkPrompt] = useState('');
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -195,7 +198,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
         await api.connectorSaveConfig(connectorId, { enabled: false });
       } else if (connectorId === 'wecom-kf') {
         if (!wecomKfConfig.wsUrl.trim() || !wecomKfConfig.wsKey.trim()) {
-          showToast('error', lang === 'zh' ? '请输入 WebSocket 地址和密钥' : 'Please enter WebSocket URL and Key');
+          showToast('error', lang === 'zh' ? '请输入 API URL 和 API Key' : 'Please enter API URL and API Key');
           setStartingMap(prev => ({ ...prev, [connectorId]: false }));
           return;
         }
@@ -452,29 +455,114 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
         <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '企微客服连接器说明' : 'WeCom KF Connector Info'}</h4>
         <p className="text-sm text-green-800">
           {lang === 'zh'
-            ? '企微客服连接器通过 WebSocket 连接 wechat-service 服务，接收企业微信客服消息。收到消息后会根据客服名称和用户昵称自动创建对应的 Tab。'
-            : 'WeCom KF connector connects to wechat-service via WebSocket to receive customer service messages. Tabs are auto-created based on KF name and user nickname.'}
+            ? '企微客服连接器通过 WebSocket 连接"微信客服"云端服务，接收 kf.weixin.qq.com 中配置的客服账号。支持同时连接多个客服，针对每个客服设置（训练）为不同的应答方式，100% 灵活自主配置。'
+            : 'WeCom KF connector connects to WeChat Customer Service cloud via WebSocket, receiving messages from KF accounts configured at kf.weixin.qq.com. Supports multiple KF accounts with independent response training.'}
+        </p>
+        <p className="text-sm text-green-800 mt-2">
+          {lang === 'zh' ? '如需使用请扫码' : 'To subscribe, scan the QR code in '}<a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('subscription'); }} className="font-medium underline text-green-900 hover:text-green-700 cursor-pointer">{lang === 'zh' ? '「订阅及付费」' : '"Subscribe & Pay"'}</a>{lang === 'zh' ? '中的二维码获取服务。' : ' to get the service.'}
         </p>
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">WebSocket URL <span className="text-red-500">*</span></label>
+        <label className="block text-sm font-medium text-gray-700">API URL <span className="text-red-500">*</span></label>
         <input type="text" value={wecomKfConfig.wsUrl} onChange={(e) => setWecomKfConfig({ ...wecomKfConfig, wsUrl: e.target.value })}
-          placeholder="wss://www.im-director.com/webhook/ws/" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          placeholder="wss://your-service-url/webhook/ws/" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">WebSocket Key <span className="text-red-500">*</span></label>
+        <label className="block text-sm font-medium text-gray-700">API Key <span className="text-red-500">*</span></label>
         <input type="password" value={wecomKfConfig.wsKey} onChange={(e) => setWecomKfConfig({ ...wecomKfConfig, wsKey: e.target.value })}
-          placeholder={lang === 'zh' ? '请输入 WebSocket 认证密钥' : 'Enter WebSocket authentication key'} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          placeholder={lang === 'zh' ? '请输入认证密钥' : 'Enter authentication key'} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
 
-      <div className="settings-alert settings-alert-info">
-        <p className="text-sm text-blue-800"><strong>{lang === 'zh' ? 'Tab 命名规则：' : 'Tab Naming: '}</strong>{lang === 'zh' ? '收到消息后自动创建 Tab，格式为 QW-{客服名称}-{用户昵称}' : 'Tabs are auto-created as QW-{KF Name}-{Nickname}'}</p>
-      </div>
+      <button
+        onClick={async () => {
+          try {
+            const result = await api.getAppSetting('wecom_kf_default_work_prompt');
+            setWecomKfDefaultWorkPrompt(result?.value || '');
+          } catch {
+            setWecomKfDefaultWorkPrompt('');
+          }
+          setShowWecomKfWorkPrompt(true);
+        }}
+        className="skill-icon-button skill-icon-button-accent"
+      >
+        <FileText size={14} />
+        <span style={{ fontSize: '12px' }}>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
+      </button>
 
-      <div className="flex items-center gap-2 pt-4">
+      <div className="flex items-center gap-2 pt-2">
         {renderStartStopButtons('wecom-kf')}
       </div>
+
+      {/* 企微客服默认工作提示词弹窗 */}
+      {showWecomKfWorkPrompt && (
+        <div className="settings-overlay" onClick={() => setShowWecomKfWorkPrompt(false)}>
+          <div
+            className="settings-container tab-model-picker-container"
+            style={{ width: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">
+                {lang === 'zh' ? '默认工作提示词' : 'Default Work Prompt'}
+              </h2>
+              <button className="settings-close-button" onClick={() => setShowWecomKfWorkPrompt(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+              <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px', flexShrink: 0 }}>
+                <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 什么是默认工作提示词？' : '💡 What is Default Work Prompt?'}</h4>
+                <p className="text-sm text-green-800">
+                  {lang === 'zh'
+                    ? '设置后，新创建的企微客服 Tab 会自动填入此提示词。用户可以在 Tab 右键菜单中修改覆盖。'
+                    : 'Once set, new WeCom KF tabs will auto-fill this prompt. Users can override it via tab context menu.'}
+                </p>
+              </div>
+              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                <textarea
+                  value={wecomKfDefaultWorkPrompt}
+                  onChange={(e) => { if (e.target.value.length <= 10000) setWecomKfDefaultWorkPrompt(e.target.value); }}
+                  className="settings-input"
+                  style={{ width: '100%', minHeight: '300px', height: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
+                  placeholder={lang === 'zh' ? '例如：\n你是一个专业的客服助手，请注意以下几点：\n1. 回复要简洁友好，不超过 200 字\n2. 遇到技术问题，先询问具体情况再给建议\n3. 无法解决的问题，引导用户联系人工客服' : 'e.g. You are a professional customer service assistant...'}
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '12px', flexShrink: 0 }}>
+                <span style={{ fontSize: '12px', color: 'var(--terminal-text-dim, #999)' }}>
+                  {wecomKfDefaultWorkPrompt.length} / 10000
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {wecomKfDefaultWorkPrompt && (
+                    <button
+                      onClick={async () => {
+                        await api.saveAppSetting('wecom_kf_default_work_prompt', '');
+                        setShowWecomKfWorkPrompt(false);
+                        showToast('success', lang === 'zh' ? '已清空默认工作提示词' : 'Default work prompt cleared');
+                      }}
+                      className="skill-icon-button"
+                      style={{ padding: '8px 20px', fontSize: '13px' }}
+                    >
+                      {lang === 'zh' ? '清空' : 'Clear'}
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      await api.saveAppSetting('wecom_kf_default_work_prompt', wecomKfDefaultWorkPrompt.trim());
+                      setShowWecomKfWorkPrompt(false);
+                      showToast('success', lang === 'zh' ? '默认工作提示词已保存' : 'Default work prompt saved');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    {lang === 'zh' ? '保存配置' : 'Save Configuration'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -628,7 +716,7 @@ export function ConnectorConfig({ onClose }: ConnectorConfigProps) {
               : connector.id === 'feishu'
                 ? (lang === 'zh' ? '飞书' : 'Feishu')
                 : connector.id === 'wecom-kf'
-                  ? (lang === 'zh' ? '企微客服' : 'WeCom KF')
+                  ? (lang === 'zh' ? '企微（微信）客服' : 'WeCom KF')
                   : connector.name;
             // 微信 tab 不显示状态（每个实例内部已有独立状态）
             const health = isWechatTab ? undefined : connectorHealthMap[connector.id];

@@ -926,7 +926,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         <div className="settings-overlay" onClick={() => setShowRenameDialog(null)}>
           <div
             className="settings-container tab-model-picker-container"
-            style={{ width: '400px', maxHeight: '200px' }}
+            style={{ width: '360px', height: 'auto', maxHeight: 'none' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="settings-header">
@@ -937,48 +937,50 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 <X size={20} />
               </button>
             </div>
-            <div style={{ padding: '16px 24px', display: 'flex', gap: '8px' }}>
-              <input
-                type="text"
-                value={renameValue}
-                onChange={(e) => { if (e.target.value.length <= 10) setRenameValue(e.target.value); }}
-                onKeyDown={async (e) => {
-                  if (e.key === 'Enter' && renameValue.trim()) {
-                    const result = await api.renameTab(showRenameDialog, renameValue.trim());
-                    if (result.success) {
-                      const name = renameValue.trim();
-                      setShowRenameDialog(null);
-                      const msg = lang === 'zh' ? `已经给你取了新名字叫「${result.title || name}」，你不用再设置，我已经设置好了` : `I've given you a new name: "${result.title || name}". No need to set it yourself, it's already done.`;
-                      onSendMessage(msg);
-                    } else {
-                      alert(result.error || (lang === 'zh' ? '重命名失败' : 'Rename failed'));
+            <div className="settings-panel" style={{ padding: '12px 20px' }}>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={renameValue}
+                  onChange={(e) => { if (e.target.value.length <= 20) setRenameValue(e.target.value); }}
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter' && renameValue.trim()) {
+                      const result = await api.renameTab(showRenameDialog, renameValue.trim());
+                      if (result.success) {
+                        const name = renameValue.trim();
+                        setShowRenameDialog(null);
+                        const msg = lang === 'zh' ? `已经给你取了新名字叫「${result.title || name}」，你不用再设置，我已经设置好了` : `I've given you a new name: "${result.title || name}". No need to set it yourself, it's already done.`;
+                        onSendMessage(msg);
+                      } else {
+                        alert(result.error || (lang === 'zh' ? '重命名失败' : 'Rename failed'));
+                      }
                     }
-                  }
-                }}
-                className="settings-input"
-                style={{ flex: 1 }}
-                placeholder={lang === 'zh' ? '输入名称' : 'Enter name'}
-                autoFocus
-              />
-              <button
-                onClick={async () => {
-                  if (renameValue.trim()) {
-                    const result = await api.renameTab(showRenameDialog, renameValue.trim());
-                    if (result.success) {
-                      const name = renameValue.trim();
-                      setShowRenameDialog(null);
-                      const msg = lang === 'zh' ? `已经给你取了新名字叫「${result.title || name}」，你不用再设置，我已经设置好了` : `I've given you a new name: "${result.title || name}". No need to set it yourself, it's already done.`;
-                      onSendMessage(msg);
-                    } else {
-                      alert(result.error || (lang === 'zh' ? '重命名失败' : 'Rename failed'));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder={lang === 'zh' ? '输入名称' : 'Enter name'}
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end pt-3 mt-3 border-t">
+                <button
+                  onClick={async () => {
+                    if (renameValue.trim()) {
+                      const result = await api.renameTab(showRenameDialog, renameValue.trim());
+                      if (result.success) {
+                        const name = renameValue.trim();
+                        setShowRenameDialog(null);
+                        const msg = lang === 'zh' ? `已经给你取了新名字叫「${result.title || name}」，你不用再设置，我已经设置好了` : `I've given you a new name: "${result.title || name}". No need to set it yourself, it's already done.`;
+                        onSendMessage(msg);
+                      } else {
+                        alert(result.error || (lang === 'zh' ? '重命名失败' : 'Rename failed'));
+                      }
                     }
-                  }
-                }}
-                className="skill-icon-button skill-icon-button-accent"
-                style={{ padding: '6px 16px', fontSize: '12px' }}
-              >
-                {lang === 'zh' ? '确定' : 'OK'}
-              </button>
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                  {lang === 'zh' ? '保存' : 'Save'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -989,7 +991,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         <div className="settings-overlay" onClick={() => setShowWorkPromptDialog(null)}>
           <div
             className="settings-container tab-model-picker-container"
-            style={{ width: '700px', maxHeight: '80vh' }}
+            style={{ width: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="settings-header">
@@ -1000,8 +1002,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 <X size={20} />
               </button>
             </div>
-            <div style={{ padding: '16px 24px' }}>
-              <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px' }}>
+            <div className="settings-panel" style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+              <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px', flexShrink: 0 }}>
                 <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 什么是工作提示词？' : '💡 What is a Work Prompt?'}</h4>
                 <p className="text-sm text-green-800">
                   {lang === 'zh'
@@ -1009,15 +1011,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                     : 'Work prompts tell the AI what role to play, what tone to use, and what to pay attention to. Once set, the AI will follow these guidelines in every conversation.'}
                 </p>
               </div>
-              <textarea
-                value={workPromptValue}
-                onChange={(e) => { if (e.target.value.length <= 10000) setWorkPromptValue(e.target.value); }}
-                className="settings-input"
-                style={{ width: '100%', minHeight: '375px', maxHeight: '50vh', resize: 'vertical', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
-                placeholder={lang === 'zh' ? '例如：\n你是一个专业的客服助手，请注意以下几点：\n1. 回复要简洁友好，不超过 200 字\n2. 遇到技术问题，先询问具体情况再给建议\n3. 无法解决的问题，引导用户联系人工客服' : 'e.g. You are a professional customer service assistant...'}
-                autoFocus
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                <textarea
+                  value={workPromptValue}
+                  onChange={(e) => { if (e.target.value.length <= 10000) setWorkPromptValue(e.target.value); }}
+                  className="settings-input"
+                  style={{ width: '100%', minHeight: '300px', height: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
+                  placeholder={lang === 'zh' ? '例如：\n你是一个专业的客服助手，请注意以下几点：\n1. 回复要简洁友好，不超过 200 字\n2. 遇到技术问题，先询问具体情况再给建议\n3. 无法解决的问题，引导用户联系人工客服' : 'e.g. You are a professional customer service assistant...'}
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '12px', flexShrink: 0 }}>
                 <span style={{ fontSize: '12px', color: 'var(--terminal-text-dim)' }}>
                   {workPromptValue.length} / 10000
                 </span>
@@ -1025,9 +1029,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                   {workPromptValue && (
                     <button
                       onClick={async () => {
-                        // 清空工作提示词
                         await api.setTabWorkPrompt(showWorkPromptDialog, null);
-                        // 分组模式：同步清空所有 Tab
                         if (workPromptGroupRef.current) {
                           for (const otherTabId of workPromptGroupRef.current) {
                             if (otherTabId !== showWorkPromptDialog) {
@@ -1039,7 +1041,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                         setShowWorkPromptDialog(null);
                       }}
                       className="skill-icon-button"
-                      style={{ padding: '6px 16px', fontSize: '12px' }}
+                      style={{ padding: '8px 20px', fontSize: '13px' }}
                     >
                       {lang === 'zh' ? '清空' : 'Clear'}
                     </button>
@@ -1048,7 +1050,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                     onClick={async () => {
                       const prompt = workPromptValue.trim() || null;
                       await api.setTabWorkPrompt(showWorkPromptDialog, prompt);
-                      // 分组模式：同步到所有 Tab
                       if (workPromptGroupRef.current) {
                         for (const otherTabId of workPromptGroupRef.current) {
                           if (otherTabId !== showWorkPromptDialog) {
@@ -1059,10 +1060,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                       }
                       setShowWorkPromptDialog(null);
                     }}
-                    className="skill-icon-button skill-icon-button-accent"
-                    style={{ padding: '6px 16px', fontSize: '12px' }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                   >
-                    {lang === 'zh' ? '保存' : 'Save'}
+                    {lang === 'zh' ? '保存配置' : 'Save Configuration'}
                   </button>
                 </div>
               </div>
@@ -1087,7 +1087,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 <X size={20} />
               </button>
             </div>
-            <div style={{ padding: '16px 24px' }}>
+            <div className="settings-panel" style={{ padding: '16px 24px' }}>
               <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px' }}>
                 <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '🔒 Skill 安全控制' : '🔒 Skill Security'}</h4>
                 <p className="text-sm text-green-800">
@@ -1174,33 +1174,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 <X size={20} />
               </button>
             </div>
-            <div style={{ padding: '16px 24px' }}>
+            <div className="settings-panel" style={{ padding: '16px 24px' }}>
               {/* 继承/自定义切换 */}
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+              <div className="space-y-2 mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input type="radio" checked={!isCustomWorkspace} onChange={() => setIsCustomWorkspace(false)} />
-                  <span style={{ fontSize: '13px' }}>{lang === 'zh' ? '继承系统工作目录' : 'Inherit system workspace'}</span>
+                  <span className="text-sm">{lang === 'zh' ? '继承系统工作目录' : 'Inherit system workspace'}</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input type="radio" checked={isCustomWorkspace} onChange={() => setIsCustomWorkspace(true)} />
-                  <span style={{ fontSize: '13px' }}>{lang === 'zh' ? '自定义' : 'Custom'}</span>
+                  <span className="text-sm">{lang === 'zh' ? '自定义' : 'Custom'}</span>
                 </label>
               </div>
 
               {isCustomWorkspace && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="space-y-4">
                   {/* 主工作目录 */}
-                  <div>
-                    <label className="block text-sm font-medium" style={{ marginBottom: '4px', color: 'var(--settings-label, #374151)' }}>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
                       {lang === 'zh' ? '主工作目录' : 'Main workspace'} <span className="text-red-500">*</span>
                     </label>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div className="flex gap-2">
                       <input
                         type="text"
                         value={workspaceMainDir}
                         onChange={(e) => setWorkspaceMainDir(e.target.value)}
-                        className="settings-input"
-                        style={{ flex: 1 }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder={isElectron() ? '/Users/xxx/projects' : 'projects（相对于 /data/workspace/）'}
                       />
                       {isElectron() && (
@@ -1215,19 +1214,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                       )}
                     </div>
                     {!isElectron() && (
-                      <p style={{ fontSize: '11px', color: 'var(--terminal-text-dim)', marginTop: '4px' }}>
+                      <p className="text-xs text-gray-500">
                         {lang === 'zh' ? '填写 /data/workspace/ 之后的子目录路径，如 projects。完整路径为 /data/workspace/projects' : 'Enter subdirectory under /data/workspace/, e.g. projects'}
                       </p>
                     )}
                   </div>
 
                   {/* 额外工作目录 */}
-                  <div>
-                    <label className="block text-sm font-medium" style={{ marginBottom: '4px', color: 'var(--settings-label, #374151)' }}>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
                       {lang === 'zh' ? '额外工作目录（可选）' : 'Extra directories (optional)'}
                     </label>
                     {workspaceExtraDirs.map((dir, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                      <div key={idx} className="flex gap-2">
                         <input
                           type="text"
                           value={dir}
@@ -1236,8 +1235,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                             next[idx] = e.target.value;
                             setWorkspaceExtraDirs(next);
                           }}
-                          className="settings-input"
-                          style={{ flex: 1 }}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder={isElectron() ? '/Users/xxx/other' : 'other（相对于 /data/workspace/）'}
                         />
                         {isElectron() && (
@@ -1257,22 +1255,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                         <button
                           onClick={() => setWorkspaceExtraDirs(prev => prev.filter((_, i) => i !== idx))}
                           className="skill-icon-button"
-                          style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--terminal-error)' }}
-                        >×</button>
+                          style={{ color: 'var(--settings-error)' }}
+                        ><X size={16} /></button>
                       </div>
                     ))}
                     <button
                       onClick={() => setWorkspaceExtraDirs(prev => [...prev, ''])}
-                      className="skill-icon-button"
-                      style={{ padding: '4px 12px', fontSize: '12px' }}
+                      className="skill-icon-button skill-icon-button-accent"
                     >
-                      + {lang === 'zh' ? '添加目录' : 'Add directory'}
+                      <span style={{ fontSize: '12px' }}>+ {lang === 'zh' ? '添加目录' : 'Add directory'}</span>
                     </button>
                   </div>
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+              <div className="flex justify-end pt-4 border-t mt-4">
                 <button
                   onClick={async () => {
                     if (isCustomWorkspace) {
@@ -1312,10 +1309,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                     }
                     setShowWorkspaceDirsDialog(null);
                   }}
-                  className="skill-icon-button skill-icon-button-accent"
-                  style={{ padding: '6px 16px', fontSize: '12px' }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 >
-                  {lang === 'zh' ? '保存' : 'Save'}
+                  {lang === 'zh' ? '保存配置' : 'Save Configuration'}
                 </button>
               </div>
             </div>
