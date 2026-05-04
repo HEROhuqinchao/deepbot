@@ -30,17 +30,8 @@ import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { getShellEnvFromLoginShell } from './shell-env';
 import { isBlockingInteractiveCommand, getBlockingCommandSuggestion } from './exec-blocking-check';
 import { TIMEOUTS } from '../config/timeouts';
-import { assertPathAllowed } from '../utils/path-security';
 import { SystemConfigStore } from '../database/system-config-store';
 import type { ToolPlugin, ToolCreateOptions } from './registry/tool-interface';
-
-function securityError(error: unknown, command: string, unsafePath: string): Error {
-  const isEn = SystemConfigStore.getInstance().getAppSetting('language') === 'en';
-  const msg = error instanceof Error ? error.message : (isEn ? 'Unknown error' : '未知错误');
-  return isEn
-    ? new Error(`Command security check failed: ${msg}\nCommand: ${command}\nUnsafe path: ${unsafePath}`)
-    : new Error(`命令安全检查失败：${msg}\n命令：${command}\n不安全路径：${unsafePath}`);
-}
 
 /**
  * 危险命令列表（黑名单）
@@ -132,215 +123,6 @@ const DANGEROUS_PATTERNS = [
 ];
 
 /**
- * 检查命令中的路径是否安全（严格模式）
- * 
- * 使用 assertPathAllowed 进行严格的路径安全检查，
- * 如果发现不安全的路径会直接抛出异常终止执行
- * 
- * @param command - 要执行的命令
- * @throws 如果包含不安全路径会抛出异常
- */
-function checkCommandPathSecurity(command: string): void {
-  // 🔥 先剥离引号内的字符串内容，避免误匹配数据中的路径
-  // 例如：obsidian create content="cd /root/xxx" 中的 /root/xxx 是数据，不是实际命令
-  const sanitizedCommand = command
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""')   // 双引号内容替换为空
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''");  // 单引号内容替换为空
-
-  // 🔥 系统路径白名单（这些是安全的系统路径）
-  const SYSTEM_PATH_WHITELIST = [
-    // Unix/Linux/macOS 标准设备文件（精确匹配）
-    '/dev/null',
-    '/dev/zero',
-    '/dev/stdin',
-    '/dev/stdout',
-    '/dev/stderr',
-    '/dev/urandom',
-    '/dev/random',
-    '/dev/tty',
-    '/dev/full',
-    '/dev/ptmx',
-    
-    // Windows 设备文件（精确匹配）
-    'NUL',           // Windows 空设备
-    'nul',           // Windows 空设备（小写）
-    'CON',           // Windows 控制台
-    'con',           // Windows 控制台（小写）
-    'AUX',           // Windows 辅助设备
-    'aux',           // Windows 辅助设备（小写）
-    'PRN',           // Windows 打印机
-    'prn',           // Windows 打印机（小写）
-  ];
-  
-  // 🔥 系统目录前缀白名单（前缀匹配）
-  const SYSTEM_DIR_PREFIX_WHITELIST = [
-    // Unix/Linux 临时目录
-    '/tmp/',
-    '/var/tmp/',
-    '/var/log/',      // 日志目录（只读）
-    '/var/run/',      // 运行时数据
-    
-    // macOS 特有
-    '/private/tmp/',
-    '/private/var/tmp/',
-    '/private/var/log/',
-    
-    // Linux 系统信息（只读）
-    '/proc/',         // 进程信息
-    '/sys/',          // 系统信息
-    '/run/',          // 运行时数据
-    
-    // Windows 临时目录（需要处理大小写）
-    'C:\\Windows\\Temp\\',
-    'C:\\WINDOWS\\TEMP\\',
-    'c:\\windows\\temp\\',
-    'C:\\Temp\\',
-    'C:\\TEMP\\',
-    'c:\\temp\\',
-    
-    // Windows 用户临时目录（通过环境变量）
-    // 注意：这些路径在实际使用时会被展开，这里只是示例
-  ];
-  
-  // 🔥 安全的环境变量白名单（用于临时目录）
-  const SAFE_ENV_VARS = ['TMPDIR', 'TEMP', 'TMP'];
-  
-  // 🔥 动态添加环境变量指向的临时目录到白名单
-  const envTempDirs: string[] = [];
-  for (const envVar of SAFE_ENV_VARS) {
-    const envValue = process.env[envVar];
-    if (envValue) {
-      // 确保路径以 / 或 \ 结尾
-      const normalizedPath = envValue.endsWith('/') || envValue.endsWith('\\') 
-        ? envValue 
-        : envValue + (process.platform === 'win32' ? '\\' : '/');
-      envTempDirs.push(normalizedPath);
-    }
-  }
-  
-  // 合并所有前缀白名单
-  const allPrefixWhitelist = [...SYSTEM_DIR_PREFIX_WHITELIST, ...envTempDirs];
-  
-  // 提取命令中可能的路径参数
-  // 注意：只检查 shell 层面的路径参数，不扫描命令字符串内容（避免误判 Python/JS 代码里的路径字符串）
-  const pathPatterns = [
-    // cd 命令：cd /path/to/dir
-    { pattern: /cd\s+([^\s&|;]+)/gi, name: 'cd' },
-    // 文件操作：cp, mv, rm, mkdir, rmdir, touch, cat, ls, find, grep 等
-    // 注意：这里只匹配第一个参数，多参数情况由下面的 multiArg 处理
-    { pattern: /(cp|mv|rm|mkdir|rmdir|touch|cat|ls|find|grep)\s+([^\s&|;-][^\s&|;]*)/gi, name: 'file operations' },
-    // 重定向：> /path/to/file, >> /path/to/file
-    { pattern: /(>>?)\s*([^\s&|;]+)/gi, name: 'redirection' },
-    // Python/Node.js 脚本文件执行：python /path/to/script.py（注意：-c 参数会被跳过）
-    { pattern: /(python|python3|node|npm|pip|pip3)\s+([^\s&|;-][^\s&|;]*)/gi, name: 'script execution' },
-    // 注意：移除了通用 absolute paths 正则，因为它会误匹配命令字符串内容（如 URL、Python 代码里的路径）
-  ];
-
-  // 🔥 额外检查：提取文件操作命令中所有路径参数（包括 flags 后面的路径）
-  // 例如：ls -la ~/Downloads/ 中的 ~/Downloads/
-  const fileOpMultiArgPattern = /(?:^|\s)(cp|mv|rm|mkdir|rmdir|touch|cat|ls|find|grep)\s+(.*?)(?=\s*(?:&&|\|\||;|$))/gi;
-  const fileOpMatches = Array.from(sanitizedCommand.matchAll(fileOpMultiArgPattern));
-  for (const match of fileOpMatches) {
-    const args = match[2].trim().split(/\s+/);
-    for (const arg of args) {
-      // 跳过 flags（以 - 开头）
-      if (arg.startsWith('-')) continue;
-      // 只检查绝对路径（相对路径由 cwd 安全检查保证）
-      const isAbsPath = arg.startsWith('/') || arg.startsWith('~') || 
-        arg.startsWith('./') || arg.startsWith('../') || /^[A-Za-z]:[/\\]/.test(arg);
-      if (!isAbsPath) continue;
-      if (arg.startsWith('http://') || arg.startsWith('https://')) continue;
-      if (SYSTEM_PATH_WHITELIST.includes(arg)) continue;
-      if (allPrefixWhitelist.some(prefix => arg.startsWith(prefix))) continue;
-      try {
-        assertPathAllowed(arg);
-      } catch (error) {
-        throw securityError(error, command, arg);
-      }
-    }
-  }
-  
-  for (const { pattern, name } of pathPatterns) {
-    const matches = Array.from(sanitizedCommand.matchAll(pattern));
-    
-    for (const match of matches) {
-      // 根据不同的模式提取路径
-      let pathToCheck: string;
-      
-      if (name === 'cd') {
-        pathToCheck = match[1]; // cd 命令的路径参数
-      } else if (name === 'file operations') {
-        pathToCheck = match[2]; // 文件操作的路径参数
-      } else if (name === 'redirection') {
-        pathToCheck = match[2]; // 重定向的文件路径
-      } else if (name === 'script execution') {
-        pathToCheck = match[2]; // 脚本文件路径
-      } else if (name === 'absolute paths') {
-        pathToCheck = match[1]; // 绝对路径
-      } else {
-        continue;
-      }
-      
-      // 清理路径（去掉引号等）
-      pathToCheck = pathToCheck.replace(/^['"]|['"]$/g, '').trim();
-      
-      // 跳过明显的参数（以 - 开头）
-      if (pathToCheck.startsWith('-')) {
-        continue;
-      }
-      
-      // 跳过空路径
-      if (!pathToCheck) {
-        continue;
-      }
-      
-      // 跳过单独的 /（根目录，通常是误匹配，如 "url1 / url2" 中的分隔符）
-      if (pathToCheck === '/') {
-        continue;
-      }
-      
-      // 跳过 URL（http:// 或 https:// 开头）
-      if (pathToCheck.startsWith('http://') || pathToCheck.startsWith('https://')) {
-        continue;
-      }
-      
-      // 跳过相对路径（不以 /、~、./、../ 或 Windows 盘符开头）
-      // 相对路径依赖 cwd，由 assertPathAllowed(cwd) 保证安全，无需单独检查
-      const isAbsolutePath = pathToCheck.startsWith('/') || 
-        pathToCheck.startsWith('~') || 
-        pathToCheck.startsWith('./') || 
-        pathToCheck.startsWith('../') ||
-        /^[A-Za-z]:[/\\]/.test(pathToCheck);
-      if (!isAbsolutePath) {
-        continue;
-      }
-      
-      // 跳过纯文件名（不包含路径分隔符）
-      if (!pathToCheck.includes('/') && !pathToCheck.includes('\\') && !pathToCheck.startsWith('~')) {
-        continue;
-      }
-      // 🔥 跳过系统路径白名单
-      // 1. 精确匹配
-      if (SYSTEM_PATH_WHITELIST.includes(pathToCheck)) {
-        continue;
-      }
-      
-      // 2. 前缀匹配（用于目录）
-      if (allPrefixWhitelist.some(prefix => pathToCheck.startsWith(prefix))) {
-        continue;
-      }
-      
-      // 🔥 使用 assertPathAllowed 进行严格检查
-      // 如果路径不安全，会直接抛出异常
-      try {
-        assertPathAllowed(pathToCheck);
-      } catch (error) {
-        throw securityError(error, command, pathToCheck);
-      }
-    }
-  }
-}
-/**
  * 检查命令是否危险
  * 
  * @param command - 要执行的命令
@@ -397,8 +179,7 @@ function wrapBashToolWithCommandCheck(tool: AgentTool, shellPath: string): Agent
           throw new Error(isEn ? `Dangerous command blocked: ${command}` : `危险命令被拦截: ${command}`);
         }
         
-        // 3. 路径安全检查（扫描命令中的所有路径参数）
-        checkCommandPathSecurity(command);
+        // 路径安全检查已统一在 beforeToolCall 中处理
       }
       
       // 🔥 应用完整的 shell 环境变量（动态获取，支持 /reload-path 刷新）
@@ -476,15 +257,9 @@ export async function getExecTools(workspaceDir: string): Promise<AgentTool[]> {
   const bashTool = createBashTool(workspaceDir, {
     operations: {
       exec: async (command: string, cwd: string, options: any) => {
-        // 🔥 检查工作目录是否安全（严格模式）
-        // 注意：cwd 由 pi-coding-agent 内部传入，外层 wrapBashToolWithCommandCheck 拿不到，必须在这里检查
-        try {
-          assertPathAllowed(cwd);
-        } catch (error) {
-          throw new Error(`工作目录安全检查失败：${error instanceof Error ? error.message : '未知错误'}\n工作目录：${cwd}`);
-        }
+        // cwd 路径安全检查已统一在 beforeToolCall 中处理
         
-        // 命令安全检查（危险命令 + 阻塞命令 + 路径安全）已在外层 wrapBashToolWithCommandCheck 中统一处理
+        // 命令安全检查（危险命令 + 阻塞命令）已在外层 wrapBashToolWithCommandCheck 中统一处理
         // 这里只负责执行逻辑
         
         // 🔥 使用完整的 shell 环境变量（每次动态获取，支持 /reload-path 刷新）

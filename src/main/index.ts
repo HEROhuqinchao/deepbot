@@ -934,6 +934,40 @@ function registerIpcHandlers() {
     }
   });
 
+  // 获取 Tab 工作目录
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_WORKSPACE_DIRS, async (_event, { tabId }) => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId);
+      return { success: true, workspaceDirs: tabConfig?.workspaceDirs || null };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 设置 Tab 工作目录
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_WORKSPACE_DIRS, async (_event, { tabId, dirs }) => {
+    try {
+      const { updateTabWorkspaceDirs } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      
+      updateTabWorkspaceDirs(db, tabId, dirs);
+      
+      // 销毁该 Tab 的 Runtime，下次使用时用新工作目录重建
+      if (gateway) {
+        await gateway.destroySessionRuntime(tabId);
+        gateway.invalidateSessionSystemPrompt(tabId);
+      }
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 上传图片（保存到临时目录）
   ipcMain.handle(IPC_CHANNELS.UPLOAD_IMAGE, async (_event, { name, dataUrl, size }) => {
     try {

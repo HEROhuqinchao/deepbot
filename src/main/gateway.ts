@@ -495,12 +495,13 @@ export class Gateway {
       const store = SystemConfigStore.getInstance();
       const settings = store.getWorkspaceSettings();
       
-      const workspaceDir = settings.workspaceDir;
-      console.info(`[Gateway] 使用工作目录: ${workspaceDir}`);
-      
-      // 获取 tab 级别的模型覆盖配置
+      // 获取 tab 级别配置
       const tabConfig = store.getTabConfig(sessionId);
       const modelConfigOverride = tabConfig?.modelConfig || undefined;
+      
+      // Tab 级别工作目录覆盖（null=继承系统）
+      const workspaceDir = tabConfig?.workspaceDirs?.[0] || settings.workspaceDir;
+      console.info(`[Gateway] 使用工作目录: ${workspaceDir}${tabConfig?.workspaceDirs ? ' (Tab 自定义)' : ''}`);
       
       runtime = new AgentRuntime(workspaceDir, sessionId, modelConfigOverride);
       

@@ -46,7 +46,7 @@ export const apiToolPlugin: ToolPlugin = {
         description: '查询 DeepBot 的系统配置，包括工作目录、模型、工具等配置',
         parameters: schemas.GetConfigSchema,
         execute: async (_toolCallId: string, args: any, signal?: AbortSignal) => {
-          return handlers.handleGetConfig(args, signal);
+          return handlers.handleGetConfig(args, signal, sessionId);
         },
       },
       

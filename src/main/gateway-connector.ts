@@ -1235,6 +1235,13 @@ Use the file_read tool to read the file content.`
         updateTabSkillWhitelist(db, newTabId, siblingConfig.skillWhitelist);
         logger.info(`✅ 新 Tab ${newTabId} 继承 Skill 白名单 (来自 ${siblingTab.id})`);
       }
+
+      // 复制工作目录
+      if (siblingConfig.workspaceDirs && siblingConfig.workspaceDirs.length > 0) {
+        const { updateTabWorkspaceDirs } = require('./database/tab-config');
+        updateTabWorkspaceDirs(db, newTabId, siblingConfig.workspaceDirs);
+        logger.info(`✅ 新 Tab ${newTabId} 继承工作目录 (来自 ${siblingTab.id})`);
+      }
     } catch (error) {
       logger.error('❌ 继承分组配置失败:', error);
     }

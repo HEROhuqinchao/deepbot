@@ -24,7 +24,6 @@
 import type { AgentTool } from '@mariozechner/pi-agent-core';
 import * as path from 'path';
 import * as fs from 'fs';
-import { assertPathAllowed } from '../utils/path-security';
 import { expandUserPath } from '../../shared/utils/path-utils';
 import { ensureDirectoryExists, isFile } from '../../shared/utils/fs-utils';
 import type { ToolPlugin, ToolCreateOptions } from './registry/tool-interface';
@@ -158,11 +157,8 @@ function wrapFileToolWithPathCheck(
       const normalized = normalizeToolParams(params);
       const record = normalized ?? (params && typeof params === 'object' ? params as Record<string, unknown> : undefined);
       
-      // 安全检查：验证文件路径
+      // 路径安全检查已统一在 beforeToolCall 中处理
       const filePath = record?.path;
-      if (typeof filePath === 'string' && filePath.trim()) {
-        assertPathAllowed(filePath);
-      }
       
       // 执行原始工具
       const result = await tool.execute(toolCallId, normalized ?? params, signal, onUpdate);

@@ -24,6 +24,7 @@ export interface TabConfigRow {
   model_config: string | null;  // JSON 格式的模型覆盖配置
   work_prompt: string | null;   // 工作提示词（注入系统提示词）
   skill_whitelist: string | null; // Skill 白名单（JSON 数组）
+  workspace_dirs: string | null;  // 自定义工作目录（JSON 数组，null=继承系统）
 }
 
 /**
@@ -44,6 +45,7 @@ export interface TabConfig {
   modelConfig?: TabModelConfig | null;  // Tab 独立模型配置（覆盖全局）
   workPrompt?: string | null;           // 工作提示词（注入系统提示词）
   skillWhitelist?: string[] | null;     // Skill 白名单（企微客服用）
+  workspaceDirs?: string[] | null;     // 自定义工作目录（null=继承系统）
 }
 
 /**
@@ -98,6 +100,13 @@ export function initTabConfigTable(db: Database.Database): void {
   // 兼容旧数据库：添加 skill_whitelist 列
   try {
     db.exec('ALTER TABLE agent_tabs ADD COLUMN skill_whitelist TEXT');
+  } catch {
+    // 列已存在，忽略
+  }
+
+  // 兼容旧数据库：添加 workspace_dirs 列
+  try {
+    db.exec('ALTER TABLE agent_tabs ADD COLUMN workspace_dirs TEXT');
   } catch {
     // 列已存在，忽略
   }
@@ -285,6 +294,21 @@ export function updateTabSkillWhitelist(db: Database.Database, tabId: string, wh
 }
 
 /**
+ * 更新 Tab 的自定义工作目录
+ */
+export function updateTabWorkspaceDirs(db: Database.Database, tabId: string, dirs: string[] | null): void {
+  const stmt = db.prepare(`
+    UPDATE agent_tabs 
+    SET workspace_dirs = ?
+    WHERE id = ?
+  `);
+  
+  stmt.run(dirs && dirs.length > 0 ? JSON.stringify(dirs) : null, tabId);
+  
+  console.log(`[TabConfig] 📂 已更新 Tab 工作目录: ${tabId} (${dirs ? dirs.join(', ') : '继承系统'})`);
+}
+
+/**
  * 删除 Tab 配置
  */
 export function deleteTabConfig(db: Database.Database, tabId: string): void {
@@ -333,5 +357,6 @@ function rowToConfig(row: TabConfigRow): TabConfig {
     modelConfig,
     workPrompt: row.work_prompt || undefined,
     skillWhitelist: row.skill_whitelist ? (() => { try { return JSON.parse(row.skill_whitelist); } catch { return undefined; } })() : undefined,
+    workspaceDirs: row.workspace_dirs ? (() => { try { return JSON.parse(row.workspace_dirs); } catch { return undefined; } })() : undefined,
   };
 }

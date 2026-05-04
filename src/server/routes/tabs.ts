@@ -315,6 +315,43 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
 
   router.get('/:tabId/skill-whitelist', getTabSkillWhitelist);
   router.post('/:tabId/skill-whitelist', setTabSkillWhitelist);
+
+  // 工作目录
+  const getTabWorkspaceDirs: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId as string);
+      res.json({ success: true, workspaceDirs: tabConfig?.workspaceDirs || null });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabWorkspaceDirs: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { dirs } = req.body;
+      const { updateTabWorkspaceDirs } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      updateTabWorkspaceDirs(store.getDb(), tabId as string, dirs);
+      // 销毁 Runtime，下次使用时用新工作目录重建
+      const { getGatewayInstance } = await import('../../main/gateway');
+      const gw = getGatewayInstance();
+      if (gw) {
+        await gw.destroySessionRuntime(tabId as string);
+        gw.invalidateSessionSystemPrompt(tabId as string);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/workspace-dirs', getTabWorkspaceDirs);
+  router.post('/:tabId/workspace-dirs', setTabWorkspaceDirs);
   
   return router;
 }

@@ -12,7 +12,7 @@ import { api } from '../api'; // 🔥 使用统一 API 适配器
 import { isElectron, isMacOS } from '../utils/platform'; // 🔥 平台检测
 import { getLanguage } from '../i18n';
 import { ModelConfig } from './settings/ModelConfig';
-import { X, Pencil, Settings, FileText, Shield } from 'lucide-react';
+import { X, Pencil, Settings, FileText, Shield, FolderOpen } from 'lucide-react';
 
 // 从 Tab 标题中提取企微客服名称：QW-{客服名}-{用户} → 客服名
 const getWecomKfName = (title: string): string => {
@@ -84,6 +84,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [allSkills, setAllSkills] = useState<{ name: string; description?: string }[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const skillWhitelistGroupRef = useRef<string[] | null>(null);
+  const [showWorkspaceDirsDialog, setShowWorkspaceDirsDialog] = useState<string | null>(null); // tabId
+  const [isCustomWorkspace, setIsCustomWorkspace] = useState(false);
+  const [workspaceMainDir, setWorkspaceMainDir] = useState('');
+  const [workspaceExtraDirs, setWorkspaceExtraDirs] = useState<string[]>([]);
+  const workspaceDirsGroupRef = useRef<string[] | null>(null);
   
   // 企微客服分组相关
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null); // 当前展开的分组名
@@ -776,6 +781,57 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             <FileText size={14} style={{ marginRight: '6px' }} />
             {lang === 'zh' ? '工作提示词' : 'Work Prompt'}
           </div>
+          <div
+            className="tab-context-menu-item"
+            onClick={async () => {
+              const tabId = contextMenu.tabId;
+              let groupTabIds = contextMenu.groupTabIds;
+              setContextMenu(null);
+              
+              // 企微客服 Tab：自动查找同分组
+              if (!groupTabIds) {
+                const tab = tabs?.find(t => t.id === tabId);
+                if (tab?.connectorId === 'wecom-kf') {
+                  const kfName = getWecomKfName(tab.title || '');
+                  if (kfName && wecomGroups[kfName]) {
+                    groupTabIds = wecomGroups[kfName].map(t => t.id);
+                  }
+                }
+              }
+              
+              // 加载当前工作目录配置 + 系统默认值
+              try {
+                const result = await api.getTabWorkspaceDirs(tabId);
+                // 同时获取系统默认工作目录（用于继承模式显示和自定义模式预填）
+                let sysWorkspaceDirs: string[] = [];
+                try {
+                  const wsResult = await api.getWorkspaceSettings();
+                  const ws = wsResult?.settings || wsResult;
+                  sysWorkspaceDirs = ws?.workspaceDirs || [ws?.workspaceDir || ''];
+                } catch { /* 静默 */ }
+                
+                if (result?.workspaceDirs && result.workspaceDirs.length > 0) {
+                  setIsCustomWorkspace(true);
+                  setWorkspaceMainDir(result.workspaceDirs[0]);
+                  setWorkspaceExtraDirs(result.workspaceDirs.slice(1));
+                } else {
+                  setIsCustomWorkspace(false);
+                  // 预填系统默认值，方便用户切换到自定义时基于此修改
+                  setWorkspaceMainDir(sysWorkspaceDirs[0] || '');
+                  setWorkspaceExtraDirs(sysWorkspaceDirs.slice(1));
+                }
+              } catch {
+                setIsCustomWorkspace(false);
+                setWorkspaceMainDir('');
+                setWorkspaceExtraDirs([]);
+              }
+              setShowWorkspaceDirsDialog(tabId);
+              workspaceDirsGroupRef.current = groupTabIds || null;
+            }}
+          >
+            <FolderOpen size={14} style={{ marginRight: '6px' }} />
+            {lang === 'zh' ? '工作目录' : 'Workspace'}
+          </div>
           {/* Skill 白名单（仅企微客服分组显示） */}
           {contextMenu.isGroup && (
             <div
@@ -1090,6 +1146,171 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                       skillWhitelistGroupRef.current = null;
                     }
                     setShowSkillWhitelistDialog(null);
+                  }}
+                  className="skill-icon-button skill-icon-button-accent"
+                  style={{ padding: '6px 16px', fontSize: '12px' }}
+                >
+                  {lang === 'zh' ? '保存' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 工作目录弹窗 */}
+      {showWorkspaceDirsDialog && (
+        <div className="settings-overlay" onClick={() => setShowWorkspaceDirsDialog(null)}>
+          <div
+            className="settings-container tab-model-picker-container"
+            style={{ width: '550px', maxHeight: '70vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">
+                {lang === 'zh' ? '工作目录' : 'Workspace Directory'}
+              </h2>
+              <button className="settings-close-button" onClick={() => setShowWorkspaceDirsDialog(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px' }}>
+              {/* 继承/自定义切换 */}
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input type="radio" checked={!isCustomWorkspace} onChange={() => setIsCustomWorkspace(false)} />
+                  <span style={{ fontSize: '13px' }}>{lang === 'zh' ? '继承系统工作目录' : 'Inherit system workspace'}</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input type="radio" checked={isCustomWorkspace} onChange={() => setIsCustomWorkspace(true)} />
+                  <span style={{ fontSize: '13px' }}>{lang === 'zh' ? '自定义' : 'Custom'}</span>
+                </label>
+              </div>
+
+              {isCustomWorkspace && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* 主工作目录 */}
+                  <div>
+                    <label className="block text-sm font-medium" style={{ marginBottom: '4px', color: 'var(--settings-label, #374151)' }}>
+                      {lang === 'zh' ? '主工作目录' : 'Main workspace'} <span className="text-red-500">*</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <input
+                        type="text"
+                        value={workspaceMainDir}
+                        onChange={(e) => setWorkspaceMainDir(e.target.value)}
+                        className="settings-input"
+                        style={{ flex: 1 }}
+                        placeholder={isElectron() ? '/Users/xxx/projects' : 'projects（相对于 /data/workspace/）'}
+                      />
+                      {isElectron() && (
+                        <button
+                          onClick={async () => {
+                            const result = await api.selectFolder();
+                            if (result?.success && result.path) setWorkspaceMainDir(result.path);
+                          }}
+                          className="skill-icon-button"
+                          title={lang === 'zh' ? '浏览' : 'Browse'}
+                        ><FolderOpen size={16} /></button>
+                      )}
+                    </div>
+                    {!isElectron() && (
+                      <p style={{ fontSize: '11px', color: 'var(--terminal-text-dim)', marginTop: '4px' }}>
+                        {lang === 'zh' ? '填写 /data/workspace/ 之后的子目录路径，如 projects。完整路径为 /data/workspace/projects' : 'Enter subdirectory under /data/workspace/, e.g. projects'}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 额外工作目录 */}
+                  <div>
+                    <label className="block text-sm font-medium" style={{ marginBottom: '4px', color: 'var(--settings-label, #374151)' }}>
+                      {lang === 'zh' ? '额外工作目录（可选）' : 'Extra directories (optional)'}
+                    </label>
+                    {workspaceExtraDirs.map((dir, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                        <input
+                          type="text"
+                          value={dir}
+                          onChange={(e) => {
+                            const next = [...workspaceExtraDirs];
+                            next[idx] = e.target.value;
+                            setWorkspaceExtraDirs(next);
+                          }}
+                          className="settings-input"
+                          style={{ flex: 1 }}
+                          placeholder={isElectron() ? '/Users/xxx/other' : 'other（相对于 /data/workspace/）'}
+                        />
+                        {isElectron() && (
+                          <button
+                            onClick={async () => {
+                              const result = await api.selectFolder();
+                              if (result?.success && result.path) {
+                                const next = [...workspaceExtraDirs];
+                                next[idx] = result.path;
+                                setWorkspaceExtraDirs(next);
+                              }
+                            }}
+                            className="skill-icon-button"
+                            title={lang === 'zh' ? '浏览' : 'Browse'}
+                          ><FolderOpen size={16} /></button>
+                        )}
+                        <button
+                          onClick={() => setWorkspaceExtraDirs(prev => prev.filter((_, i) => i !== idx))}
+                          className="skill-icon-button"
+                          style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--terminal-error)' }}
+                        >×</button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => setWorkspaceExtraDirs(prev => [...prev, ''])}
+                      className="skill-icon-button"
+                      style={{ padding: '4px 12px', fontSize: '12px' }}
+                    >
+                      + {lang === 'zh' ? '添加目录' : 'Add directory'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+                <button
+                  onClick={async () => {
+                    if (isCustomWorkspace) {
+                      const mainDir = workspaceMainDir.trim();
+                      if (!mainDir) return;
+                      
+                      // Docker 模式：自动拼接 /data/workspace/ 前缀
+                      let finalMainDir = mainDir;
+                      let finalExtraDirs = workspaceExtraDirs.filter(d => d.trim()).map(d => d.trim());
+                      if (!isElectron()) {
+                        finalMainDir = mainDir.startsWith('/data/workspace') ? mainDir : `/data/workspace/${mainDir}`;
+                        finalExtraDirs = finalExtraDirs.map(d => d.startsWith('/data/workspace') ? d : `/data/workspace/${d}`);
+                      }
+                      
+                      const allDirs = [finalMainDir, ...finalExtraDirs];
+                      await api.setTabWorkspaceDirs(showWorkspaceDirsDialog, allDirs);
+                      // 分组同步
+                      if (workspaceDirsGroupRef.current) {
+                        for (const otherTabId of workspaceDirsGroupRef.current) {
+                          if (otherTabId !== showWorkspaceDirsDialog) {
+                            await api.setTabWorkspaceDirs(otherTabId, allDirs);
+                          }
+                        }
+                        workspaceDirsGroupRef.current = null;
+                      }
+                    } else {
+                      // 继承系统：清空自定义
+                      await api.setTabWorkspaceDirs(showWorkspaceDirsDialog, null);
+                      if (workspaceDirsGroupRef.current) {
+                        for (const otherTabId of workspaceDirsGroupRef.current) {
+                          if (otherTabId !== showWorkspaceDirsDialog) {
+                            await api.setTabWorkspaceDirs(otherTabId, null);
+                          }
+                        }
+                        workspaceDirsGroupRef.current = null;
+                      }
+                    }
+                    setShowWorkspaceDirsDialog(null);
                   }}
                   className="skill-icon-button skill-icon-button-accent"
                   style={{ padding: '6px 16px', fontSize: '12px' }}

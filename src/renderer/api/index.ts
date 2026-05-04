@@ -303,6 +303,16 @@ export const api = {
     return webClient.post(`/api/tabs/${tabId}/skill-whitelist`, { whitelist });
   },
 
+  async getTabWorkspaceDirs(tabId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getTabWorkspaceDirs(tabId);
+    return webClient.get(`/api/tabs/${tabId}/workspace-dirs`);
+  },
+
+  async setTabWorkspaceDirs(tabId: string, dirs: string[] | null): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.setTabWorkspaceDirs(tabId, dirs);
+    return webClient.post(`/api/tabs/${tabId}/workspace-dirs`, { dirs });
+  },
+
   async getTabModelConfig(tabId: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.getTabModelConfig(tabId);
     return webClient.get(`/api/tabs/${tabId}/model-config`);

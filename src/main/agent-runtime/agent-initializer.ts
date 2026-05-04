@@ -99,15 +99,129 @@ export class AgentInitializer {
     ]);
 
     return async (context: any) => {
+      // 通用：路径安全检查（对所有 Tab 生效）
+      // 有 Tab 自定义工作目录用 Tab 的，没有用全局的
+      const configStore = SystemConfigStore.getInstance();
+      const tabConfig = configStore.getTabConfig(sessionId);
+      const settings = configStore.getWorkspaceSettings();
+      
+      // 构建当前 Tab 允许的目录列表
+      const workspaceDirs = (tabConfig?.workspaceDirs && tabConfig.workspaceDirs.length > 0)
+        ? tabConfig.workspaceDirs
+        : settings.workspaceDirs;
+      const { isPathInDirs, expandHomePath } = require('../utils/path-security');
+      const { isDockerMode } = require('../../shared/utils/docker-utils');
+      const { getDbDir } = require('../../shared/utils/docker-utils');
+      const pathModule = require('path');
+      const { tmpdir } = require('os');
+      
+      const allowedDirs = [
+        ...workspaceDirs,
+        isDockerMode() ? getDbDir() : pathModule.join(require('os').homedir(), '.deepbot'),
+        settings.scriptDir,
+        ...settings.skillDirs,
+        settings.imageDir,
+        settings.memoryDir,
+        settings.sessionDir,
+        tmpdir(),
+        ...(process.platform === 'darwin' ? ['/tmp', '/private/tmp'] : ['/tmp', '/var/tmp']),
+      ];
+
+      const toolName = context.toolCall?.name || '';
+      const args = context.args as Record<string, any> || {};
+
+      // Docker 模式：强制限制在 /data/ 和 /tmp/ 下
+      const isDocker = isDockerMode();
+      const extraDir = isDocker ? getDbDir() : pathModule.join(require('os').homedir(), '.deepbot');
+      const allowedDirsDisplay = [
+        `工作目录: ${workspaceDirs.join(', ')}`,
+        `默认目录: ${extraDir}`,
+        `脚本目录: ${settings.scriptDir}`,
+        `Skill 目录: ${settings.skillDirs.join(', ')}`,
+        `图片目录: ${settings.imageDir}`,
+        `记忆目录: ${settings.memoryDir}`,
+        `会话目录: ${settings.sessionDir}`,
+      ].join('\n');
+      
+      // read/write/edit 工具的路径检查
+      if ((toolName === 'read' || toolName === 'write' || toolName === 'edit') && args.path) {
+        if (isDocker) {
+          const resolved = pathModule.normalize(pathModule.resolve(expandHomePath(args.path)));
+          if (!resolved.startsWith('/data/') && !resolved.startsWith('/tmp/')) {
+            return { block: true, reason: `Docker 模式下只能访问 /data/ 目录: ${args.path}` };
+          }
+        }
+        if (!isPathInDirs(args.path, allowedDirs)) {
+          return { block: true, reason: `路径不在允许的工作目录范围内: ${args.path}\n允许的工作目录: ${allowedDirsDisplay}` };
+        }
+      }
+
+      // bash 命令中的路径检查（移植自 checkCommandPathSecurity，统一使用 isPathInDirs）
+      if (toolName === 'bash' && args.command) {
+        const command = args.command as string;
+        
+        // 剥离引号内的字符串内容，避免误匹配数据中的路径
+        const sanitizedCommand = command
+          .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+          .replace(/'(?:[^'\\]|\\.)*'/g, "''");
+
+        // 系统设备文件白名单
+        const SYSTEM_PATH_WHITELIST = new Set([
+          '/dev/null', '/dev/zero', '/dev/stdin', '/dev/stdout', '/dev/stderr',
+          '/dev/urandom', '/dev/random', '/dev/tty', '/dev/full', '/dev/ptmx',
+        ]);
+
+        // 系统目录前缀白名单
+        const SYSTEM_DIR_PREFIXES = ['/proc/', '/sys/', '/run/', '/var/run/', '/var/log/'];
+
+        // 提取文件操作命令中所有路径参数
+        const fileOpPattern = /(?:^|\s)(?:cp|mv|rm|mkdir|rmdir|touch|cat|ls|find|grep|cd|python|python3|node)\s+(.*?)(?=\s*(?:&&|\|\||;|$))/gi;
+        const fileOpMatches = Array.from(sanitizedCommand.matchAll(fileOpPattern));
+        for (const match of fileOpMatches) {
+          const cmdArgs = match[1].trim().split(/\s+/);
+          for (const arg of cmdArgs) {
+            if (arg.startsWith('-')) continue;
+            const isAbsPath = arg.startsWith('/') || arg.startsWith('~') || arg.startsWith('./') || arg.startsWith('../');
+            if (!isAbsPath) continue;
+            if (arg.startsWith('http://') || arg.startsWith('https://')) continue;
+            if (SYSTEM_PATH_WHITELIST.has(arg)) continue;
+            if (SYSTEM_DIR_PREFIXES.some(p => arg.startsWith(p))) continue;
+            
+            const expanded = expandHomePath(arg);
+            const resolved = pathModule.resolve(expanded);
+            
+            if (isDocker && !resolved.startsWith('/data/') && !resolved.startsWith('/tmp/') && !resolved.startsWith('/private/tmp/')) {
+              return { block: true, reason: `Docker 模式下命令中的路径只能访问 /data/ 目录: ${arg}` };
+            }
+            if (!isPathInDirs(resolved, allowedDirs)) {
+              return { block: true, reason: `命令中的路径不在允许的工作目录范围内: ${arg}\n允许的工作目录: ${allowedDirsDisplay}` };
+            }
+          }
+        }
+
+        // 重定向路径检查
+        const redirectMatches = Array.from(sanitizedCommand.matchAll(/(>>?)\s*([^\s&|;]+)/g));
+        for (const match of redirectMatches) {
+          const target = match[2].replace(/^['"]|['"]$/g, '').trim();
+          if (!target || target.startsWith('-')) continue;
+          const isAbsPath = target.startsWith('/') || target.startsWith('~');
+          if (!isAbsPath) continue;
+          if (SYSTEM_PATH_WHITELIST.has(target)) continue;
+          
+          const expanded = expandHomePath(target);
+          const resolved = pathModule.resolve(expanded);
+          if (!isPathInDirs(resolved, allowedDirs)) {
+            return { block: true, reason: `重定向路径不在允许的工作目录范围内: ${target}\n允许的工作目录: ${allowedDirsDisplay}` };
+          }
+        }
+      }
+
+      // 企微客服安全沙箱（仅 wecom-kf Tab）
       const connectorId = this.getConnectorId();
       if (connectorId !== 'wecom-kf') return undefined;
 
-      const store = SystemConfigStore.getInstance();
-      const settings = store.getWorkspaceSettings();
       const skillDirs = settings.skillDirs || [];
       const scriptDir = settings.scriptDir || '';
-      const toolName = context.toolCall?.name || '';
-      const args = context.args as Record<string, any> || {};
 
       // 1. 禁止 write 和 edit 工具
       if (toolName === 'write' || toolName === 'edit') {
@@ -174,7 +288,7 @@ export class AgentInitializer {
               return { block: true, reason: '企微客服会话只能执行 Skill 目录或脚本目录下的 Python 文件' };
             }
 
-            const whitelist = store.getTabConfig(sessionId)?.skillWhitelist;
+            const whitelist = configStore.getTabConfig(sessionId)?.skillWhitelist;
             if (!whitelist || whitelist.length === 0) {
               console.log(`[WecomKf沙箱] 🚫 拦截 python: 未设置白名单`);
               return { block: true, reason: '企微客服会话未设置 Skill 白名单，禁止执行任何 Skill' };

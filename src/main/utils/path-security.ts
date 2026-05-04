@@ -103,6 +103,20 @@ export function isPathAllowed(filePath: string): boolean {
 }
 
 /**
+ * 检查路径是否在指定的目录列表内（用于 Tab 级别工作目录检查）
+ */
+export function isPathInDirs(filePath: string, dirs: string[]): boolean {
+  const expandedPath = expandHomePath(filePath);
+  const normalizedPath = path.normalize(path.resolve(expandedPath));
+  
+  return dirs.some(dir => {
+    const normalizedDir = path.normalize(path.resolve(dir));
+    const dirWithSep = normalizedDir.endsWith(path.sep) ? normalizedDir : normalizedDir + path.sep;
+    return normalizedPath.startsWith(dirWithSep) || normalizedPath === normalizedDir;
+  });
+}
+
+/**
  * 断言文件路径在允许的范围内（不允许则抛出异常）
  * 
  * @param filePath - 文件路径
