@@ -471,7 +471,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
       {tabs && activeTabId && onTabClick && onTabClose && onTabCreate && (
         <div className="agent-tabs-wrapper">
           <div className="agent-tabs-container">
-            {tabs.map((tab) => (
+            {[...tabs].sort((a, b) => {
+              if (a.id === 'default') return -1;
+              if (b.id === 'default') return 1;
+              return (a.createdAt || 0) - (b.createdAt || 0);
+            }).map((tab) => (
               <div
                 key={tab.id}
                 className={`agent-tab ${tab.id === activeTabId ? 'active' : ''}`}

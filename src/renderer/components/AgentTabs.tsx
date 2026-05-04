@@ -25,10 +25,18 @@ export const AgentTabs: React.FC<AgentTabsProps> = ({
   onTabCreate,
 }) => {
   const lang = getLanguage();
+  
+  // 按创建时间排序：default Tab 始终在最前，其余按 createdAt 升序
+  const sortedTabs = [...tabs].sort((a, b) => {
+    if (a.id === 'default') return -1;
+    if (b.id === 'default') return 1;
+    return (a.createdAt || 0) - (b.createdAt || 0);
+  });
+
   return (
     <div className="agent-tabs">
       <div className="tabs-container">
-        {tabs.map((tab) => (
+        {sortedTabs.map((tab) => (
           <div
             key={tab.id}
             className={`tab ${tab.id === activeTabId ? 'active' : ''} ${tab.isLocked ? 'locked' : ''}`}
