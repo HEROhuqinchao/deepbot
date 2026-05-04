@@ -107,19 +107,38 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
 
   // 企微客服 Tab 未读消息追踪（按用户消息轮次计数，一轮对话只算 1）
   const prevTabUserMsgCountsRef = useRef<Record<string, number>>({});
+  const appReadyForUnreadRef = useRef(false); // 启动后延迟开启未读追踪
+  const tabsForUnreadRef = useRef(tabs); // 保存最新 tabs 引用
+  tabsForUnreadRef.current = tabs;
   const activeTabIdRef = useRef(activeTabId);
   activeTabIdRef.current = activeTabId;
   const unreadCountsRef = useRef(unreadCounts);
   unreadCountsRef.current = unreadCounts;
 
+  // 启动 3 秒后才开始追踪未读（等待历史消息加载完成）
   useEffect(() => {
-    if (!tabs) return;
+    const timer = setTimeout(() => {
+      // 用最新的 tabs 初始化基线
+      const currentTabs = tabsForUnreadRef.current;
+      if (currentTabs) {
+        for (const tab of currentTabs) {
+          if (tab.connectorId !== 'wecom-kf') continue;
+          prevTabUserMsgCountsRef.current[tab.id] = (tab.messages || []).filter(m => m.role === 'user').length;
+        }
+      }
+      appReadyForUnreadRef.current = true;
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!tabs || !appReadyForUnreadRef.current) return;
     const prevCounts = prevTabUserMsgCountsRef.current;
     const newUnread: Record<string, number> = {};
     for (const tab of tabs) {
       if (tab.connectorId !== 'wecom-kf') continue;
       const userMsgCount = (tab.messages || []).filter(m => m.role === 'user').length;
-      const prevCount = prevCounts[tab.id] || 0;
+      const prevCount = prevCounts[tab.id] ?? 0;
       if (userMsgCount > prevCount && tab.id !== activeTabIdRef.current) {
         newUnread[tab.id] = (unreadCountsRef.current[tab.id] || 0) + (userMsgCount - prevCount);
       }
