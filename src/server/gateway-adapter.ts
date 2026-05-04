@@ -81,7 +81,8 @@ export class GatewayAdapter extends EventEmitter {
             messageId: data.messageId,
             role: 'user',
             content: data.content,
-            done: false
+            done: false,
+            skipLoading: data.skipLoading, // 人工模式不显示 Processing
           });
         } else if (data.done) {
           // AI 响应完成 - 转发到 WebSocket

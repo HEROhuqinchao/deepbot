@@ -640,6 +640,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               const isGroupActive = groupTabs.some(t => t.id === activeTabId);
               const isExpanded = expandedGroup === kfName;
               const groupTabIds = groupTabs.map(t => t.id);
+              const hasGroupUnread = groupTabs.some(t => (unreadCounts[t.id] || 0) > 0);
 
               return (
                 <div key={`group-${kfName}`} className={`agent-tab-group ${isGroupActive ? 'active' : ''}`}>
@@ -653,7 +654,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                   >
                     <span className="agent-tab-title">{activeGroupTab.title}</span>
                     <button
-                      className="agent-tab-group-toggle"
+                      className={`agent-tab-group-toggle ${hasGroupUnread ? 'has-unread' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (isExpanded) {

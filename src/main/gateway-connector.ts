@@ -1293,13 +1293,6 @@ Use the file_read tool to read the file content.`
         updateTabWorkspaceDirs(db, newTabId, siblingConfig.workspaceDirs);
         logger.info(`✅ 新 Tab ${newTabId} 继承工作目录 (来自 ${siblingTab.id})`);
       }
-
-      // 复制回复模式
-      if (siblingConfig.replyMode) {
-        const { updateTabReplyMode } = require('./database/tab-config');
-        updateTabReplyMode(db, newTabId, siblingConfig.replyMode);
-        logger.info(`✅ 新 Tab ${newTabId} 继承回复模式: ${siblingConfig.replyMode} (来自 ${siblingTab.id})`);
-      }
     } catch (error) {
       logger.error('❌ 继承分组配置失败:', error);
     }

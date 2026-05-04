@@ -220,6 +220,19 @@
   transform: scale(1.1);
 }
 
+/* 有未读消息时数字按钮变红 */
+.agent-tab-group-toggle.has-unread {
+  background: var(--terminal-error);
+  color: #fff;
+  opacity: 1;
+}
+
+.agent-tab-group.active .agent-tab-group-toggle.has-unread {
+  background: var(--terminal-error);
+  color: #fff;
+  opacity: 1;
+}
+
 .agent-tab-group.active .agent-tab-group-toggle {
   background: var(--terminal-prompt-user);
   color: var(--terminal-bg);
