@@ -72,6 +72,8 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const hasLoadedRef = useRef(false);
   const [showSmartKfWorkPrompt, setShowSmartKfWorkPrompt] = useState(false);
   const [smartKfDefaultWorkPrompt, setSmartKfDefaultWorkPrompt] = useState('');
+  const [showWecomWorkPrompt, setShowWecomWorkPrompt] = useState(false);
+  const [wecomDefaultWorkPrompt, setWecomDefaultWorkPrompt] = useState('');
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -492,13 +494,100 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
           placeholder={lang === 'zh' ? '长连接专用密钥' : 'WebSocket Secret'} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
 
-      <div className="text-xs text-gray-500 space-y-1">
-        <p>{lang === 'zh' ? '获取方式：企业微信管理后台 → 应用管理 → 智能机器人 → 开启 API 模式（长连接）→ 获取 BotID 和 Secret' : 'Get credentials: WeCom Admin → Apps → AI Bot → Enable API mode (WebSocket) → Get BotID and Secret'}</p>
+      <button
+        className="skill-icon-button skill-icon-button-accent"
+        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px' }}
+        onClick={async () => {
+          try {
+            const result = await api.getAppSetting('wecom_default_work_prompt');
+            setWecomDefaultWorkPrompt(result?.value || '');
+          } catch {
+            setWecomDefaultWorkPrompt('');
+          }
+          setShowWecomWorkPrompt(true);
+        }}
+      >
+        <FileText size={14} />
+        <span style={{ fontSize: '12px' }}>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
+      </button>
+
+      <div className="settings-alert settings-alert-info">
+        <p className="text-sm text-blue-800"><strong>{lang === 'zh' ? '群组规则：' : 'Group Rule: '}</strong>{lang === 'zh' ? '群组中必须 @ 机器人才会触发回复' : '@mention the bot in groups to trigger replies'}</p>
       </div>
 
       <div className="flex items-center gap-2 pt-2">
         {renderStartStopButtons('wecom')}
       </div>
+
+      {/* 企业微信默认工作提示词弹窗 */}
+      {showWecomWorkPrompt && (
+        <div className="settings-overlay" onClick={() => setShowWecomWorkPrompt(false)}>
+          <div
+            className="settings-container tab-model-picker-container"
+            style={{ width: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">
+                {lang === 'zh' ? '默认工作提示词' : 'Default Work Prompt'}
+              </h2>
+              <button className="settings-close-button" onClick={() => setShowWecomWorkPrompt(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+              <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px', flexShrink: 0 }}>
+                <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 什么是默认工作提示词？' : '💡 What is Default Work Prompt?'}</h4>
+                <p className="text-sm text-green-800">
+                  {lang === 'zh'
+                    ? '设置后，所有新创建的企业微信会话 Tab 都会自动带入此工作提示词，AI 在每次对话中都会遵循这些指导。'
+                    : 'Once set, all new WeCom chat tabs will automatically use this work prompt. The AI will follow these guidelines in every conversation.'}
+                </p>
+              </div>
+              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                <textarea
+                  value={wecomDefaultWorkPrompt}
+                  onChange={(e) => { if (e.target.value.length <= 10000) setWecomDefaultWorkPrompt(e.target.value); }}
+                  className="settings-input"
+                  style={{ width: '100%', minHeight: '300px', height: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
+                  placeholder={lang === 'zh' ? '例如：\n你是企业微信助手，请注意以下几点：\n1. 回复要简洁专业\n2. 支持 Markdown 格式' : 'e.g. You are a WeCom assistant...'}
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '12px', flexShrink: 0 }}>
+                <span style={{ fontSize: '12px', color: 'var(--terminal-text-dim, #999)' }}>
+                  {wecomDefaultWorkPrompt.length} / 10000
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {wecomDefaultWorkPrompt && (
+                    <button
+                      onClick={async () => {
+                        await api.saveAppSetting('wecom_default_work_prompt', '');
+                        setShowWecomWorkPrompt(false);
+                        showToast('success', lang === 'zh' ? '已清空默认工作提示词' : 'Default work prompt cleared');
+                      }}
+                      className="skill-icon-button"
+                      style={{ padding: '8px 20px', fontSize: '13px' }}
+                    >
+                      {lang === 'zh' ? '清空' : 'Clear'}
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      await api.saveAppSetting('wecom_default_work_prompt', wecomDefaultWorkPrompt.trim());
+                      setShowWecomWorkPrompt(false);
+                      showToast('success', lang === 'zh' ? '默认工作提示词已保存' : 'Default work prompt saved');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    {lang === 'zh' ? '保存' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

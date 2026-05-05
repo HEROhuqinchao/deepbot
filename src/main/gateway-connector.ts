@@ -210,6 +210,19 @@ export class GatewayConnectorHandler {
         if (message.source.connectorId === 'smart-kf') {
           this.inheritSmartKfGroupConfig(tab.id, title);
         }
+
+        // 企业微信 Tab：应用默认工作提示词
+        if (message.source.connectorId === 'wecom') {
+          try {
+            const store = SystemConfigStore.getInstance();
+            const defaultWorkPrompt = store.getAppSetting('wecom_default_work_prompt');
+            if (defaultWorkPrompt) {
+              const db = store.getDb();
+              const { updateTabWorkPrompt } = require('./database/tab-config');
+              updateTabWorkPrompt(db, tab.id, defaultWorkPrompt);
+            }
+          } catch { /* 静默 */ }
+        }
       } else if (isFeishuGroup && feishuConnector?.getChatName) {
         // Tab 已存在时，异步检查群名称是否有变化并更新
         const existingTab = tab;

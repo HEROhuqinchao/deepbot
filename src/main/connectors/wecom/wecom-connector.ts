@@ -248,6 +248,9 @@ export class WecomConnector implements Connector {
     const { cmd, headers, errcode, body } = message;
     const reqId = headers?.req_id;
 
+    // 调试日志：显示完整原始消息
+    logger.info('📨 收到 WebSocket 消息:', JSON.stringify(message, null, 2));
+
     // 处理请求响应（通过 req_id 关联）
     if (reqId && this.pendingRequests.has(reqId)) {
       const pending = this.pendingRequests.get(reqId)!;
@@ -316,6 +319,7 @@ export class WecomConnector implements Connector {
       let text = '';
       let imagePath: string | undefined;
       let filePath: string | undefined;
+      let contentType: 'text' | 'image' | 'file' | 'voice' | 'video' = 'text';
 
       if (msgtype === 'text') {
         text = body.text?.content || '';
@@ -340,6 +344,7 @@ export class WecomConnector implements Connector {
         if (url) {
           imagePath = await this.downloadAndDecryptMedia(url, aeskey, 'image', msgId);
           text = `[图片消息]`;
+          contentType = 'image';
         }
       } else if (msgtype === 'file') {
         const url = body.file?.url;
@@ -347,16 +352,19 @@ export class WecomConnector implements Connector {
         if (url) {
           filePath = await this.downloadAndDecryptMedia(url, aeskey, 'file', msgId);
           text = `[文件消息]`;
+          contentType = 'file';
         }
       } else if (msgtype === 'voice') {
         // 语音消息：转文本
         text = body.voice?.content || '[语音消息]';
+        contentType = 'voice';
       } else if (msgtype === 'video') {
         const url = body.video?.url;
         const aeskey = body.video?.aeskey;
         if (url) {
           filePath = await this.downloadAndDecryptMedia(url, aeskey, 'video', msgId);
           text = `[视频消息]`;
+          contentType = 'video';
         }
       } else {
         text = `[${msgtype} 消息]`;
@@ -375,7 +383,7 @@ export class WecomConnector implements Connector {
           type: chatType === 'group' ? 'group' : 'p2p',
         },
         content: {
-          type: imagePath ? 'image' : filePath ? 'file' : 'text',
+          type: contentType,
           text,
           imagePath,
           filePath,
