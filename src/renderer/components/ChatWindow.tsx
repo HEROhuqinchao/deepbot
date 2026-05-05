@@ -196,6 +196,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         const key = tab.connectorId;
         if (!groups[key]) groups[key] = [];
         groups[key].push(tab);
+      } else if (tab.connectorId === 'feishu') {
+        // 飞书按 connectorId 分组（只有一个组）
+        const key = 'feishu';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(tab);
       } else {
         normal.push(tab);
       }
@@ -777,7 +782,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
               
-              // 分组 Tab：自动查找同分组的所有 Tab（智能客服或企业微信）
+              // 分组 Tab：自动查找同分组的所有 Tab（智能客服、企业微信或飞书）
               if (!groupTabIds) {
                 const tab = tabs?.find(t => t.id === tabId);
                 if (tab?.connectorId === 'smart-kf') {
@@ -786,6 +791,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                     groupTabIds = wecomGroups[kfName].map(t => t.id);
                   }
                 } else if (tab?.connectorId?.startsWith('wecom') && wecomGroups[tab.connectorId]) {
+                  groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
+                } else if (tab?.connectorId === 'feishu' && wecomGroups['feishu']) {
                   groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
                 }
               }
@@ -804,7 +811,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
               
-              // 分组 Tab：自动查找同分组的所有 Tab（智能客服或企业微信）
+              // 分组 Tab：自动查找同分组的所有 Tab（智能客服、企业微信或飞书）
               if (!groupTabIds) {
                 const tab = tabs?.find(t => t.id === tabId);
                 if (tab?.connectorId === 'smart-kf') {
@@ -813,6 +820,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                     groupTabIds = wecomGroups[kfName].map(t => t.id);
                   }
                 } else if (tab?.connectorId?.startsWith('wecom') && wecomGroups[tab.connectorId]) {
+                  groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
+                } else if (tab?.connectorId === 'feishu' && wecomGroups['feishu']) {
                   groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
                 }
               }
@@ -838,7 +847,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
               
-              // 分组 Tab：自动查找同分组（智能客服或企业微信）
+              // 分组 Tab：自动查找同分组（智能客服、企业微信或飞书）
               if (!groupTabIds) {
                 const tab = tabs?.find(t => t.id === tabId);
                 if (tab?.connectorId === 'smart-kf') {
@@ -847,6 +856,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                     groupTabIds = wecomGroups[kfName].map(t => t.id);
                   }
                 } else if (tab?.connectorId?.startsWith('wecom') && wecomGroups[tab.connectorId]) {
+                  groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
+                } else if (tab?.connectorId === 'feishu' && wecomGroups['feishu']) {
                   groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
                 }
               }
@@ -893,7 +904,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 let groupTabIds = contextMenu.groupTabIds;
                 setContextMenu(null);
                 
-                // 分组 Tab：自动查找同分组的所有 Tab（智能客服或企业微信）
+                // 分组 Tab：自动查找同分组的所有 Tab（智能客服、企业微信或飞书）
                 if (!groupTabIds) {
                   const tab = tabs?.find(t => t.id === tabId);
                   if (tab?.connectorId === 'smart-kf') {
@@ -903,6 +914,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                     }
                   } else if (tab?.connectorId?.startsWith('wecom') && wecomGroups[tab.connectorId]) {
                     groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
+                  } else if (tab?.connectorId === 'feishu' && wecomGroups['feishu']) {
+                    groupTabIds = wecomGroups['feishu'].map(t => t.id);
                   }
                 }
                 

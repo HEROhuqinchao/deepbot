@@ -69,6 +69,8 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const [wecomDefaultWorkPrompt, setWecomDefaultWorkPrompt] = useState('');
   const [wecomWorkPromptInstanceId, setWecomWorkPromptInstanceId] = useState('');
   const [wecomConfigs, setWecomConfigs] = useState<Record<string, { botId: string; secret: string; botName?: string }>>({});
+  const [showFeishuWorkPrompt, setShowFeishuWorkPrompt] = useState(false);
+  const [feishuDefaultWorkPrompt, setFeishuDefaultWorkPrompt] = useState('');
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -338,7 +340,24 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       {activeTab === 'config' && (
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">App ID <span className="text-red-500">*</span></label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">App ID <span className="text-red-500">*</span></label>
+              <button
+                className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
+                onClick={async () => {
+                  try {
+                    const result = await api.getAppSetting('feishu_default_work_prompt');
+                    setFeishuDefaultWorkPrompt(result?.value || '');
+                  } catch {
+                    setFeishuDefaultWorkPrompt('');
+                  }
+                  setShowFeishuWorkPrompt(true);
+                }}
+              >
+                <FileText size={12} />
+                <span>{lang === 'zh' ? '默认工作提示词' : 'Default Work Prompt'}</span>
+              </button>
+            </div>
             <input type="text" value={feishuConfig.appId} onChange={(e) => setFeishuConfig({ ...feishuConfig, appId: e.target.value })}
               placeholder="cli_xxxxxxxxxxxxxxxx" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
@@ -778,6 +797,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
           </div>
         </div>
       )}
+
     </div>
     );
   };
@@ -1079,6 +1099,76 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       {selectedConnector?.startsWith('wechat') && renderWechatConfig()}
       {selectedConnector?.startsWith('wecom') && renderWecomConfig()}
       {selectedConnector === 'smart-kf' && renderSmartKfConfig()}
+
+      {/* 飞书默认工作提示词弹窗 */}
+      {showFeishuWorkPrompt && (
+        <div className="settings-overlay" onClick={() => setShowFeishuWorkPrompt(false)}>
+          <div
+            className="settings-container tab-model-picker-container"
+            style={{ width: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">
+                {lang === 'zh' ? '飞书默认工作提示词' : 'Feishu Default Work Prompt'}
+              </h2>
+              <button className="settings-close-button" onClick={() => setShowFeishuWorkPrompt(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+              <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px', flexShrink: 0 }}>
+                <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 什么是默认工作提示词？' : '💡 What is Default Work Prompt?'}</h4>
+                <p className="text-sm text-green-800">
+                  {lang === 'zh'
+                    ? '设置后，所有新创建的飞书会话 Tab 都会自动带入此工作提示词，AI 在每次对话中都会遵循这些指导。'
+                    : 'Once set, all new Feishu chat tabs will automatically use this work prompt.'}
+                </p>
+              </div>
+              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                <textarea
+                  value={feishuDefaultWorkPrompt}
+                  onChange={(e) => { if (e.target.value.length <= 10000) setFeishuDefaultWorkPrompt(e.target.value); }}
+                  className="settings-input"
+                  style={{ width: '100%', minHeight: '300px', height: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
+                  placeholder={lang === 'zh' ? '例如：\n你是飞书助手，请注意以下几点：\n1. 回复要简洁专业\n2. 支持 Markdown 格式' : 'e.g. You are a Feishu assistant...'}
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '12px', flexShrink: 0 }}>
+                <span style={{ fontSize: '12px', color: 'var(--terminal-text-dim, #999)' }}>
+                  {feishuDefaultWorkPrompt.length} / 10000
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {feishuDefaultWorkPrompt && (
+                    <button
+                      onClick={async () => {
+                        await api.saveAppSetting('feishu_default_work_prompt', '');
+                        setShowFeishuWorkPrompt(false);
+                        showToast('success', lang === 'zh' ? '已清空工作提示词' : 'Work prompt cleared');
+                      }}
+                      className="skill-icon-button"
+                      style={{ padding: '8px 20px', fontSize: '13px' }}
+                    >
+                      {lang === 'zh' ? '清空' : 'Clear'}
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      await api.saveAppSetting('feishu_default_work_prompt', feishuDefaultWorkPrompt.trim());
+                      setShowFeishuWorkPrompt(false);
+                      showToast('success', lang === 'zh' ? '工作提示词已保存' : 'Work prompt saved');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    {lang === 'zh' ? '保存' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

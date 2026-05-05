@@ -234,6 +234,11 @@ export class GatewayConnectorHandler {
         if (message.source.connectorId?.startsWith('wecom')) {
           this.inheritWecomGroupConfig(tab.id, message.source.connectorId);
         }
+
+        // 飞书 Tab：从已有飞书 Tab 继承配置，或应用默认工作提示词
+        if (message.source.connectorId === 'feishu') {
+          this.inheritFeishuGroupConfig(tab.id);
+        }
       } else if (isFeishuGroup && feishuConnector?.getChatName) {
         // Tab 已存在时，异步检查群名称是否有变化并更新
         const existingTab = tab;
@@ -1365,7 +1370,7 @@ Use the file_read tool to read the file content.`
    * 从同 connectorId 的已有 Tab 复制：工作提示词、工作目录
    * 如果没有已有 Tab，则使用默认工作提示词
    */
-  private inheritWecomGroupConfig(newTabId: string, connectorId: string): void {
+  private inheritConnectorGroupConfig(newTabId: string, connectorId: string, defaultPromptKey: string): void {
     try {
       const allTabs = this.tabManager!.getAllTabs();
       const siblingTab = allTabs.find(t =>
@@ -1378,7 +1383,7 @@ Use the file_read tool to read the file content.`
 
       if (!siblingTab) {
         // 没有兄弟 Tab：使用默认工作提示词
-        const defaultWorkPrompt = store.getAppSetting(`wecom_work_prompt_${connectorId}`);
+        const defaultWorkPrompt = store.getAppSetting(defaultPromptKey);
         if (defaultWorkPrompt) {
           const { updateTabWorkPrompt } = require('./database/tab-config');
           updateTabWorkPrompt(db, newTabId, defaultWorkPrompt);
@@ -1402,7 +1407,21 @@ Use the file_read tool to read the file content.`
         updateTabWorkspaceDirs(db, newTabId, siblingConfig.workspaceDirs);
       }
     } catch (error) {
-      logger.error('❌ 企业微信继承分组配置失败:', error);
+      logger.error(`❌ ${connectorId} 继承分组配置失败:`, error);
     }
+  }
+
+  /**
+   * 企业微信 Tab 配置继承
+   */
+  private inheritWecomGroupConfig(newTabId: string, connectorId: string): void {
+    this.inheritConnectorGroupConfig(newTabId, connectorId, `wecom_work_prompt_${connectorId}`);
+  }
+
+  /**
+   * 飞书 Tab 配置继承
+   */
+  private inheritFeishuGroupConfig(newTabId: string): void {
+    this.inheritConnectorGroupConfig(newTabId, 'feishu', 'feishu_default_work_prompt');
   }
 }
