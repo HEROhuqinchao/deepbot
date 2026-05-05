@@ -263,9 +263,33 @@ export interface SmartKfIncomingMessage {
 // ========== 通用连接器消息 ==========
 
 /**
+ * 企业微信消息（内部格式）
+ */
+export interface WecomIncomingMessage {
+  messageId: string;
+  timestamp: number;
+  sender: {
+    id: string;
+    name: string;
+  };
+  conversation: {
+    id: string;
+    type: 'p2p' | 'group';
+  };
+  content: {
+    type: 'text' | 'image' | 'file' | 'voice' | 'video';
+    text: string;
+    imagePath?: string;
+    filePath?: string;
+  };
+  systemContext?: string;
+  raw: any;
+}
+
+/**
  * 通用连接器消息（ConnectorManager 使用）
  */
-export type ConnectorIncomingMessage = FeishuIncomingMessage | WechatIncomingMessage | SmartKfIncomingMessage;
+export type ConnectorIncomingMessage = FeishuIncomingMessage | WechatIncomingMessage | SmartKfIncomingMessage | WecomIncomingMessage;
 
 /**
  * Pairing 记录

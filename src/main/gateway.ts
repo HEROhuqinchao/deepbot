@@ -74,17 +74,27 @@ export class Gateway {
     this.connectorManager.registerConnector(feishuConnector);
     console.log('[Gateway] ✅ 飞书连接器已注册');
 
-    // 注册企业微信连接器（放在飞书后面）
+    // 注册企业微信连接器（从数据库恢复已有实例，没有则创建默认实例）
     const { WecomConnector } = require('./connectors/wecom/wecom-connector');
-    const wecomConnector = new WecomConnector(this.connectorManager);
-    this.connectorManager.registerConnector(wecomConnector);
-    console.log('[Gateway] ✅ 企业微信连接器已注册');
-
-    // 注册微信连接器（从数据库恢复已有实例，没有则创建默认实例）
-    const { WechatConnector } = require('./connectors/wechat/wechat-connector');
     const { SystemConfigStore: ConfigStore } = require('./database/system-config-store');
     const store = ConfigStore.getInstance();
     const allConnectorConfigs = store.getAllConnectorConfigs();
+    const wecomConfigs = allConnectorConfigs.filter((c: any) => c.connectorId.startsWith('wecom-'));
+
+    if (wecomConfigs.length > 0) {
+      for (const cfg of wecomConfigs) {
+        const wc = new WecomConnector(this.connectorManager, cfg.connectorId);
+        this.connectorManager.registerConnector(wc);
+        console.log(`[Gateway] ✅ 企业微信连接器已恢复: ${cfg.connectorId}`);
+      }
+    } else {
+      const wecomConnector = new WecomConnector(this.connectorManager, 'wecom-1');
+      this.connectorManager.registerConnector(wecomConnector);
+      console.log('[Gateway] ✅ 企业微信连接器已注册: wecom-1');
+    }
+
+    // 注册微信连接器（从数据库恢复已有实例，没有则创建默认实例）
+    const { WechatConnector } = require('./connectors/wechat/wechat-connector');
     const wechatConfigs = allConnectorConfigs.filter((c: any) => c.connectorId.startsWith('wechat'));
     
     if (wechatConfigs.length > 0) {

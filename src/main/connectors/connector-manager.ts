@@ -426,6 +426,50 @@ export class ConnectorManager {
   }
 
   /**
+   * 创建企业微信连接器实例
+   */
+  createWecomInstance(): string {
+    let nextNum = 1;
+    while (this.connectors.has(`wecom-${nextNum}`)) {
+      nextNum++;
+    }
+    const instanceId = `wecom-${nextNum}`;
+
+    const { WecomConnector } = require('./wecom/wecom-connector');
+    const connector = new WecomConnector(this, instanceId);
+    this.registerConnector(connector);
+
+    console.log(`[ConnectorManager] ✅ 创建企业微信实例: ${instanceId}`);
+    return instanceId;
+  }
+
+  /**
+   * 删除企业微信连接器实例
+   */
+  async removeWecomInstance(connectorId: string): Promise<void> {
+    if (!connectorId.startsWith('wecom')) {
+      throw new Error('只能删除企业微信连接器实例');
+    }
+
+    const connector = this.connectors.get(connectorId);
+    if (!connector) {
+      throw new Error(`连接器实例不存在: ${connectorId}`);
+    }
+
+    try {
+      await connector.stop();
+    } catch { /* 忽略 */ }
+
+    this.connectors.delete(connectorId);
+
+    const { SystemConfigStore } = require('../database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    store.deleteConnectorConfig(connectorId);
+
+    console.log(`[ConnectorManager] ✅ 已删除企业微信实例: ${connectorId}`);
+  }
+
+  /**
    * 销毁所有连接器
    */
   async destroy(): Promise<void> {

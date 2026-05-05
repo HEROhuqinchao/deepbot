@@ -42,25 +42,40 @@ function resolveWecomTarget(sessionId: string, userid?: string, tabName?: string
     const normalizedQuery = tabName.replace(/\s+/g, '');
     const targetTab = tabs.find(t => t.title.replace(/\s+/g, '') === normalizedQuery);
     if (!targetTab) throw new Error(`未找到名为 "${tabName}" 的 Tab`);
-    if (targetTab.connectorId !== 'wecom' || !targetTab.conversationId) {
+    if (!targetTab.connectorId?.startsWith('wecom') || !targetTab.conversationId) {
       throw new Error(`Tab "${tabName}" 不是企业微信会话 Tab`);
     }
-    return { conversationId: targetTab.conversationId, connectorId: 'wecom' };
+    return { conversationId: targetTab.conversationId, connectorId: targetTab.connectorId };
   }
 
   // 情况 2：提供了 userid
   if (userid) {
-    return { conversationId: `single:${userid}`, connectorId: 'wecom' };
+    // 找到第一个可用的企业微信连接器
+    const tabs = gatewayInstance.getAllTabs();
+    const currentTab = tabs.find(t => t.id === sessionId);
+    const connectorId = currentTab?.connectorId?.startsWith('wecom') ? currentTab.connectorId : findFirstWecomConnectorId();
+    return { conversationId: `single:${userid}`, connectorId };
   }
 
   // 情况 3：当前 Tab 是企业微信 connector
   const tabs = gatewayInstance.getAllTabs();
   const currentTab = tabs.find(t => t.id === sessionId);
-  if (currentTab?.type === 'connector' && currentTab.connectorId === 'wecom' && currentTab.conversationId) {
-    return { conversationId: currentTab.conversationId, connectorId: 'wecom' };
+  if (currentTab?.type === 'connector' && currentTab.connectorId?.startsWith('wecom') && currentTab.conversationId) {
+    return { conversationId: currentTab.conversationId, connectorId: currentTab.connectorId };
   }
 
   throw new Error('无法确定发送目标。请提供 userid 或 tabName 参数，或在企业微信会话 Tab 中调用');
+}
+
+/**
+ * 查找第一个可用的企业微信连接器 ID
+ */
+function findFirstWecomConnectorId(): string {
+  if (!gatewayInstance) return 'wecom-1';
+  const connectorManager = gatewayInstance.getConnectorManager();
+  const allConnectors = connectorManager.getAllConnectors();
+  const wecomConnector = allConnectors.find(c => c.id.startsWith('wecom'));
+  return wecomConnector?.id || 'wecom-1';
 }
 
 // ── 工具插件 ──────────────────────────────────────────────────────────────────

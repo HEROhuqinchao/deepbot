@@ -36,12 +36,6 @@ interface SmartKfConfig {
   enabled?: boolean;
 }
 
-interface WecomConfig {
-  botId: string;
-  secret: string;
-  enabled?: boolean;
-}
-
 interface PairingRecord {
   connectorId: string;
   userId: string;
@@ -62,7 +56,6 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const [activeTab, setActiveTab] = useState<TabType>('config');
   const [feishuConfig, setFeishuConfig] = useState<FeishuConfig>({ appId: '', appSecret: '', enabled: false, requirePairing: false });
   const [smartKfConfig, setSmartKfConfig] = useState<SmartKfConfig>({ wsUrl: '', wsKey: '', enabled: false });
-  const [wecomConfig, setWecomConfig] = useState<WecomConfig>({ botId: '', secret: '', enabled: false });
   const [pairingRecords, setPairingRecords] = useState<PairingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,6 +67,8 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const [smartKfDefaultWorkPrompt, setSmartKfDefaultWorkPrompt] = useState('');
   const [showWecomWorkPrompt, setShowWecomWorkPrompt] = useState(false);
   const [wecomDefaultWorkPrompt, setWecomDefaultWorkPrompt] = useState('');
+  const [wecomWorkPromptInstanceId, setWecomWorkPromptInstanceId] = useState('');
+  const [wecomConfigs, setWecomConfigs] = useState<Record<string, { botId: string; secret: string }>>({});
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -93,6 +88,21 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
           const first = actualResult.connectors[0];
           setSelectedConnector(first.id);
           await loadConnectorConfig(first.id);
+        }
+        // 加载所有企业微信实例的配置（用于显示 BotID/Secret）
+        const wecomInstances = actualResult.connectors.filter((c: any) => c.id.startsWith('wecom'));
+        if (wecomInstances.length > 0) {
+          const configs: Record<string, { botId: string; secret: string }> = {};
+          for (const wc of wecomInstances) {
+            try {
+              const cfgResult = await api.connectorGetConfig(wc.id);
+              const cfg = cfgResult.data || cfgResult;
+              if (cfg.success && cfg.config) {
+                configs[wc.id] = { botId: cfg.config.botId || '', secret: cfg.config.secret || '' };
+              }
+            } catch { /* 静默 */ }
+          }
+          setWecomConfigs(configs);
         }
         for (const connector of actualResult.connectors) {
           if (connector.enabled) {
@@ -126,12 +136,6 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         } else {
           setFeishuConfig({ appId: '', appSecret: '', enabled: false, requirePairing: false });
         }
-      } else if (connectorId === 'wecom') {
-        if (actualResult.success && actualResult.config) {
-          setWecomConfig({ botId: actualResult.config.botId || '', secret: actualResult.config.secret || '', enabled: actualResult.enabled || false });
-        } else {
-          setWecomConfig({ botId: '', secret: '', enabled: false });
-        }
       } else if (connectorId === 'smart-kf') {
         if (actualResult.success && actualResult.config) {
           setSmartKfConfig({ wsUrl: actualResult.config.wsUrl || '', wsKey: actualResult.config.wsKey || '', enabled: actualResult.enabled || false });
@@ -143,7 +147,6 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
     } catch (error) {
       console.error('加载连接器配置失败:', error);
       if (connectorId === 'feishu') setFeishuConfig({ appId: '', appSecret: '', enabled: false, requirePairing: false });
-      if (connectorId === 'wecom') setWecomConfig({ botId: '', secret: '', enabled: false });
       if (connectorId === 'smart-kf') setSmartKfConfig({ wsUrl: '', wsKey: '', enabled: false });
     }
   };
@@ -219,13 +222,16 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
           return;
         }
         await api.connectorSaveConfig('smart-kf', { ...smartKfConfig, enabled: false });
-      } else if (connectorId === 'wecom') {
-        if (!wecomConfig.botId.trim() || !wecomConfig.secret.trim()) {
+      } else if (connectorId.startsWith('wecom')) {
+        // 企业微信多实例：从 state 读取 BotID 和 Secret
+        const botId = wecomConfigs[connectorId]?.botId?.trim() || '';
+        const secret = wecomConfigs[connectorId]?.secret?.trim() || '';
+        if (!botId || !secret) {
           showToast('error', lang === 'zh' ? '请输入 Bot ID 和 Secret' : 'Please enter Bot ID and Secret');
           setStartingMap(prev => ({ ...prev, [connectorId]: false }));
           return;
         }
-        await api.connectorSaveConfig('wecom', { ...wecomConfig, enabled: false });
+        await api.connectorSaveConfig(connectorId, { botId, secret, enabled: false });
       }
       await api.connectorStart(connectorId);
       showToast('success', lang === 'zh' ? '连接器已启动' : 'Connector started');
@@ -472,52 +478,192 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   };
 
   // ── 企业微信配置面板 ──────────────────────────────────────────────
-  const renderWecomConfig = () => (
+  const renderWecomConfig = () => {
+    // 获取所有企业微信连接器实例
+    const wecomConnectors = connectors.filter(c => c.id.startsWith('wecom'));
+    wecomConnectors.sort((a, b) => a.id.localeCompare(b.id));
+
+    return (
     <div className="space-y-4">
-      <div className="settings-alert settings-alert-success">
-        <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '企业微信智能机器人' : 'WeCom AI Bot'}</h4>
-        <p className="text-sm text-green-800">
-          {lang === 'zh'
-            ? '通过 WebSocket 长连接接入企业微信智能机器人，支持实时接收和回复消息。无需公网 IP，无需消息加解密。'
-            : 'Connect to WeCom AI Bot via WebSocket. Supports real-time messaging. No public IP or message encryption needed.'}
-        </p>
+      {/* 子标签页 */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-1">
+          {(['config', 'guide'] as TabType[]).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`settings-tab ${activeTab === tab ? 'active' : ''}`}>
+              {tab === 'config' ? (lang === 'zh' ? '基础配置' : 'Basic Config') : (lang === 'zh' ? '配置说明' : 'Setup Guide')}
+            </button>
+          ))}
+        </nav>
       </div>
 
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">Bot ID <span className="text-red-500">*</span></label>
-        <input type="text" value={wecomConfig.botId} onChange={(e) => setWecomConfig({ ...wecomConfig, botId: e.target.value })}
-          placeholder={lang === 'zh' ? '智能机器人的 BotID' : 'AI Bot ID'} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      </div>
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">Secret <span className="text-red-500">*</span></label>
-        <input type="password" value={wecomConfig.secret} onChange={(e) => setWecomConfig({ ...wecomConfig, secret: e.target.value })}
-          placeholder={lang === 'zh' ? '长连接专用密钥' : 'WebSocket Secret'} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      </div>
+      {/* 基础配置 */}
+      {activeTab === 'config' && (
+        <>
+      {/* 企业微信实例列表 */}
+      <div className="space-y-3">
+        {wecomConnectors.map((wc, index) => {
+          const health = connectorHealthMap[wc.id];
+          const isFirst = index === 0;
+          const num = wc.id.match(/wecom-(\d+)/)?.[1] || '1';
+          const wcDisplayName = lang === 'zh' ? `机器人 ${num}` : `Bot ${num}`;
 
-      <button
-        className="skill-icon-button skill-icon-button-accent"
-        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px' }}
-        onClick={async () => {
-          try {
-            const result = await api.getAppSetting('wecom_default_work_prompt');
-            setWecomDefaultWorkPrompt(result?.value || '');
-          } catch {
-            setWecomDefaultWorkPrompt('');
-          }
-          setShowWecomWorkPrompt(true);
-        }}
-      >
-        <FileText size={14} />
-        <span style={{ fontSize: '12px' }}>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
-      </button>
+          return (
+            <div key={wc.id} className="border border-gray-200 rounded-md p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-900">{wcDisplayName}</span>
+                  {wc.enabled && health === 'healthy' && <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">{lang === 'zh' ? '运行中' : 'Running'}</span>}
+                  {wc.enabled && health === 'unhealthy' && <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{lang === 'zh' ? '连接失败' : 'Failed'}</span>}
+                  {wc.enabled && health === 'checking' && <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{lang === 'zh' ? '检查中' : 'Checking'}</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
+                    onClick={async () => {
+                      try {
+                        const result = await api.getAppSetting(`wecom_work_prompt_${wc.id}`);
+                        setWecomDefaultWorkPrompt(result?.value || '');
+                      } catch {
+                        setWecomDefaultWorkPrompt('');
+                      }
+                      setShowWecomWorkPrompt(true);
+                      setWecomWorkPromptInstanceId(wc.id);
+                    }}
+                  >
+                    <FileText size={12} />
+                    <span>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
+                  </button>
+                  {!isFirst && !wc.enabled && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(lang === 'zh' ? `确定要删除 ${wcDisplayName} 吗？` : `Delete ${wcDisplayName}?`)) return;
+                        try {
+                          await api.connectorRemoveWecom(wc.id);
+                          showToast('success', lang === 'zh' ? '已删除' : 'Deleted');
+                          await loadConnectors(true);
+                        } catch (e) {
+                          showToast('error', `${lang === 'zh' ? '删除失败' : 'Delete failed'}: ${e instanceof Error ? e.message : ''}`);
+                        }
+                      }}
+                      className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs text-red-600 rounded transition-colors"
+                    >
+                      <Trash2 size={14} />
+                      <span>{lang === 'zh' ? '删除' : 'Delete'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Bot ID</label>
+                  <input type="text"
+                    value={wecomConfigs[wc.id]?.botId || ''}
+                    onChange={(e) => setWecomConfigs(prev => ({ ...prev, [wc.id]: { ...prev[wc.id] || { botId: '', secret: '' }, botId: e.target.value } }))}
+                    placeholder="BotID"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    id={`wecom-botid-${wc.id}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Secret</label>
+                  <input type="password"
+                    value={wecomConfigs[wc.id]?.secret || ''}
+                    onChange={(e) => setWecomConfigs(prev => ({ ...prev, [wc.id]: { ...prev[wc.id] || { botId: '', secret: '' }, secret: e.target.value } }))}
+                    placeholder="Secret"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    id={`wecom-secret-${wc.id}`}
+                  />
+                </div>
+              </div>
+
+              {renderStartStopButtons(wc.id)}
+            </div>
+          );
+        })}
+      </div>
 
       <div className="settings-alert settings-alert-info">
         <p className="text-sm text-blue-800"><strong>{lang === 'zh' ? '群组规则：' : 'Group Rule: '}</strong>{lang === 'zh' ? '群组中必须 @ 机器人才会触发回复' : '@mention the bot in groups to trigger replies'}</p>
       </div>
 
-      <div className="flex items-center gap-2 pt-2">
-        {renderStartStopButtons('wecom')}
-      </div>
+      {/* 新增企业微信机器人按钮 */}
+      <button
+        onClick={async () => {
+          try {
+            const result = await api.connectorCreateWecom();
+            const actualResult = result.data || result;
+            if (actualResult.success) {
+              showToast('success', lang === 'zh' ? `已创建 ${actualResult.connectorId}` : `Created ${actualResult.connectorId}`);
+              await loadConnectors(true);
+            }
+          } catch (e) {
+            showToast('error', `${lang === 'zh' ? '创建失败' : 'Create failed'}: ${e instanceof Error ? e.message : ''}`);
+          }
+        }}
+        className="skill-icon-button skill-icon-button-accent"
+        style={{ padding: '4px 12px', gap: '4px', display: 'inline-flex', alignItems: 'center', fontSize: '12px' }}
+      >
+        <Link size={14} />
+        <span>{lang === 'zh' ? '新增机器人' : 'Add Bot'}</span>
+      </button>
+        </>
+      )}
+
+      {/* 配置说明 */}
+      {activeTab === 'guide' && (
+        <div className="space-y-4 text-sm text-gray-700">
+          <h2 className="text-base font-semibold text-gray-900">{lang === 'zh' ? '企业微信智能机器人配置指南' : 'WeCom AI Bot Setup Guide'}</h2>
+          <div>
+            <h3 className="font-semibold text-gray-800 mb-2">{lang === 'zh' ? '配置步骤' : 'Setup Steps'}</h3>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2 pl-2 border-l-2 border-blue-400">{lang === 'zh' ? '1. 创建智能机器人' : '1. Create AI Bot'}</h4>
+                <ol className="list-decimal list-inside space-y-1 text-gray-600 ml-2">
+                  <li>{lang === 'zh' ? '登录企业微信管理后台' : 'Log in to WeCom Admin'} (<a href="https://work.weixin.qq.com" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">work.weixin.qq.com</a>)</li>
+                  <li>{lang === 'zh' ? '进入「安全与管理」→「管理工具」→「智能机器人」' : 'Go to "Security & Admin" → "Admin Tools" → "AI Bot"'}</li>
+                  <li>{lang === 'zh' ? '点击「创建机器人」→「手动创建」' : 'Click "Create Bot" → "Create Manually"'}</li>
+                  <li>{lang === 'zh' ? '填写机器人名称和头像' : 'Fill in bot name and avatar'}</li>
+                  <li>{lang === 'zh' ? '页面拉到最下面，选择「API 模式」创建' : 'Scroll to the bottom, select "API Mode" to create'}</li>
+                </ol>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2 pl-2 border-l-2 border-blue-400">{lang === 'zh' ? '2. 获取 Bot ID 和 Secret' : '2. Get Bot ID and Secret'}</h4>
+                <ol className="list-decimal list-inside space-y-1 text-gray-600 ml-2">
+                  <li>{lang === 'zh' ? '创建完成后进入机器人配置页面' : 'After creation, enter bot settings page'}</li>
+                  <li>{lang === 'zh' ? '在「配置方式」中选择「长连接」' : 'Select "WebSocket" in "Configuration Method"'}</li>
+                  <li>{lang === 'zh' ? '记录页面上显示的 Bot ID 和 Secret' : 'Note down Bot ID and Secret shown on the page'}</li>
+                </ol>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2 pl-2 border-l-2 border-blue-400">{lang === 'zh' ? '3. 在 DeepBot 中配置' : '3. Configure in DeepBot'}</h4>
+                <ol className="list-decimal list-inside space-y-1 text-gray-600 ml-2">
+                  <li>{lang === 'zh' ? '在「基础配置」Tab 中填入 Bot ID 和 Secret' : 'Enter Bot ID and Secret in "Basic Config" tab'}</li>
+                  <li>{lang === 'zh' ? '点击「启动连接器」' : 'Click "Start Connector"'}</li>
+                  <li>{lang === 'zh' ? '状态显示「运行中」即配置成功' : 'Status shows "Running" means success'}</li>
+                </ol>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2 pl-2 border-l-2 border-blue-400">{lang === 'zh' ? '4. 使用方式' : '4. Usage'}</h4>
+                <div className="text-gray-600 ml-2 space-y-1">
+                  <p>{lang === 'zh' ? '• 单聊：在企业微信中直接给机器人发消息' : '• Private chat: Send messages directly to the bot in WeCom'}</p>
+                  <p>{lang === 'zh' ? '• 群聊：将机器人添加到群组，@机器人 发送消息' : '• Group chat: Add bot to group, @mention it to send messages'}</p>
+                  <p>{lang === 'zh' ? '• 支持文本、图片、文件、语音、视频消息' : '• Supports text, image, file, voice, video messages'}</p>
+                  <p>{lang === 'zh' ? '• 回复内容支持 Markdown 格式' : '• Replies support Markdown format'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="settings-alert settings-alert-info">
+            <p className="text-sm text-blue-800">
+              {lang === 'zh'
+                ? '💡 提示：每个机器人同一时间只能保持一个长连接。如需多个机器人，请在企微后台创建多个智能机器人，然后在 DeepBot 中分别配置。'
+                : '💡 Tip: Each bot can only maintain one WebSocket connection at a time. For multiple bots, create them in WeCom Admin and configure each in DeepBot.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* 企业微信默认工作提示词弹窗 */}
       {showWecomWorkPrompt && (
@@ -541,7 +687,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                 <p className="text-sm text-green-800">
                   {lang === 'zh'
                     ? '设置后，所有新创建的企业微信会话 Tab 都会自动带入此工作提示词，AI 在每次对话中都会遵循这些指导。'
-                    : 'Once set, all new WeCom chat tabs will automatically use this work prompt. The AI will follow these guidelines in every conversation.'}
+                    : 'Once set, all new WeCom chat tabs will automatically use this work prompt.'}
                 </p>
               </div>
               <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
@@ -562,9 +708,9 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                   {wecomDefaultWorkPrompt && (
                     <button
                       onClick={async () => {
-                        await api.saveAppSetting('wecom_default_work_prompt', '');
+                        await api.saveAppSetting(`wecom_work_prompt_${wecomWorkPromptInstanceId}`, '');
                         setShowWecomWorkPrompt(false);
-                        showToast('success', lang === 'zh' ? '已清空默认工作提示词' : 'Default work prompt cleared');
+                        showToast('success', lang === 'zh' ? '已清空工作提示词' : 'Work prompt cleared');
                       }}
                       className="skill-icon-button"
                       style={{ padding: '8px 20px', fontSize: '13px' }}
@@ -574,9 +720,9 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                   )}
                   <button
                     onClick={async () => {
-                      await api.saveAppSetting('wecom_default_work_prompt', wecomDefaultWorkPrompt.trim());
+                      await api.saveAppSetting(`wecom_work_prompt_${wecomWorkPromptInstanceId}`, wecomDefaultWorkPrompt.trim());
                       setShowWecomWorkPrompt(false);
-                      showToast('success', lang === 'zh' ? '默认工作提示词已保存' : 'Default work prompt saved');
+                      showToast('success', lang === 'zh' ? '工作提示词已保存' : 'Work prompt saved');
                     }}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                   >
@@ -589,7 +735,8 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   // ── 智能客服配置面板 ──────────────────────────────────────────────
   const renderSmartKfConfig = () => (
@@ -607,7 +754,24 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">API URL <span className="text-red-500">*</span></label>
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-gray-700">API URL <span className="text-red-500">*</span></label>
+          <button
+            onClick={async () => {
+              try {
+                const result = await api.getAppSetting('smart_kf_default_work_prompt');
+                setSmartKfDefaultWorkPrompt(result?.value || '');
+              } catch {
+                setSmartKfDefaultWorkPrompt('');
+              }
+              setShowSmartKfWorkPrompt(true);
+            }}
+            className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
+          >
+            <FileText size={12} />
+            <span>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
+          </button>
+        </div>
         <input type="text" value={smartKfConfig.wsUrl} onChange={(e) => setSmartKfConfig({ ...smartKfConfig, wsUrl: e.target.value })}
           placeholder="wss://your-service-url/webhook/ws/" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
@@ -616,22 +780,6 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         <input type="password" value={smartKfConfig.wsKey} onChange={(e) => setSmartKfConfig({ ...smartKfConfig, wsKey: e.target.value })}
           placeholder={lang === 'zh' ? '请输入认证密钥' : 'Enter authentication key'} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
-
-      <button
-        onClick={async () => {
-          try {
-            const result = await api.getAppSetting('smart_kf_default_work_prompt');
-            setSmartKfDefaultWorkPrompt(result?.value || '');
-          } catch {
-            setSmartKfDefaultWorkPrompt('');
-          }
-          setShowSmartKfWorkPrompt(true);
-        }}
-        className="skill-icon-button skill-icon-button-accent"
-      >
-        <FileText size={14} />
-        <span style={{ fontSize: '12px' }}>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
-      </button>
 
       <div className="flex items-center gap-2 pt-2">
         {renderStartStopButtons('smart-kf')}
@@ -851,29 +999,31 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         <nav className="-mb-px flex space-x-1">
           {loading ? (
             <div className="py-3 px-4 text-sm text-gray-400">{lang === 'zh' ? '加载中...' : 'Loading...'}</div>
-          ) : connectors.filter(c => !c.id.startsWith('wechat-') || c.id === connectors.find(x => x.id.startsWith('wechat'))?.id).map((connector) => {
-            // 微信只显示第一个实例的 tab，内容面板统一管理所有实例
+          ) : connectors.filter(c => (!c.id.startsWith('wechat-') || c.id === connectors.find(x => x.id.startsWith('wechat'))?.id) && (!c.id.startsWith('wecom-') || c.id === connectors.find(x => x.id.startsWith('wecom'))?.id)).map((connector) => {
+            // 微信和企业微信只显示第一个实例的 tab，内容面板统一管理所有实例
             const isWechatTab = connector.id.startsWith('wechat');
+            const isWecomTab = connector.id.startsWith('wecom');
+            const isMultiInstanceTab = isWechatTab || isWecomTab;
             const displayName = isWechatTab
               ? (lang === 'zh' ? '微信' : 'WeChat')
-              : connector.id === 'feishu'
-                ? (lang === 'zh' ? '飞书' : 'Feishu')
-                : connector.id === 'wecom'
-                  ? (lang === 'zh' ? '企业微信' : 'WeCom')
+              : isWecomTab
+                ? (lang === 'zh' ? '企业微信' : 'WeCom')
+                : connector.id === 'feishu'
+                  ? (lang === 'zh' ? '飞书' : 'Feishu')
                   : connector.id === 'smart-kf'
                     ? (lang === 'zh' ? '智能客服' : 'Smart KF')
                     : connector.name;
-            // 微信 tab 不显示状态（每个实例内部已有独立状态）
-            const health = isWechatTab ? undefined : connectorHealthMap[connector.id];
+            // 多实例 tab 不显示状态（每个实例内部已有独立状态）
+            const health = isMultiInstanceTab ? undefined : connectorHealthMap[connector.id];
 
             return (
             <button key={connector.id}
-              onClick={() => { setSelectedConnector(connector.id); setActiveTab('config'); if (!isWechatTab) loadConnectorConfig(connector.id); }}
-              className={`settings-tab ${selectedConnector === connector.id || (isWechatTab && selectedConnector?.startsWith('wechat')) ? 'active' : ''}`}>
+              onClick={() => { setSelectedConnector(connector.id); setActiveTab('config'); if (!isMultiInstanceTab) loadConnectorConfig(connector.id); }}
+              className={`settings-tab ${selectedConnector === connector.id || (isWechatTab && selectedConnector?.startsWith('wechat')) || (isWecomTab && selectedConnector?.startsWith('wecom')) ? 'active' : ''}`}>
               {displayName}
-              {!isWechatTab && connector.enabled && health === 'healthy' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">{lang === 'zh' ? '运行中' : 'Running'}</span>}
-              {!isWechatTab && connector.enabled && health === 'unhealthy' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{lang === 'zh' ? '连接失败' : 'Failed'}</span>}
-              {!isWechatTab && connector.enabled && health === 'checking' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{lang === 'zh' ? '检查中' : 'Checking'}</span>}
+              {!isMultiInstanceTab && connector.enabled && health === 'healthy' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">{lang === 'zh' ? '运行中' : 'Running'}</span>}
+              {!isMultiInstanceTab && connector.enabled && health === 'unhealthy' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{lang === 'zh' ? '连接失败' : 'Failed'}</span>}
+              {!isMultiInstanceTab && connector.enabled && health === 'checking' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{lang === 'zh' ? '检查中' : 'Checking'}</span>}
             </button>
             );
           })}
@@ -883,7 +1033,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       {/* 连接器配置面板（根据选中的连接器渲染） */}
       {selectedConnector === 'feishu' && renderFeishuConfig()}
       {selectedConnector?.startsWith('wechat') && renderWechatConfig()}
-      {selectedConnector === 'wecom' && renderWecomConfig()}
+      {selectedConnector?.startsWith('wecom') && renderWecomConfig()}
       {selectedConnector === 'smart-kf' && renderSmartKfConfig()}
     </div>
   );

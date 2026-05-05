@@ -273,6 +273,16 @@ export const api = {
     return webClient.delete(`/api/connectors/${connectorId}`);
   },
 
+  async connectorCreateWecom(): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorCreateWecom();
+    return webClient.post('/api/connectors/wecom/create', {});
+  },
+
+  async connectorRemoveWecom(connectorId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorRemoveWecom(connectorId);
+    return webClient.delete(`/api/connectors/wecom/${connectorId}`);
+  },
+
   // 人工直接回复连接器消息
   async connectorDirectReply(tabId: string, content: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.connectorDirectReply(tabId, content);

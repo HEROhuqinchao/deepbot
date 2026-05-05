@@ -32,8 +32,8 @@ export interface WecomConnectorConfig extends ConnectorConfig {
 }
 
 export class WecomConnector implements Connector {
-  readonly id = 'wecom' as const;
-  readonly name = '企业微信';
+  readonly id: string;
+  readonly name: string;
   readonly version = '1.0.0';
 
   private connectorManager: ConnectorManager;
@@ -50,8 +50,12 @@ export class WecomConnector implements Connector {
   // 请求响应关联
   private pendingRequests: Map<string, { resolve: (value: any) => void; reject: (error: Error) => void; timeout: ReturnType<typeof setTimeout> }> = new Map();
 
-  constructor(connectorManager: ConnectorManager) {
+  constructor(connectorManager: ConnectorManager, instanceId?: string) {
     this.connectorManager = connectorManager;
+    // 支持多实例：wecom-1, wecom-2 等
+    this.id = instanceId || 'wecom';
+    const num = instanceId?.match(/wecom-(\d+)/)?.[1];
+    this.name = num ? `企业微信 ${num}` : '企业微信';
   }
 
   // ========== 配置管理 ==========
@@ -247,9 +251,6 @@ export class WecomConnector implements Connector {
   private handleWsMessage(message: any): void {
     const { cmd, headers, errcode, body } = message;
     const reqId = headers?.req_id;
-
-    // 调试日志：显示完整原始消息
-    logger.info('📨 收到 WebSocket 消息:', JSON.stringify(message, null, 2));
 
     // 处理请求响应（通过 req_id 关联）
     if (reqId && this.pendingRequests.has(reqId)) {

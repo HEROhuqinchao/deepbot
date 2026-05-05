@@ -235,6 +235,39 @@ export function createConnectorsRouter(gatewayAdapter: GatewayAdapter): Router {
   router.post('/wechat/create', createWechat);
   router.delete('/:connectorId', removeWechat);
 
+  // 企业微信多实例管理
+  const createWecom: RequestHandler = async (req, res) => {
+    try {
+      const { getGatewayInstance } = await import('../../main/gateway');
+      const gw = getGatewayInstance();
+      if (!gw) throw new Error('Gateway 未初始化');
+      const connectorManager = gw.getConnectorManager();
+      const connectorId = connectorManager.createWecomInstance();
+      res.json({ success: true, connectorId });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const removeWecom: RequestHandler = async (req, res) => {
+    try {
+      const connectorId = Array.isArray(req.params.connectorId)
+        ? req.params.connectorId[0]
+        : req.params.connectorId;
+      const { getGatewayInstance } = await import('../../main/gateway');
+      const gw = getGatewayInstance();
+      if (!gw) throw new Error('Gateway 未初始化');
+      const connectorManager = gw.getConnectorManager();
+      await connectorManager.removeWecomInstance(connectorId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  router.post('/wecom/create', createWecom);
+  router.delete('/wecom/:connectorId', removeWecom);
+
   // 人工直接回复
   const directReply: RequestHandler = async (req, res) => {
     try {

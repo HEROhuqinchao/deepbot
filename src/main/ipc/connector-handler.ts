@@ -433,6 +433,38 @@ export function registerConnectorHandlers(): void {
     }
   );
 
+  // 创建企业微信连接器实例
+  registerIpcHandler<void, { success: boolean; connectorId?: string; error?: string }>(
+    IPC_CHANNELS.CONNECTOR_CREATE_WECOM,
+    async (): Promise<{ success: boolean; connectorId?: string; error?: string }> => {
+      try {
+        if (!gateway) throw new Error('Gateway 未初始化');
+        const connectorManager = gateway.getConnectorManager();
+        const connectorId = connectorManager.createWecomInstance();
+        return { success: true, connectorId };
+      } catch (error) {
+        console.error('[IPC] 创建企业微信实例失败:', error);
+        return { success: false, error: getErrorMessage(error) };
+      }
+    }
+  );
+
+  // 删除企业微信连接器实例
+  registerIpcHandler<{ connectorId: string }, { success: boolean; error?: string }>(
+    IPC_CHANNELS.CONNECTOR_REMOVE_WECOM,
+    async (_event, request): Promise<{ success: boolean; error?: string }> => {
+      try {
+        if (!gateway) throw new Error('Gateway 未初始化');
+        const connectorManager = gateway.getConnectorManager();
+        await connectorManager.removeWecomInstance(request.connectorId);
+        return { success: true };
+      } catch (error) {
+        console.error('[IPC] 删除企业微信实例失败:', error);
+        return { success: false, error: getErrorMessage(error) };
+      }
+    }
+  );
+
   // 人工直接回复连接器消息
   registerIpcHandler<{ tabId: string; content: string }, { success: boolean; error?: string }>(
     IPC_CHANNELS.CONNECTOR_DIRECT_REPLY,

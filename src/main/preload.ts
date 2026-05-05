@@ -72,6 +72,8 @@ const IPC_CHANNELS = {
   CONNECTOR_PENDING_COUNT_UPDATED: 'connector:pending-count-updated',
   CONNECTOR_CREATE_WECHAT: 'connector:create-wechat',
   CONNECTOR_REMOVE_WECHAT: 'connector:remove-wechat',
+  CONNECTOR_CREATE_WECOM: 'connector:create-wecom',
+  CONNECTOR_REMOVE_WECOM: 'connector:remove-wecom',
   CONNECTOR_DIRECT_REPLY: 'connector:direct-reply',
   GET_TAB_REPLY_MODE: 'tab:get-reply-mode',
   SET_TAB_REPLY_MODE: 'tab:set-reply-mode',
@@ -383,6 +385,14 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   connectorRemoveWechat: (connectorId: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_REMOVE_WECHAT, { connectorId });
+  },
+
+  connectorCreateWecom: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_CREATE_WECOM, {});
+  },
+
+  connectorRemoveWecom: (connectorId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_REMOVE_WECOM, { connectorId });
   },
 
   // 人工直接回复连接器消息
