@@ -490,4 +490,45 @@ export class ConnectorManager {
     this.connectors.clear();
     console.log('[ConnectorManager] ✅ 所有连接器已销毁');
   }
+
+  /**
+   * 企业微信启动后更新已有 Tab 标题
+   * 根据最新的 botName 重新生成标题格式
+   */
+  updateWecomTabTitles(connectorId: string): void {
+    if (!connectorId.startsWith('wecom')) return;
+    const wecomConnector = this.connectors.get(connectorId) as any;
+    const botName = wecomConnector?.getBotName?.() || '';
+    const tabManager = this.gateway.getTabManager();
+    const allTabs = tabManager.getAllTabs();
+    const num = connectorId.match(/wecom-(\d+)/)?.[1] || '1';
+    for (const tab of allTabs) {
+      if (tab.connectorId !== connectorId) continue;
+      const title = tab.title || '';
+      if (!title.startsWith('WC')) continue;
+      // 判断是否群聊：标题中包含 -群-
+      const isGroup = title.includes('-群-');
+      // 提取发送者名称
+      let senderName = '';
+      if (isGroup) {
+        const idx = title.indexOf('-群-');
+        senderName = title.substring(idx + 3);
+      } else {
+        const lastDash = title.lastIndexOf('-');
+        if (lastDash > 0) {
+          senderName = title.substring(lastDash + 1);
+        }
+      }
+      if (!senderName) continue;
+      let newTitle: string;
+      if (botName) {
+        newTitle = isGroup ? `WC-${botName}-群-${senderName}` : `WC-${botName}-${senderName}`;
+      } else {
+        newTitle = isGroup ? `WC${num}-群-${senderName}` : `WC${num}-${senderName}`;
+      }
+      if (newTitle !== tab.title) {
+        tabManager.updateTabTitle(tab.id, newTitle);
+      }
+    }
+  }
 }

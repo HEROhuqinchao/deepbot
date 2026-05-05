@@ -28,6 +28,7 @@ const WECOM_WS_URL = 'wss://openws.work.weixin.qq.com';
 export interface WecomConnectorConfig extends ConnectorConfig {
   botId: string;
   secret: string;
+  botName: string; // 机器人名称（必填），用于 Tab 标题显示，不超过10个字
   enabled: boolean;
 }
 
@@ -75,7 +76,7 @@ export class WecomConnector implements Connector {
 
     validate: (config: ConnectorConfig): boolean => {
       const c = config as WecomConnectorConfig;
-      return !!(c.botId && c.secret);
+      return !!(c.botId && c.secret && c.botName);
     },
   };
 
@@ -83,6 +84,13 @@ export class WecomConnector implements Connector {
 
   async initialize(config: ConnectorConfig): Promise<void> {
     this.connectorConfig = config as WecomConnectorConfig;
+  }
+
+  /**
+   * 获取配置的机器人名称
+   */
+  getBotName(): string {
+    return this.connectorConfig?.botName || '';
   }
 
   async start(): Promise<void> {
@@ -103,8 +111,19 @@ export class WecomConnector implements Connector {
   }
 
   async healthCheck(): Promise<HealthStatus> {
+    // 刚启动时 WebSocket 可能还在连接中，等待一小段时间
+    if (this.isStarted && (!this.ws || this.ws.readyState !== 1)) {
+      // 最多等待 5 秒，每 200ms 检查一次
+      for (let i = 0; i < 25; i++) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        if (this.ws && this.ws.readyState === 1 && this.isSubscribed) break;
+      }
+    }
     if (!this.ws || this.ws.readyState !== 1) {
       return { status: 'unhealthy', message: 'WebSocket 未连接' };
+    }
+    if (!this.isSubscribed) {
+      return { status: 'unhealthy', message: '订阅未完成' };
     }
     return { status: 'healthy', message: '企业微信连接器运行正常' };
   }

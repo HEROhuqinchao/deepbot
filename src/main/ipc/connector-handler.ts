@@ -215,6 +215,9 @@ export function registerConnectorHandlers(): void {
         const connectorManager = gateway.getConnectorManager();
         await connectorManager.startConnector(request.connectorId as any);
         
+        // 企业微信启动后：更新已有 Tab 标题（botName 可能已变更）
+        connectorManager.updateWecomTabTitles(request.connectorId);
+        
         console.log('[IPC] ✅ 连接器已启动');
         
         return {

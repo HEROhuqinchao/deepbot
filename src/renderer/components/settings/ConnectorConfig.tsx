@@ -68,7 +68,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const [showWecomWorkPrompt, setShowWecomWorkPrompt] = useState(false);
   const [wecomDefaultWorkPrompt, setWecomDefaultWorkPrompt] = useState('');
   const [wecomWorkPromptInstanceId, setWecomWorkPromptInstanceId] = useState('');
-  const [wecomConfigs, setWecomConfigs] = useState<Record<string, { botId: string; secret: string }>>({});
+  const [wecomConfigs, setWecomConfigs] = useState<Record<string, { botId: string; secret: string; botName?: string }>>({});
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -92,13 +92,13 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         // 加载所有企业微信实例的配置（用于显示 BotID/Secret）
         const wecomInstances = actualResult.connectors.filter((c: any) => c.id.startsWith('wecom'));
         if (wecomInstances.length > 0) {
-          const configs: Record<string, { botId: string; secret: string }> = {};
+          const configs: Record<string, { botId: string; secret: string; botName?: string }> = {};
           for (const wc of wecomInstances) {
             try {
               const cfgResult = await api.connectorGetConfig(wc.id);
               const cfg = cfgResult.data || cfgResult;
               if (cfg.success && cfg.config) {
-                configs[wc.id] = { botId: cfg.config.botId || '', secret: cfg.config.secret || '' };
+                configs[wc.id] = { botId: cfg.config.botId || '', secret: cfg.config.secret || '', botName: cfg.config.botName || '' };
               }
             } catch { /* 静默 */ }
           }
@@ -226,12 +226,28 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         // 企业微信多实例：从 state 读取 BotID 和 Secret
         const botId = wecomConfigs[connectorId]?.botId?.trim() || '';
         const secret = wecomConfigs[connectorId]?.secret?.trim() || '';
+        const botName = wecomConfigs[connectorId]?.botName?.trim() || '';
         if (!botId || !secret) {
           showToast('error', lang === 'zh' ? '请输入 Bot ID 和 Secret' : 'Please enter Bot ID and Secret');
           setStartingMap(prev => ({ ...prev, [connectorId]: false }));
           return;
         }
-        await api.connectorSaveConfig(connectorId, { botId, secret, enabled: false });
+        if (!botName) {
+          showToast('error', lang === 'zh' ? '请输入机器人名称' : 'Please enter Bot Name');
+          setStartingMap(prev => ({ ...prev, [connectorId]: false }));
+          return;
+        }
+        if (botName.length > 20) {
+          showToast('error', lang === 'zh' ? '机器人名称不能超过10个字' : 'Bot Name cannot exceed 10 characters');
+          setStartingMap(prev => ({ ...prev, [connectorId]: false }));
+          return;
+        }
+        if (!/^[\u4e00-\u9fa5a-zA-Z0-9]+$/.test(botName)) {
+          showToast('error', lang === 'zh' ? '机器人名称只能包含中文、英文和数字' : 'Bot Name can only contain letters, numbers and Chinese characters');
+          setStartingMap(prev => ({ ...prev, [connectorId]: false }));
+          return;
+        }
+        await api.connectorSaveConfig(connectorId, { botId, secret, botName, enabled: false });
       }
       await api.connectorStart(connectorId);
       showToast('success', lang === 'zh' ? '连接器已启动' : 'Connector started');
@@ -560,7 +576,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                   <label className="block text-xs font-medium text-gray-600 mb-1">Bot ID</label>
                   <input type="text"
                     value={wecomConfigs[wc.id]?.botId || ''}
-                    onChange={(e) => setWecomConfigs(prev => ({ ...prev, [wc.id]: { ...prev[wc.id] || { botId: '', secret: '' }, botId: e.target.value } }))}
+                    onChange={(e) => setWecomConfigs(prev => ({ ...prev, [wc.id]: { ...prev[wc.id] || { botId: '', secret: '', botName: '' }, botId: e.target.value } }))}
                     placeholder="BotID"
                     className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                     id={`wecom-botid-${wc.id}`}
@@ -570,10 +586,26 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                   <label className="block text-xs font-medium text-gray-600 mb-1">Secret</label>
                   <input type="password"
                     value={wecomConfigs[wc.id]?.secret || ''}
-                    onChange={(e) => setWecomConfigs(prev => ({ ...prev, [wc.id]: { ...prev[wc.id] || { botId: '', secret: '' }, secret: e.target.value } }))}
+                    onChange={(e) => setWecomConfigs(prev => ({ ...prev, [wc.id]: { ...prev[wc.id] || { botId: '', secret: '', botName: '' }, secret: e.target.value } }))}
                     placeholder="Secret"
                     className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                     id={`wecom-secret-${wc.id}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{lang === 'zh' ? '机器人名称' : 'Bot Name'} <span className="text-red-500">*</span></label>
+                  <input type="text"
+                    value={wecomConfigs[wc.id]?.botName || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.length <= 20) {
+                        setWecomConfigs(prev => ({ ...prev, [wc.id]: { ...prev[wc.id] || { botId: '', secret: '', botName: '' }, botName: val } }));
+                      }
+                    }}
+                    placeholder={lang === 'zh' ? '中文/英文/数字，不超过10个字' : 'Letters/numbers/Chinese, max 10 chars'}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    id={`wecom-botname-${wc.id}`}
+                    maxLength={20}
                   />
                 </div>
               </div>

@@ -184,14 +184,26 @@ export class GatewayConnectorHandler {
           const nickname = message.source.senderName || '用户';
           title = `SK-${kfName}-${nickname}`;
         } else if (message.source.connectorId?.startsWith('wecom')) {
-          // 企业微信消息：使用实例编号 + userid 生成 Tab 标题
+          // 企业微信消息：使用 botName（如有）+ userid 生成 Tab 标题
           const senderName = message.source.senderName || '用户';
           const chatType = message.source.chatType;
+          const wecomConnector = this.connectorManager!.getConnector(message.source.connectorId) as any;
+          const botName = wecomConnector?.getBotName?.() || '';
           const num = message.source.connectorId.match(/wecom-(\d+)/)?.[1] || '1';
-          if (chatType === 'group') {
-            title = `WC${num}-群-${senderName}`;
+          if (botName) {
+            // 有机器人名称：WC-name-群-用户 或 WC-name-用户
+            if (chatType === 'group') {
+              title = `WC-${botName}-群-${senderName}`;
+            } else {
+              title = `WC-${botName}-${senderName}`;
+            }
           } else {
-            title = `WC${num}-${senderName}`;
+            // 无机器人名称：WC1-群-用户 或 WC1-用户
+            if (chatType === 'group') {
+              title = `WC${num}-群-${senderName}`;
+            } else {
+              title = `WC${num}-${senderName}`;
+            }
           }
         } else {
           title = message.source.connectorId || 'unknown';
