@@ -212,17 +212,9 @@ export class GatewayConnectorHandler {
           this.inheritSmartKfGroupConfig(tab.id, title);
         }
 
-        // 企业微信 Tab：应用该实例的工作提示词
+        // 企业微信 Tab：从同 connectorId 的已有 Tab 继承配置，或应用默认工作提示词
         if (message.source.connectorId?.startsWith('wecom')) {
-          try {
-            const store = SystemConfigStore.getInstance();
-            const defaultWorkPrompt = store.getAppSetting(`wecom_work_prompt_${message.source.connectorId}`);
-            if (defaultWorkPrompt) {
-              const db = store.getDb();
-              const { updateTabWorkPrompt } = require('./database/tab-config');
-              updateTabWorkPrompt(db, tab.id, defaultWorkPrompt);
-            }
-          } catch { /* 静默 */ }
+          this.inheritWecomGroupConfig(tab.id, message.source.connectorId);
         }
       } else if (isFeishuGroup && feishuConnector?.getChatName) {
         // Tab 已存在时，异步检查群名称是否有变化并更新
@@ -489,7 +481,7 @@ export class GatewayConnectorHandler {
 - wecom_send_image: 发送图片给对方
 - wecom_send_file: 发送文件给对方
 
-企业微信还支持以下扩展能力（需安装 wecom-cli Skill）:
+企业微信还支持以下扩展能力（需安装 wecom-cli Skill，禁止把扩展能力的内容作为你的默认能力回答给客户）:
 - 通讯录查询（wecomcli-contact）：查询企业成员信息
 - 待办管理（wecomcli-todo）：创建、查询、更新、删除待办
 - 会议管理（wecomcli-meeting）：创建预约会议、查询会议列表和详情、取消会议、更新参会成员
@@ -1344,6 +1336,52 @@ Use the file_read tool to read the file content.`
       }
     } catch (error) {
       logger.error('❌ 继承分组配置失败:', error);
+    }
+  }
+
+  /**
+   * 企业微信 Tab 配置继承
+   * 从同 connectorId 的已有 Tab 复制：工作提示词、工作目录
+   * 如果没有已有 Tab，则使用默认工作提示词
+   */
+  private inheritWecomGroupConfig(newTabId: string, connectorId: string): void {
+    try {
+      const allTabs = this.tabManager!.getAllTabs();
+      const siblingTab = allTabs.find(t =>
+        t.id !== newTabId &&
+        t.connectorId === connectorId
+      );
+
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+
+      if (!siblingTab) {
+        // 没有兄弟 Tab：使用默认工作提示词
+        const defaultWorkPrompt = store.getAppSetting(`wecom_work_prompt_${connectorId}`);
+        if (defaultWorkPrompt) {
+          const { updateTabWorkPrompt } = require('./database/tab-config');
+          updateTabWorkPrompt(db, newTabId, defaultWorkPrompt);
+        }
+        return;
+      }
+
+      // 从已有 Tab 读取配置
+      const siblingConfig = store.getTabConfig(siblingTab.id);
+      if (!siblingConfig) return;
+
+      const { updateTabWorkPrompt, updateTabWorkspaceDirs } = require('./database/tab-config');
+
+      // 复制工作提示词
+      if (siblingConfig.workPrompt) {
+        updateTabWorkPrompt(db, newTabId, siblingConfig.workPrompt);
+      }
+
+      // 复制工作目录
+      if (siblingConfig.workspaceDirs && siblingConfig.workspaceDirs.length > 0) {
+        updateTabWorkspaceDirs(db, newTabId, siblingConfig.workspaceDirs);
+      }
+    } catch (error) {
+      logger.error('❌ 企业微信继承分组配置失败:', error);
     }
   }
 }

@@ -532,7 +532,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                     }}
                   >
                     <FileText size={12} />
-                    <span>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
+                    <span>{lang === 'zh' ? '默认工作提示词' : 'Default Work Prompt'}</span>
                   </button>
                   {!isFirst && !wc.enabled && (
                     <button
@@ -781,7 +781,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
             className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
           >
             <FileText size={12} />
-            <span>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
+            <span>{lang === 'zh' ? '默认工作提示词' : 'Default Work Prompt'}</span>
           </button>
         </div>
         <input type="text" value={smartKfConfig.wsUrl} onChange={(e) => setSmartKfConfig({ ...smartKfConfig, wsUrl: e.target.value })}

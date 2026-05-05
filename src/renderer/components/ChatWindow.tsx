@@ -191,6 +191,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         const key = getSmartKfName(tab.title || '') || 'unknown';
         if (!groups[key]) groups[key] = [];
         groups[key].push(tab);
+      } else if (tab.connectorId?.startsWith('wecom')) {
+        // 企业微信按 connectorId 分组（wecom-1、wecom-2 各一组）
+        const key = tab.connectorId;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(tab);
       } else {
         normal.push(tab);
       }
@@ -772,7 +777,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
               
-              // 智能客服 Tab：自动查找同分组的所有 Tab
+              // 分组 Tab：自动查找同分组的所有 Tab（智能客服或企业微信）
               if (!groupTabIds) {
                 const tab = tabs?.find(t => t.id === tabId);
                 if (tab?.connectorId === 'smart-kf') {
@@ -780,6 +785,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                   if (kfName && wecomGroups[kfName]) {
                     groupTabIds = wecomGroups[kfName].map(t => t.id);
                   }
+                } else if (tab?.connectorId?.startsWith('wecom') && wecomGroups[tab.connectorId]) {
+                  groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
                 }
               }
               
@@ -797,7 +804,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
               
-              // 智能客服 Tab：自动查找同分组的所有 Tab
+              // 分组 Tab：自动查找同分组的所有 Tab（智能客服或企业微信）
               if (!groupTabIds) {
                 const tab = tabs?.find(t => t.id === tabId);
                 if (tab?.connectorId === 'smart-kf') {
@@ -805,6 +812,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                   if (kfName && wecomGroups[kfName]) {
                     groupTabIds = wecomGroups[kfName].map(t => t.id);
                   }
+                } else if (tab?.connectorId?.startsWith('wecom') && wecomGroups[tab.connectorId]) {
+                  groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
                 }
               }
               
@@ -829,7 +838,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
               
-              // 智能客服 Tab：自动查找同分组
+              // 分组 Tab：自动查找同分组（智能客服或企业微信）
               if (!groupTabIds) {
                 const tab = tabs?.find(t => t.id === tabId);
                 if (tab?.connectorId === 'smart-kf') {
@@ -837,6 +846,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                   if (kfName && wecomGroups[kfName]) {
                     groupTabIds = wecomGroups[kfName].map(t => t.id);
                   }
+                } else if (tab?.connectorId?.startsWith('wecom') && wecomGroups[tab.connectorId]) {
+                  groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
                 }
               }
               
@@ -874,7 +885,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             {lang === 'zh' ? '工作目录' : 'Workspace'}
           </div>
           {/* Skill 白名单（仅智能客服分组显示） */}
-          {contextMenu.isGroup && (
+          {contextMenu.isGroup && tabs?.find(t => t.id === contextMenu.tabId)?.connectorId === 'smart-kf' && (
             <div
               className="tab-context-menu-item"
               onClick={async () => {
@@ -882,7 +893,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 let groupTabIds = contextMenu.groupTabIds;
                 setContextMenu(null);
                 
-                // 智能客服 Tab：自动查找同分组的所有 Tab
+                // 分组 Tab：自动查找同分组的所有 Tab（智能客服或企业微信）
                 if (!groupTabIds) {
                   const tab = tabs?.find(t => t.id === tabId);
                   if (tab?.connectorId === 'smart-kf') {
@@ -890,6 +901,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                     if (kfName && wecomGroups[kfName]) {
                       groupTabIds = wecomGroups[kfName].map(t => t.id);
                     }
+                  } else if (tab?.connectorId?.startsWith('wecom') && wecomGroups[tab.connectorId]) {
+                    groupTabIds = wecomGroups[tab.connectorId].map(t => t.id);
                   }
                 }
                 
