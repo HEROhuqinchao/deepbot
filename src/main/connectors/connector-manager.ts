@@ -502,31 +502,45 @@ export class ConnectorManager {
     const tabManager = this.gateway.getTabManager();
     const allTabs = tabManager.getAllTabs();
     const num = connectorId.match(/wecom-(\d+)/)?.[1] || '1';
+
+    // 先收集群聊 Tab，统一重新编号
+    const groupTabs: { id: string; title: string }[] = [];
+    const singleTabs: { id: string; senderName: string }[] = [];
+
     for (const tab of allTabs) {
       if (tab.connectorId !== connectorId) continue;
       const title = tab.title || '';
       if (!title.startsWith('WC')) continue;
-      // 判断是否群聊：标题中包含 -群-
-      const isGroup = title.includes('-群-');
-      // 提取发送者名称
-      let senderName = '';
-      if (isGroup) {
-        const idx = title.indexOf('-群-');
-        senderName = title.substring(idx + 3);
+      // 群聊格式：WC-name-群N 或 WC{num}-群N 或旧格式 WC-name-群-sender / WC{num}-群-sender
+      if (title.match(/群\d*$/)) {
+        // 新格式群聊（WC-name-群N）
+        groupTabs.push({ id: tab.id, title });
+      } else if (title.includes('-群-')) {
+        // 旧格式群聊（WC-name-群-sender），迁移为新格式
+        groupTabs.push({ id: tab.id, title });
       } else {
+        // 单聊：提取发送者名称（最后一个 - 后面的部分）
         const lastDash = title.lastIndexOf('-');
         if (lastDash > 0) {
-          senderName = title.substring(lastDash + 1);
+          singleTabs.push({ id: tab.id, senderName: title.substring(lastDash + 1) });
         }
       }
-      if (!senderName) continue;
-      let newTitle: string;
-      if (botName) {
-        newTitle = isGroup ? `WC-${botName}-群-${senderName}` : `WC-${botName}-${senderName}`;
-      } else {
-        newTitle = isGroup ? `WC${num}-群-${senderName}` : `WC${num}-${senderName}`;
-      }
+    }
+
+    // 更新群聊 Tab 标题（重新编号）
+    const groupPrefix = botName ? `WC-${botName}-群` : `WC${num}-群`;
+    groupTabs.forEach((tab, idx) => {
+      const newTitle = `${groupPrefix}${idx + 1}`;
       if (newTitle !== tab.title) {
+        tabManager.updateTabTitle(tab.id, newTitle);
+      }
+    });
+
+    // 更新单聊 Tab 标题
+    for (const tab of singleTabs) {
+      const newTitle = botName ? `WC-${botName}-${tab.senderName}` : `WC${num}-${tab.senderName}`;
+      const existingTab = allTabs.find(t => t.id === tab.id);
+      if (existingTab && newTitle !== existingTab.title) {
         tabManager.updateTabTitle(tab.id, newTitle);
       }
     }
