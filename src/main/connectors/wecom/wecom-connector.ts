@@ -39,6 +39,7 @@ export class WecomConnector implements Connector {
   private connectorManager: ConnectorManager;
   private connectorConfig!: WecomConnectorConfig;
   private isStarted: boolean = false;
+  private isSubscribed: boolean = false;
   private ws: any = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -92,6 +93,7 @@ export class WecomConnector implements Connector {
 
   async stop(): Promise<void> {
     this.isStarted = false;
+    this.isSubscribed = false;
     this.clearTimers();
     if (this.ws) {
       this.ws.close();
@@ -219,6 +221,7 @@ export class WecomConnector implements Connector {
 
       this.ws.on('close', () => {
         logger.info('WebSocket 连接已关闭');
+        this.isSubscribed = false;
         this.stopHeartbeat();
         if (this.isStarted) {
           this.scheduleReconnect();
@@ -265,15 +268,17 @@ export class WecomConnector implements Connector {
       return;
     }
 
-    // 订阅响应
+    // 订阅响应（只处理一次，后续的 pong 等响应忽略）
     if (errcode !== undefined && !cmd) {
-      if (errcode === 0) {
+      if (!this.isSubscribed && errcode === 0) {
+        this.isSubscribed = true;
         logger.info('订阅成功');
         this.startHeartbeat();
-      } else {
+      } else if (errcode !== 0) {
         logger.error('订阅失败:', message.errmsg);
         this.ws?.close();
       }
+      // errcode === 0 但已订阅 → 是心跳 pong，静默忽略
       return;
     }
 
