@@ -74,6 +74,12 @@ export class Gateway {
     this.connectorManager.registerConnector(feishuConnector);
     console.log('[Gateway] ✅ 飞书连接器已注册');
 
+    // 注册企业微信连接器（放在飞书后面）
+    const { WecomConnector } = require('./connectors/wecom/wecom-connector');
+    const wecomConnector = new WecomConnector(this.connectorManager);
+    this.connectorManager.registerConnector(wecomConnector);
+    console.log('[Gateway] ✅ 企业微信连接器已注册');
+
     // 注册微信连接器（从数据库恢复已有实例，没有则创建默认实例）
     const { WechatConnector } = require('./connectors/wechat/wechat-connector');
     const { SystemConfigStore: ConfigStore } = require('./database/system-config-store');
@@ -133,6 +139,10 @@ export class Gateway {
     const { setGatewayForWecomKfTool } = require('./tools/wecom-kf-tool');
     setGatewayForWecomKfTool(this);
     console.info('[Gateway] Gateway 实例已传递给 WecomKf Tool');
+
+    const { setGatewayForWecomTool } = require('./tools/wecom-tool');
+    setGatewayForWecomTool(this);
+    console.info('[Gateway] Gateway 实例已传递给 Wecom Tool');
     
     // 设置 configStore 供飞书云文档工具使用
     const { setConfigStoreForFeishuDocTool } = require('./tools/feishu-doc-tool');

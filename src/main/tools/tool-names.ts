@@ -74,6 +74,11 @@ export const TOOL_NAMES = {
   WECOM_KF_SEND_MESSAGE: 'wecom_kf_send_message',
   WECOM_KF_SEND_IMAGE: 'wecom_kf_send_image',
   WECOM_KF_SEND_FILE: 'wecom_kf_send_file',
+
+  // 企业微信工具
+  WECOM_SEND_MESSAGE: 'wecom_send_message',
+  WECOM_SEND_IMAGE: 'wecom_send_image',
+  WECOM_SEND_FILE: 'wecom_send_file',
   
   // 飞书云文档工具
   FEISHU_DOC_CREATE: 'feishu_doc_create',
