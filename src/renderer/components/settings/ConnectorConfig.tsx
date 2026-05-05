@@ -653,6 +653,18 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                   <p>{lang === 'zh' ? '• 回复内容支持 Markdown 格式' : '• Replies support Markdown format'}</p>
                 </div>
               </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2 pl-2 border-l-2 border-blue-400">{lang === 'zh' ? '5. 安装 wecom-cli（可选，解锁办公能力）' : '5. Install wecom-cli (Optional, unlock office features)'}</h4>
+                <p className="text-gray-600 ml-2 mb-2">{lang === 'zh' ? '安装后可使用通讯录查询、待办管理、会议管理、日程管理、文档管理等企业微信办公能力。' : 'After installation, you can use contacts, todo, meeting, schedule, and document management features.'}</p>
+                <div className="bg-gray-50 border border-gray-200 rounded p-3 font-mono text-xs text-gray-700 space-y-2 ml-2">
+                  <p><span className="text-gray-400"># {lang === 'zh' ? '安装 CLI' : 'Install CLI'}</span></p>
+                  <p>npm install -g @wecom/cli</p>
+                  <p><span className="text-gray-400"># {lang === 'zh' ? '安装 CLI Skill（必需）' : 'Install CLI Skill (required)'}</span></p>
+                  <p>npx skills add WeComTeam/wecom-cli -y -g</p>
+                  <p><span className="text-gray-400"># {lang === 'zh' ? '配置凭证（交互式，仅需一次）' : 'Configure credentials (interactive, one-time)'}</span></p>
+                  <p>wecom-cli init</p>
+                </div>
+              </div>
             </div>
           </div>
           <div className="settings-alert settings-alert-info">

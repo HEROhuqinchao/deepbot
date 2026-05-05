@@ -489,9 +489,23 @@ export class GatewayConnectorHandler {
 - wecom_send_image: 发送图片给对方
 - wecom_send_file: 发送文件给对方
 
+企业微信还支持以下扩展能力（需安装 wecom-cli Skill）:
+- 通讯录查询（wecomcli-contact）：查询企业成员信息
+- 待办管理（wecomcli-todo）：创建、查询、更新、删除待办
+- 会议管理（wecomcli-meeting）：创建预约会议、查询会议列表和详情、取消会议、更新参会成员
+- 消息管理（wecomcli-msg）：查询会话列表、查询消息记录、下载媒体文件
+- 日程管理（wecomcli-schedule）：查询日程、创建/取消日程、管理参与人、查询闲忙状态
+- 文档管理（wecomcli-doc）：创建/读取/编辑文档、管理智能表格
+
+如果用户要求执行上述扩展能力但没有对应的 Skill，请提醒用户安装：
+1. npm install -g @wecom/cli
+2. npx skills add WeComTeam/wecom-cli -y -g
+3. wecom-cli init（配置凭证，仅需一次）
+
 注意：
 1. 回复内容支持 Markdown 格式
-2. 绝对不要使用 wecom_send_message 工具回复信息，除非收到明确指令要给具体目标发送消息]`;
+2. 绝对不要使用 wecom_send_message 工具回复信息，除非收到明确指令要给具体目标发送消息
+3. 收到用户发送的企业微信文档链接、表格链接的时候，询问客户需要做什么操作，同时检查是否安装了wecom-cli]`;
     }
 
     // 额外系统通知（由连接器按需注入，如首次管理员授权提示）
