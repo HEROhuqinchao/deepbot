@@ -31,6 +31,7 @@ import { emailToolPlugin } from '../email-tool';
 import { apiToolPlugin } from '../api-tool';
 import { connectorToolPlugin } from '../connector-tool';
 import { wechatToolPlugin } from '../wechat-tool';
+import { wecomKfToolPlugin } from '../wecom-kf-tool';
 import { crossTabCallToolPlugin } from '../cross-tab-call-tool';
 import { commandToolPlugin } from '../command-tool';
 import { feishuDocToolPlugin } from '../feishu-doc-tool';
@@ -187,6 +188,9 @@ export class ToolLoader {
       
       // 微信工具
       tools.push(...await resolvePluginTools(wechatToolPlugin.create(pluginOpts)));
+      
+      // 企微客服工具
+      tools.push(...await resolvePluginTools(wecomKfToolPlugin.create(pluginOpts)));
       
       // 跨 Tab 调用工具（多 Agent 协作）
       tools.push(...await resolvePluginTools(crossTabCallToolPlugin.create(pluginOpts)));

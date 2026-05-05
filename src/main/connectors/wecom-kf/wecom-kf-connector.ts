@@ -123,13 +123,69 @@ export class WecomKfConnector implements Connector {
       const externalUserId = parts[0];
       const openKfId = parts[1] || '';
 
-      this.ws.send(JSON.stringify({
+      await this.sendAndWaitResponse({
         type: 'send_message',
         touser: externalUserId,
         open_kfid: openKfId,
         content: params.content,
         msgid: params.replyToMessageId,
-      }));
+      });
+    },
+
+    sendImage: async (params: {
+      conversationId: string;
+      imagePath: string;
+      caption?: string;
+    }): Promise<void> => {
+      if (!this.ws || this.ws.readyState !== 1) {
+        throw new Error('WebSocket 未连接');
+      }
+
+      const parts = params.conversationId.split('||');
+      const externalUserId = parts[0];
+      const openKfId = parts[1] || '';
+
+      // 1. 获取 access_token
+      const accessToken = await this.getAccessToken();
+
+      // 2. 上传临时素材获取 media_id
+      const mediaId = await this.uploadMedia(accessToken, params.imagePath, 'image');
+
+      // 3. 发送图片消息并等待确认
+      await this.sendAndWaitResponse({
+        type: 'send_image',
+        touser: externalUserId,
+        open_kfid: openKfId,
+        media_id: mediaId,
+      });
+    },
+
+    sendFile: async (params: {
+      conversationId: string;
+      filePath: string;
+      fileName?: string;
+    }): Promise<void> => {
+      if (!this.ws || this.ws.readyState !== 1) {
+        throw new Error('WebSocket 未连接');
+      }
+
+      const parts = params.conversationId.split('||');
+      const externalUserId = parts[0];
+      const openKfId = parts[1] || '';
+
+      // 1. 获取 access_token
+      const accessToken = await this.getAccessToken();
+
+      // 2. 上传临时素材获取 media_id
+      const mediaId = await this.uploadMedia(accessToken, params.filePath, 'file');
+
+      // 3. 发送文件消息并等待确认
+      await this.sendAndWaitResponse({
+        type: 'send_file',
+        touser: externalUserId,
+        open_kfid: openKfId,
+        media_id: mediaId,
+      });
     },
   };
 
@@ -439,5 +495,138 @@ export class WecomKfConnector implements Connector {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+  }
+
+  /**
+   * 发送 WebSocket 消息并等待服务端确认（message_sent 或 error）
+   */
+  private sendAndWaitResponse(payload: any): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.ws || this.ws.readyState !== 1) {
+        reject(new Error('WebSocket 未连接'));
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        this.ws?.removeListener('message', handler);
+        // 超时不报错，视为成功（兼容旧版服务端不返回确认的情况）
+        resolve();
+      }, 15000);
+
+      const handler = (data: any) => {
+        try {
+          const msg = JSON.parse(data.toString());
+          if (msg.type === 'message_sent') {
+            clearTimeout(timeout);
+            this.ws?.removeListener('message', handler);
+            resolve();
+          } else if (msg.type === 'send_error' || (msg.type === 'error' && msg.error)) {
+            clearTimeout(timeout);
+            this.ws?.removeListener('message', handler);
+            reject(new Error(msg.error || '发送失败'));
+          }
+        } catch {
+          // 非相关消息，忽略
+        }
+      };
+
+      this.ws.on('message', handler);
+      this.ws.send(JSON.stringify(payload));
+    });
+  }
+
+  /**
+   * 通过 WebSocket 获取 access_token
+   */
+  private getAccessToken(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      if (!this.ws || this.ws.readyState !== 1) {
+        reject(new Error('WebSocket 未连接'));
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        this.ws?.removeListener('message', handler);
+        reject(new Error('获取 access_token 超时'));
+      }, 10000);
+
+      const handler = (data: any) => {
+        try {
+          const msg = JSON.parse(data.toString());
+          if (msg.type === 'token') {
+            clearTimeout(timeout);
+            this.ws?.removeListener('message', handler);
+            if (msg.access_token) {
+              resolve(msg.access_token);
+            } else {
+              reject(new Error('access_token 为空'));
+            }
+          }
+        } catch {
+          // 非 token 消息，忽略
+        }
+      };
+
+      this.ws.on('message', handler);
+      this.ws.send(JSON.stringify({ type: 'get_token' }));
+    });
+  }
+
+  /**
+   * 上传临时素材到企微，获取 media_id
+   * 
+   * @param accessToken - 企微 access_token
+   * @param filePath - 本地文件路径
+   * @param mediaType - 素材类型：'image' | 'file' | 'voice'
+   */
+  private async uploadMedia(accessToken: string, filePath: string, mediaType: 'image' | 'file' | 'voice'): Promise<string> {
+    const expandedPath = filePath.startsWith('~') 
+      ? filePath.replace('~', process.env.HOME || '') 
+      : filePath;
+    
+    if (!fs.existsSync(expandedPath)) {
+      throw new Error(`文件不存在: ${expandedPath}`);
+    }
+
+    const fileBuffer = fs.readFileSync(expandedPath);
+    const fileName = path.basename(expandedPath);
+
+    // 构建 multipart/form-data
+    const boundary = `----WebKitFormBoundary${Date.now().toString(36)}`;
+    const contentType = mediaType === 'image' ? 'image/png' : 'application/octet-stream';
+
+    const header = Buffer.from(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="media"; filename="${fileName}"\r\n` +
+      `Content-Type: ${contentType}\r\n\r\n`
+    );
+    const footer = Buffer.from(`\r\n--${boundary}--\r\n`);
+    const body = Buffer.concat([header, fileBuffer, footer]);
+
+    // 调用企微上传临时素材 API
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=${accessToken}&type=${mediaType}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body,
+    });
+
+    if (!response.ok) {
+      throw new Error(`上传素材失败: HTTP ${response.status}`);
+    }
+
+    const result = await response.json() as any;
+    if (result.errcode && result.errcode !== 0) {
+      throw new Error(`上传素材失败: ${result.errmsg} (errcode: ${result.errcode})`);
+    }
+
+    if (!result.media_id) {
+      throw new Error('上传素材响应中缺少 media_id');
+    }
+
+    console.log(`[WecomKfConnector] ✅ 素材上传成功: ${mediaType}, media_id: ${result.media_id}`);
+    return result.media_id;
   }
 }

@@ -129,6 +129,10 @@ export class Gateway {
     const { setGatewayForWechatTool } = require('./tools/wechat-tool');
     setGatewayForWechatTool(this);
     console.info('[Gateway] Gateway 实例已传递给 Wechat Tool');
+
+    const { setGatewayForWecomKfTool } = require('./tools/wecom-kf-tool');
+    setGatewayForWecomKfTool(this);
+    console.info('[Gateway] Gateway 实例已传递给 WecomKf Tool');
     
     // 设置 configStore 供飞书云文档工具使用
     const { setConfigStoreForFeishuDocTool } = require('./tools/feishu-doc-tool');
