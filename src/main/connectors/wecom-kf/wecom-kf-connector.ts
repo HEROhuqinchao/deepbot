@@ -498,7 +498,8 @@ export class WecomKfConnector implements Connector {
   }
 
   /**
-   * 发送 WebSocket 消息并等待服务端确认（message_sent 或 error）
+   * 发送 WebSocket 消息并等待服务端确认（message_sent 或 send_error）
+   * 通过 request_id 关联请求和响应，支持并发发送
    */
   private sendAndWaitResponse(payload: any): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -506,6 +507,9 @@ export class WecomKfConnector implements Connector {
         reject(new Error('WebSocket 未连接'));
         return;
       }
+
+      // 生成唯一请求 ID
+      const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       const timeout = setTimeout(() => {
         this.ws?.removeListener('message', handler);
@@ -516,11 +520,14 @@ export class WecomKfConnector implements Connector {
       const handler = (data: any) => {
         try {
           const msg = JSON.parse(data.toString());
+          // 只处理匹配当前 request_id 的响应
+          if (msg.request_id && msg.request_id !== requestId) return;
+          
           if (msg.type === 'message_sent') {
             clearTimeout(timeout);
             this.ws?.removeListener('message', handler);
             resolve();
-          } else if (msg.type === 'send_error' || (msg.type === 'error' && msg.error)) {
+          } else if (msg.type === 'send_error') {
             clearTimeout(timeout);
             this.ws?.removeListener('message', handler);
             reject(new Error(msg.error || '发送失败'));
@@ -531,7 +538,7 @@ export class WecomKfConnector implements Connector {
       };
 
       this.ws.on('message', handler);
-      this.ws.send(JSON.stringify(payload));
+      this.ws.send(JSON.stringify({ ...payload, request_id: requestId }));
     });
   }
 
