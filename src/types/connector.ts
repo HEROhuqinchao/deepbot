@@ -225,20 +225,20 @@ export interface WechatIncomingMessage {
   raw: any;
 }
 
-// ========== 企微客服特定类型 ==========
+// ========== 智能客服特定类型 ==========
 
 /**
- * 企微客服连接器配置
+ * 智能客服连接器配置
  */
-export interface WecomKfConnectorConfig extends ConnectorConfig {
+export interface SmartKfConnectorConfig extends ConnectorConfig {
   wsUrl: string;              // WebSocket 地址
   wsKey: string;              // WebSocket 认证密钥
 }
 
 /**
- * 企微客服消息（内部格式）
+ * 智能客服消息（内部格式）
  */
-export interface WecomKfIncomingMessage {
+export interface SmartKfIncomingMessage {
   messageId: string;
   timestamp: number;
   sender: {
@@ -265,7 +265,7 @@ export interface WecomKfIncomingMessage {
 /**
  * 通用连接器消息（ConnectorManager 使用）
  */
-export type ConnectorIncomingMessage = FeishuIncomingMessage | WechatIncomingMessage | WecomKfIncomingMessage;
+export type ConnectorIncomingMessage = FeishuIncomingMessage | WechatIncomingMessage | SmartKfIncomingMessage;
 
 /**
  * Pairing 记录

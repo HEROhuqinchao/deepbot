@@ -1870,14 +1870,14 @@ ul.terminal-list {
   border: 1px solid #991b1b;
 }
 
-/* 企微客服 Agent 模式通知（绿色） */
+/* 智能客服 Agent 模式通知（绿色） */
 .global-toast-wecom-agent {
   background-color: #f0fdf4;
   color: #166534;
   border: 1px solid #86efac;
 }
 
-/* 企微客服人工模式通知（红色） */
+/* 智能客服人工模式通知（红色） */
 .global-toast-wecom-direct {
   background-color: #fef2f2;
   color: #991b1b;
@@ -1944,10 +1944,10 @@ ul.terminal-list {
   max-height: calc(85vh - 60px);
 }
 
-/* ========== 企微客服 Tab 输入框样式 ========== */
+/* ========== 智能客服 Tab 输入框样式 ========== */
 
 /* 企微模式容器 */
-.terminal-input-container.wecom-kf-mode {
+.terminal-input-container.smart-kf-mode {
   border-top: 1px solid var(--terminal-border);
 }
 

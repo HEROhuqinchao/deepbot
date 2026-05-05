@@ -1,7 +1,7 @@
 /**
- * 企微客服消息通知工具
+ * 智能客服消息通知工具
  * 
- * 收到企微客服消息时，显示 toast 通知并播放音效
+ * 收到智能客服消息时，显示 toast 通知并播放音效
  */
 
 import type { AgentTab } from '../../types/agent-tab';
@@ -9,7 +9,7 @@ import { showToast } from './toast';
 import { playNotificationSound } from './notification-sound';
 
 /**
- * 触发企微客服消息通知
+ * 触发智能客服消息通知
  * 
  * @param tab - 目标 Tab
  * @param content - 消息内容
@@ -22,7 +22,7 @@ export function notifyWecomMessage(
   isDirectMode: boolean,
   onClickTab: () => void,
 ): void {
-  const tabTitle = tab.title || '企微客服';
+  const tabTitle = tab.title || '智能客服';
   const toastType = isDirectMode ? 'wecom-direct' as const : 'wecom-agent' as const;
   const duration = isDirectMode ? 10000 : 5000;
   const preview = content.length > 50 ? content.slice(0, 50) + '...' : content;

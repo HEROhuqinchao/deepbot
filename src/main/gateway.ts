@@ -112,11 +112,20 @@ export class Gateway {
       console.log('[Gateway] ✅ 微信连接器已注册: wechat-1');
     }
 
-    // 注册企微客服连接器（放在微信之后）
-    const { WecomKfConnector } = require('./connectors/wecom-kf/wecom-kf-connector');
-    const wecomKfConnector = new WecomKfConnector(this.connectorManager);
-    this.connectorManager.registerConnector(wecomKfConnector);
-    console.log('[Gateway] ✅ 企微客服连接器已注册');
+    // 注册智能客服连接器（放在微信之后）
+    // 迁移旧的 wecom-kf 配置到 smart-kf
+    try {
+      const oldConfig = store.getConnectorConfig('wecom-kf');
+      if (oldConfig) {
+        store.saveConnectorConfig('smart-kf', '智能客服', oldConfig.config, oldConfig.enabled);
+        store.deleteConnectorConfig('wecom-kf');
+        console.log('[Gateway] 🔄 已迁移 wecom-kf 配置到 smart-kf');
+      }
+    } catch { /* 静默 */ }
+    const { SmartKfConnector } = require('./connectors/smart-kf/smart-kf-connector');
+    const smartKfConnector = new SmartKfConnector(this.connectorManager);
+    this.connectorManager.registerConnector(smartKfConnector);
+    console.log('[Gateway] ✅ 智能客服连接器已注册');
     
     // 设置 Gateway 实例供 scheduled-task-tool 使用
     setGatewayInstance(this);
@@ -136,9 +145,9 @@ export class Gateway {
     setGatewayForWechatTool(this);
     console.info('[Gateway] Gateway 实例已传递给 Wechat Tool');
 
-    const { setGatewayForWecomKfTool } = require('./tools/wecom-kf-tool');
-    setGatewayForWecomKfTool(this);
-    console.info('[Gateway] Gateway 实例已传递给 WecomKf Tool');
+    const { setGatewayForSmartKfTool } = require('./tools/smart-kf-tool');
+    setGatewayForSmartKfTool(this);
+    console.info('[Gateway] Gateway 实例已传递给 SmartKf Tool');
 
     const { setGatewayForWecomTool } = require('./tools/wecom-tool');
     setGatewayForWecomTool(this);

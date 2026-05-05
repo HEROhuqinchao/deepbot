@@ -14,9 +14,9 @@ import { getLanguage } from '../i18n';
 import { ModelConfig } from './settings/ModelConfig';
 import { X, Pencil, Settings, FileText, Shield, FolderOpen } from 'lucide-react';
 
-// 从 Tab 标题中提取企微客服名称：QW-{客服名}-{用户} → 客服名
-const getWecomKfName = (title: string): string => {
-  const match = title.match(/^QW-(.+?)-/);
+// 从 Tab 标题中提取智能客服名称：SK-{客服名}-{用户} → 客服名
+const getSmartKfName = (title: string): string => {
+  const match = title.match(/^SK-(.+?)-/);
   return match ? match[1] : '';
 };
 
@@ -90,14 +90,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [workspaceExtraDirs, setWorkspaceExtraDirs] = useState<string[]>([]);
   const workspaceDirsGroupRef = useRef<string[] | null>(null);
   
-  // 企微客服分组相关
+  // 智能客服分组相关
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null); // 当前展开的分组名
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 }); // 下拉列表位置
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({}); // tabId -> 未读消息数
   const [groupSelectedTab, setGroupSelectedTab] = useState<Record<string, string>>({}); // 分组名 -> 最后选中的 tabId
   const modelPickerGroupRef = useRef<string[] | null>(null); // 分组模型设置时的 Tab ID 列表
   
-  // 企微客服 Tab 回复模式（按 Tab 保存）
+  // 智能客服 Tab 回复模式（按 Tab 保存）
   const [wecomReplyModes, setWecomReplyModes] = useState<Record<string, 'agent' | 'direct'>>({}); // tabId -> 回复模式
   const currentWecomReplyMode = activeTabId ? (wecomReplyModes[activeTabId] || 'agent') : 'agent';
   
@@ -105,7 +105,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const currentTab = tabs?.find(t => t.id === activeTabId);
   const isConnectorTab = currentTab?.type === 'connector';
 
-  // 企微客服 Tab 未读消息追踪（按用户消息轮次计数，一轮对话只算 1）
+  // 智能客服 Tab 未读消息追踪（按用户消息轮次计数，一轮对话只算 1）
   const prevTabUserMsgCountsRef = useRef<Record<string, number>>({});
   const appReadyForUnreadRef = useRef(false); // 启动后延迟开启未读追踪
   const tabsForUnreadRef = useRef(tabs); // 保存最新 tabs 引用
@@ -122,7 +122,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
       const currentTabs = tabsForUnreadRef.current;
       if (currentTabs) {
         for (const tab of currentTabs) {
-          if (tab.connectorId !== 'wecom-kf') continue;
+          if (tab.connectorId !== 'smart-kf') continue;
           prevTabUserMsgCountsRef.current[tab.id] = (tab.messages || []).filter(m => m.role === 'user').length;
         }
       }
@@ -136,7 +136,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     const prevCounts = prevTabUserMsgCountsRef.current;
     const newUnread: Record<string, number> = {};
     for (const tab of tabs) {
-      if (tab.connectorId !== 'wecom-kf') continue;
+      if (tab.connectorId !== 'smart-kf') continue;
       const userMsgCount = (tab.messages || []).filter(m => m.role === 'user').length;
       const prevCount = prevCounts[tab.id] ?? 0;
       if (userMsgCount > prevCount && tab.id !== activeTabIdRef.current) {
@@ -187,8 +187,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     const normal: AgentTab[] = [];
     const groups: Record<string, AgentTab[]> = {};
     for (const tab of sorted) {
-      if (tab.connectorId === 'wecom-kf') {
-        const key = getWecomKfName(tab.title || '') || 'unknown';
+      if (tab.connectorId === 'smart-kf') {
+        const key = getSmartKfName(tab.title || '') || 'unknown';
         if (!groups[key]) groups[key] = [];
         groups[key].push(tab);
       } else {
@@ -232,11 +232,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     
     loadTabAgentName();
 
-    // 🔥 加载企微客服 Tab 的回复模式
+    // 🔥 加载智能客服 Tab 的回复模式
     const loadTabReplyMode = async () => {
       const tabId = activeTabId || 'default';
       const tab = tabs?.find(t => t.id === tabId);
-      if (tab?.connectorId === 'wecom-kf' && !wecomReplyModes[tabId]) {
+      if (tab?.connectorId === 'smart-kf' && !wecomReplyModes[tabId]) {
         try {
           const result = await api.getTabReplyMode(tabId);
           if (result.success) {
@@ -653,7 +653,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               </div>
             ))}
 
-            {/* 企微客服分组 Tab */}
+            {/* 智能客服分组 Tab */}
             {Object.entries(wecomGroups).map(([kfName, groupTabs]) => {
               const activeGroupTab = getGroupActiveTab(groupTabs, kfName);
               const isGroupActive = groupTabs.some(t => t.id === activeTabId);
@@ -708,7 +708,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         </div>
       )}
 
-      {/* 企微客服分组下拉列表 - 渲染在 Tab 栏外部，避免被 overflow/z-index 裁剪 */}
+      {/* 智能客服分组下拉列表 - 渲染在 Tab 栏外部，避免被 overflow/z-index 裁剪 */}
       {expandedGroup && wecomGroups[expandedGroup] && (
         <div className="agent-tab-group-dropdown" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
           {wecomGroups[expandedGroup].map((tab) => (
@@ -772,11 +772,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
               
-              // 企微客服 Tab：自动查找同分组的所有 Tab
+              // 智能客服 Tab：自动查找同分组的所有 Tab
               if (!groupTabIds) {
                 const tab = tabs?.find(t => t.id === tabId);
-                if (tab?.connectorId === 'wecom-kf') {
-                  const kfName = getWecomKfName(tab.title || '');
+                if (tab?.connectorId === 'smart-kf') {
+                  const kfName = getSmartKfName(tab.title || '');
                   if (kfName && wecomGroups[kfName]) {
                     groupTabIds = wecomGroups[kfName].map(t => t.id);
                   }
@@ -797,11 +797,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
               
-              // 企微客服 Tab：自动查找同分组的所有 Tab
+              // 智能客服 Tab：自动查找同分组的所有 Tab
               if (!groupTabIds) {
                 const tab = tabs?.find(t => t.id === tabId);
-                if (tab?.connectorId === 'wecom-kf') {
-                  const kfName = getWecomKfName(tab.title || '');
+                if (tab?.connectorId === 'smart-kf') {
+                  const kfName = getSmartKfName(tab.title || '');
                   if (kfName && wecomGroups[kfName]) {
                     groupTabIds = wecomGroups[kfName].map(t => t.id);
                   }
@@ -829,11 +829,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
               let groupTabIds = contextMenu.groupTabIds;
               setContextMenu(null);
               
-              // 企微客服 Tab：自动查找同分组
+              // 智能客服 Tab：自动查找同分组
               if (!groupTabIds) {
                 const tab = tabs?.find(t => t.id === tabId);
-                if (tab?.connectorId === 'wecom-kf') {
-                  const kfName = getWecomKfName(tab.title || '');
+                if (tab?.connectorId === 'smart-kf') {
+                  const kfName = getSmartKfName(tab.title || '');
                   if (kfName && wecomGroups[kfName]) {
                     groupTabIds = wecomGroups[kfName].map(t => t.id);
                   }
@@ -873,7 +873,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             <FolderOpen size={14} style={{ marginRight: '6px' }} />
             {lang === 'zh' ? '工作目录' : 'Workspace'}
           </div>
-          {/* Skill 白名单（仅企微客服分组显示） */}
+          {/* Skill 白名单（仅智能客服分组显示） */}
           {contextMenu.isGroup && (
             <div
               className="tab-context-menu-item"
@@ -882,11 +882,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 let groupTabIds = contextMenu.groupTabIds;
                 setContextMenu(null);
                 
-                // 企微客服 Tab：自动查找同分组的所有 Tab
+                // 智能客服 Tab：自动查找同分组的所有 Tab
                 if (!groupTabIds) {
                   const tab = tabs?.find(t => t.id === tabId);
-                  if (tab?.connectorId === 'wecom-kf') {
-                    const kfName = getWecomKfName(tab.title || '');
+                  if (tab?.connectorId === 'smart-kf') {
+                    const kfName = getSmartKfName(tab.title || '');
                     if (kfName && wecomGroups[kfName]) {
                       groupTabIds = wecomGroups[kfName].map(t => t.id);
                     }
@@ -1133,8 +1133,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '🔒 Skill 安全控制' : '🔒 Skill Security'}</h4>
                 <p className="text-sm text-green-800">
                   {lang === 'zh'
-                    ? '勾选允许在企微客服会话中使用的 Skill。未勾选的 Skill 将被禁止执行，确保客服场景的安全性。'
-                    : 'Select Skills allowed in WeCom KF sessions. Unchecked Skills will be blocked for security.'}
+                    ? '勾选允许在智能客服会话中使用的 Skill。未勾选的 Skill 将被禁止执行，确保客服场景的安全性。'
+                    : 'Select Skills allowed in Smart KF sessions. Unchecked Skills will be blocked for security.'}
                 </p>
               </div>
               {allSkills.length === 0 ? (
@@ -1427,10 +1427,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
         )}
       </div>
 
-      {/* 输入框 - 企微客服 Tab 显示特殊输入框 */}
+      {/* 输入框 - 智能客服 Tab 显示特殊输入框 */}
       {tabs && activeTabId && tabs.find(t => t.id === activeTabId)?.type === 'connector' ? (
-        // 企微客服 Tab：显示带模式切换的输入框
-        currentTab?.connectorId === 'wecom-kf' ? (
+        // 智能客服 Tab：显示带模式切换的输入框
+        currentTab?.connectorId === 'smart-kf' ? (
           <MessageInput
             ref={messageInputRef}
             onSend={handleSendMessage}
@@ -1441,7 +1441,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             disableStop={isLocked}
             isConnectorTab={true}
             activeTabId={activeTabId}
-            isWecomKfTab={true}
+            isSmartKfTab={true}
             wecomReplyMode={currentWecomReplyMode}
             onWecomReplyModeChange={async (mode) => {
               // 保存到本地状态

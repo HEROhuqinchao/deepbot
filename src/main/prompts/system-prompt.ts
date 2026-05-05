@@ -84,26 +84,26 @@ export async function buildSystemPrompt(params: SystemPromptParams, sessionId?: 
 
   // 6. 运行时信息（已移至每条用户消息的 systemHint 动态注入，保持系统提示词静态可 cache）
 
-  // 8. 已安装的 Skills（企微客服 Tab 只组装白名单中的 Skill）
+  // 8. 已安装的 Skills（智能客服 Tab 只组装白名单中的 Skill）
   try {
     const db = initDatabase();
     let skills = listInstalledSkills(db, { enabled: true });
     
-    // 企微客服 Tab：按 Skill 白名单过滤
+    // 智能客服 Tab：按 Skill 白名单过滤
     if (sessionId) {
       const tabConfig = configStore.getTabConfig(sessionId);
-      // 检查是否是企微客服 Tab
-      let isWecomKf = false;
+      // 检查是否是智能客服 Tab
+      let isSmartKf = false;
       try {
         const { getGatewayInstance } = require('../gateway');
         const gateway = getGatewayInstance();
         if (gateway) {
           const tab = gateway.getTabManager().getAllTabs().find((t: any) => t.id === sessionId);
-          isWecomKf = tab?.connectorId === 'wecom-kf';
+          isSmartKf = tab?.connectorId === 'smart-kf';
         }
       } catch { /* 静默处理 */ }
       
-      if (isWecomKf) {
+      if (isSmartKf) {
         const whitelist = tabConfig?.skillWhitelist;
         if (whitelist && whitelist.length > 0) {
           skills = skills.filter(s => whitelist.includes(s.name));

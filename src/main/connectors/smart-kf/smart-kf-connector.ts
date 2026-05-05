@@ -1,7 +1,7 @@
 /**
- * 企微客服连接器
+ * 智能客服连接器
  * 
- * 通过 WebSocket 连接 wechat-service 接收企微客服消息
+ * 通过 WebSocket 连接 wechat-service 接收智能客服消息
  * 支持认证、心跳、自动重连、媒体文件下载
  */
 
@@ -9,8 +9,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type {
   Connector,
-  WecomKfConnectorConfig,
-  WecomKfIncomingMessage,
+  SmartKfConnectorConfig,
+  SmartKfIncomingMessage,
   HealthStatus,
 } from '../../../types/connector';
 import { getErrorMessage } from '../../../shared/utils/error-handler';
@@ -18,12 +18,12 @@ import { ensureDirectoryExists } from '../../../shared/utils/fs-utils';
 import type { ConnectorManager } from '../connector-manager';
 import { SystemConfigStore } from '../../database/system-config-store';
 
-export class WecomKfConnector implements Connector {
-  readonly id = 'wecom-kf' as const;
-  readonly name = '企微客服';
+export class SmartKfConnector implements Connector {
+  readonly id = 'smart-kf' as const;
+  readonly name = '智能客服';
   readonly version = '1.0.0';
 
-  private connectorConfig!: WecomKfConnectorConfig;
+  private connectorConfig!: SmartKfConnectorConfig;
   private connectorManager: ConnectorManager;
   private isStarted: boolean = false;
   private ws: any = null; // WebSocket 实例（动态导入）
@@ -40,40 +40,40 @@ export class WecomKfConnector implements Connector {
 
   // ========== 配置管理 ==========
   config = {
-    load: async (): Promise<WecomKfConnectorConfig | null> => {
+    load: async (): Promise<SmartKfConnectorConfig | null> => {
       const store = SystemConfigStore.getInstance();
       const result = store.getConnectorConfig(this.id);
       if (!result) return null;
-      return { ...result.config, enabled: result.enabled } as WecomKfConnectorConfig;
+      return { ...result.config, enabled: result.enabled } as SmartKfConnectorConfig;
     },
 
-    save: async (config: WecomKfConnectorConfig): Promise<void> => {
+    save: async (config: SmartKfConnectorConfig): Promise<void> => {
       const store = SystemConfigStore.getInstance();
       store.saveConnectorConfig(this.id, this.name, config, false);
     },
 
-    validate: (config: WecomKfConnectorConfig): boolean => {
+    validate: (config: SmartKfConnectorConfig): boolean => {
       return !!(config.wsUrl && config.wsKey);
     },
   };
 
   // ========== 生命周期 ==========
 
-  async initialize(config: WecomKfConnectorConfig): Promise<void> {
+  async initialize(config: SmartKfConnectorConfig): Promise<void> {
     this.connectorConfig = config;
-    console.log('[WecomKfConnector] ✅ 初始化完成');
+    console.log('[SmartKfConnector] ✅ 初始化完成');
   }
 
   async start(): Promise<void> {
     if (this.isStarted) {
-      console.log('[WecomKfConnector] 已在运行中');
+      console.log('[SmartKfConnector] 已在运行中');
       return;
     }
 
-    console.log('[WecomKfConnector] 🔄 启动企微客服连接器...');
+    console.log('[SmartKfConnector] 🔄 启动智能客服连接器...');
     this.isStarted = true;
     await this.connect();
-    console.log('[WecomKfConnector] ✅ 企微客服连接器已启动');
+    console.log('[SmartKfConnector] ✅ 智能客服连接器已启动');
   }
 
   async stop(): Promise<void> {
@@ -89,12 +89,12 @@ export class WecomKfConnector implements Connector {
       this.ws = null;
     }
 
-    console.log('[WecomKfConnector] ✅ 企微客服连接器已停止');
+    console.log('[SmartKfConnector] ✅ 智能客服连接器已停止');
   }
 
   async healthCheck(): Promise<HealthStatus> {
     if (!this.isStarted || !this.ws) {
-      return { status: 'unhealthy', message: '企微客服连接器未运行' };
+      return { status: 'unhealthy', message: '智能客服连接器未运行' };
     }
 
     // WebSocket readyState: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
@@ -102,7 +102,7 @@ export class WecomKfConnector implements Connector {
       return { status: 'unhealthy', message: 'WebSocket 未连接' };
     }
 
-    return { status: 'healthy', message: '企微客服连接器运行正常' };
+    return { status: 'healthy', message: '智能客服连接器运行正常' };
   }
 
   // ========== 消息发送 ==========
@@ -197,7 +197,7 @@ export class WecomKfConnector implements Connector {
   private async connect(): Promise<void> {
     if (!this.isStarted) return;
 
-    console.log('[WecomKfConnector] 🔌 正在连接 WebSocket...');
+    console.log('[SmartKfConnector] 🔌 正在连接 WebSocket...');
 
     try {
       // 动态导入 ws 模块
@@ -205,7 +205,7 @@ export class WecomKfConnector implements Connector {
       this.ws = new WebSocket(this.connectorConfig.wsUrl);
 
       this.ws.on('open', () => {
-        console.log('[WecomKfConnector] ✅ WebSocket 连接成功');
+        console.log('[SmartKfConnector] ✅ WebSocket 连接成功');
 
         // 发送认证
         const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -224,12 +224,12 @@ export class WecomKfConnector implements Connector {
           const message = JSON.parse(data.toString());
           this.handleWsMessage(message);
         } catch (err) {
-          console.error('[WecomKfConnector] ❌ 消息解析失败:', getErrorMessage(err));
+          console.error('[SmartKfConnector] ❌ 消息解析失败:', getErrorMessage(err));
         }
       });
 
       this.ws.on('close', () => {
-        console.log('[WecomKfConnector] 🔌 WebSocket 连接已关闭');
+        console.log('[SmartKfConnector] 🔌 WebSocket 连接已关闭');
         this.clearTimers();
 
         // 自动重连
@@ -239,10 +239,10 @@ export class WecomKfConnector implements Connector {
       });
 
       this.ws.on('error', (err: any) => {
-        console.error('[WecomKfConnector] ❌ WebSocket 错误:', getErrorMessage(err));
+        console.error('[SmartKfConnector] ❌ WebSocket 错误:', getErrorMessage(err));
       });
     } catch (error) {
-      console.error('[WecomKfConnector] ❌ 连接失败:', getErrorMessage(error));
+      console.error('[SmartKfConnector] ❌ 连接失败:', getErrorMessage(error));
       // 自动重连
       if (this.isStarted) {
         this.reconnectTimer = setTimeout(() => this.connect(), 3000);
@@ -258,12 +258,12 @@ export class WecomKfConnector implements Connector {
 
     switch (type) {
       case 'auth_success':
-        console.log('[WecomKfConnector] ✅ 认证成功，Client ID:', message.clientId);
+        console.log('[SmartKfConnector] ✅ 认证成功，Client ID:', message.clientId);
         this.startHeartbeat();
         break;
 
       case 'auth_failed':
-        console.error('[WecomKfConnector] ❌ 认证失败:', message.error);
+        console.error('[SmartKfConnector] ❌ 认证失败:', message.error);
         this.ws?.close();
         break;
 
@@ -275,27 +275,27 @@ export class WecomKfConnector implements Connector {
         if (message.messages && Array.isArray(message.messages)) {
           for (const m of message.messages) {
             this.handleIncomingMessage(m).catch((error) => {
-              console.error('[WecomKfConnector] ❌ 处理消息失败:', getErrorMessage(error));
+              console.error('[SmartKfConnector] ❌ 处理消息失败:', getErrorMessage(error));
             });
           }
         }
         break;
 
       case 'message_sent':
-        console.log('[WecomKfConnector] ✅ 消息发送成功:', message.content?.substring(0, 50));
+        console.log('[SmartKfConnector] ✅ 消息发送成功:', message.content?.substring(0, 50));
         break;
 
       case 'error':
-        console.error('[WecomKfConnector] ❌ 服务端错误:', message.error);
+        console.error('[SmartKfConnector] ❌ 服务端错误:', message.error);
         break;
 
       default:
-        console.log('[WecomKfConnector] 📨 收到未知消息类型:', type);
+        console.log('[SmartKfConnector] 📨 收到未知消息类型:', type);
     }
   }
 
   /**
-   * 处理收到的企微客服消息
+   * 处理收到的智能客服消息
    */
   private async handleIncomingMessage(msg: any): Promise<void> {
     try {
@@ -311,7 +311,7 @@ export class WecomKfConnector implements Connector {
 
       // 跳过事件类型消息（如用户进入会话等）
       if (msg.msgtype === 'event') {
-        console.log('[WecomKfConnector] 📌 跳过事件消息:', msg.event?.event_type);
+        console.log('[SmartKfConnector] 📌 跳过事件消息:', msg.event?.event_type);
         return;
       }
 
@@ -338,7 +338,7 @@ export class WecomKfConnector implements Connector {
             content: '暂不支持语音消息，请发送文字消息，谢谢 😊',
           });
         } catch (err) {
-          console.error('[WecomKfConnector] ❌ 回复语音提示失败:', getErrorMessage(err));
+          console.error('[SmartKfConnector] ❌ 回复语音提示失败:', getErrorMessage(err));
         }
         return;
       } else if (msg.msgtype === 'video') {
@@ -373,7 +373,7 @@ export class WecomKfConnector implements Connector {
             }
           }
         } catch (error) {
-          console.warn('[WecomKfConnector] ⚠️ 下载媒体失败:', getErrorMessage(error));
+          console.warn('[SmartKfConnector] ⚠️ 下载媒体失败:', getErrorMessage(error));
         }
       }
 
@@ -384,7 +384,7 @@ export class WecomKfConnector implements Connector {
 
       const conversationId = `${externalUserId}||${openKfId}`;
 
-      const parsedMessage: WecomKfIncomingMessage = {
+      const parsedMessage: SmartKfIncomingMessage = {
         messageId: msgId,
         timestamp: (msg.send_time || Math.floor(Date.now() / 1000)) * 1000,
         sender: {
@@ -408,7 +408,7 @@ export class WecomKfConnector implements Connector {
       // 转发到 ConnectorManager
       await this.connectorManager.handleIncomingMessage(this.id, parsedMessage);
     } catch (error) {
-      console.error('[WecomKfConnector] ❌ 处理消息失败:', getErrorMessage(error));
+      console.error('[SmartKfConnector] ❌ 处理消息失败:', getErrorMessage(error));
     }
   }
 
@@ -443,12 +443,12 @@ export class WecomKfConnector implements Connector {
       }
     }
 
-    const savedName = `wecom-kf-${msgId.substring(0, 16)}${ext}`;
+    const savedName = `smart-kf-${msgId.substring(0, 16)}${ext}`;
     const tempDir = this.getTempDir();
     const savedPath = path.join(tempDir, savedName);
     fs.writeFileSync(savedPath, buffer);
 
-    console.log(`[WecomKfConnector] 📥 媒体文件已下载: ${savedPath} (${buffer.length} bytes)`);
+    console.log(`[SmartKfConnector] 📥 媒体文件已下载: ${savedPath} (${buffer.length} bytes)`);
     return { path: savedPath, name: savedName };
   }
 
@@ -473,7 +473,7 @@ export class WecomKfConnector implements Connector {
         this.ws.send(JSON.stringify({ type: 'ping' }));
       }
     }, 30000);
-    console.log('[WecomKfConnector] ✅ 心跳已启动（30秒间隔）');
+    console.log('[SmartKfConnector] ✅ 心跳已启动（30秒间隔）');
   }
 
   /**
@@ -633,7 +633,7 @@ export class WecomKfConnector implements Connector {
       throw new Error('上传素材响应中缺少 media_id');
     }
 
-    console.log(`[WecomKfConnector] ✅ 素材上传成功: ${mediaType}, media_id: ${result.media_id}`);
+    console.log(`[SmartKfConnector] ✅ 素材上传成功: ${mediaType}, media_id: ${result.media_id}`);
     return result.media_id;
   }
 }

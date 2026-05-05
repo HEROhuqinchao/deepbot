@@ -30,7 +30,7 @@ interface FeishuConfig {
   requirePairing?: boolean;
 }
 
-interface WecomKfConfig {
+interface SmartKfConfig {
   wsUrl: string;
   wsKey: string;
   enabled?: boolean;
@@ -61,7 +61,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const [selectedConnector, setSelectedConnector] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('config');
   const [feishuConfig, setFeishuConfig] = useState<FeishuConfig>({ appId: '', appSecret: '', enabled: false, requirePairing: false });
-  const [wecomKfConfig, setWecomKfConfig] = useState<WecomKfConfig>({ wsUrl: '', wsKey: '', enabled: false });
+  const [smartKfConfig, setSmartKfConfig] = useState<SmartKfConfig>({ wsUrl: '', wsKey: '', enabled: false });
   const [wecomConfig, setWecomConfig] = useState<WecomConfig>({ botId: '', secret: '', enabled: false });
   const [pairingRecords, setPairingRecords] = useState<PairingRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,8 +70,8 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const [loadingPairing, setLoadingPairing] = useState(false);
   const [connectorHealthMap, setConnectorHealthMap] = useState<Record<string, 'healthy' | 'unhealthy' | 'checking'>>({});
   const hasLoadedRef = useRef(false);
-  const [showWecomKfWorkPrompt, setShowWecomKfWorkPrompt] = useState(false);
-  const [wecomKfDefaultWorkPrompt, setWecomKfDefaultWorkPrompt] = useState('');
+  const [showSmartKfWorkPrompt, setShowSmartKfWorkPrompt] = useState(false);
+  const [smartKfDefaultWorkPrompt, setSmartKfDefaultWorkPrompt] = useState('');
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -130,11 +130,11 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         } else {
           setWecomConfig({ botId: '', secret: '', enabled: false });
         }
-      } else if (connectorId === 'wecom-kf') {
+      } else if (connectorId === 'smart-kf') {
         if (actualResult.success && actualResult.config) {
-          setWecomKfConfig({ wsUrl: actualResult.config.wsUrl || '', wsKey: actualResult.config.wsKey || '', enabled: actualResult.enabled || false });
+          setSmartKfConfig({ wsUrl: actualResult.config.wsUrl || '', wsKey: actualResult.config.wsKey || '', enabled: actualResult.enabled || false });
         } else {
-          setWecomKfConfig({ wsUrl: '', wsKey: '', enabled: false });
+          setSmartKfConfig({ wsUrl: '', wsKey: '', enabled: false });
         }
       }
       await loadPairingRecords();
@@ -142,7 +142,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       console.error('加载连接器配置失败:', error);
       if (connectorId === 'feishu') setFeishuConfig({ appId: '', appSecret: '', enabled: false, requirePairing: false });
       if (connectorId === 'wecom') setWecomConfig({ botId: '', secret: '', enabled: false });
-      if (connectorId === 'wecom-kf') setWecomKfConfig({ wsUrl: '', wsKey: '', enabled: false });
+      if (connectorId === 'smart-kf') setSmartKfConfig({ wsUrl: '', wsKey: '', enabled: false });
     }
   };
 
@@ -210,13 +210,13 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         await api.connectorSaveConfig('feishu', { ...feishuConfig, enabled: false });
       } else if (connectorId.startsWith('wechat')) {
         await api.connectorSaveConfig(connectorId, { enabled: false });
-      } else if (connectorId === 'wecom-kf') {
-        if (!wecomKfConfig.wsUrl.trim() || !wecomKfConfig.wsKey.trim()) {
+      } else if (connectorId === 'smart-kf') {
+        if (!smartKfConfig.wsUrl.trim() || !smartKfConfig.wsKey.trim()) {
           showToast('error', lang === 'zh' ? '请输入 API URL 和 API Key' : 'Please enter API URL and API Key');
           setStartingMap(prev => ({ ...prev, [connectorId]: false }));
           return;
         }
-        await api.connectorSaveConfig('wecom-kf', { ...wecomKfConfig, enabled: false });
+        await api.connectorSaveConfig('smart-kf', { ...smartKfConfig, enabled: false });
       } else if (connectorId === 'wecom') {
         if (!wecomConfig.botId.trim() || !wecomConfig.secret.trim()) {
           showToast('error', lang === 'zh' ? '请输入 Bot ID 和 Secret' : 'Please enter Bot ID and Secret');
@@ -502,15 +502,15 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
     </div>
   );
 
-  // ── 企微客服配置面板 ──────────────────────────────────────────────
-  const renderWecomKfConfig = () => (
+  // ── 智能客服配置面板 ──────────────────────────────────────────────
+  const renderSmartKfConfig = () => (
     <div className="space-y-4">
       <div className="settings-alert settings-alert-success">
-        <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '企微客服连接器说明' : 'WeCom KF Connector Info'}</h4>
+        <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '智能客服连接器说明' : 'Smart KF Connector Info'}</h4>
         <p className="text-sm text-green-800">
           {lang === 'zh'
-            ? '企微客服连接器通过 WebSocket 连接"微信客服"云端服务，接收 kf.weixin.qq.com 中配置的客服账号。支持同时连接多个客服，针对每个客服设置（训练）为不同的应答方式，100% 灵活自主配置。'
-            : 'WeCom KF connector connects to WeChat Customer Service cloud via WebSocket, receiving messages from KF accounts configured at kf.weixin.qq.com. Supports multiple KF accounts with independent response training.'}
+            ? '智能客服连接器通过 WebSocket 连接"微信客服"云端服务，接收 kf.weixin.qq.com 中配置的客服账号。支持同时连接多个客服，针对每个客服设置（训练）为不同的应答方式，100% 灵活自主配置。'
+            : 'Smart KF connector connects to WeChat Customer Service cloud via WebSocket, receiving messages from KF accounts configured at kf.weixin.qq.com. Supports multiple KF accounts with independent response training.'}
         </p>
         <p className="text-sm text-green-800 mt-2">
           {lang === 'zh' ? '如需使用请扫码' : 'To subscribe, scan the QR code in '}<a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('subscription'); }} className="font-medium underline text-green-900 hover:text-green-700 cursor-pointer">{lang === 'zh' ? '「订阅及付费」' : '"Subscribe & Pay"'}</a>{lang === 'zh' ? '中的二维码获取服务。' : ' to get the service.'}
@@ -519,24 +519,24 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">API URL <span className="text-red-500">*</span></label>
-        <input type="text" value={wecomKfConfig.wsUrl} onChange={(e) => setWecomKfConfig({ ...wecomKfConfig, wsUrl: e.target.value })}
+        <input type="text" value={smartKfConfig.wsUrl} onChange={(e) => setSmartKfConfig({ ...smartKfConfig, wsUrl: e.target.value })}
           placeholder="wss://your-service-url/webhook/ws/" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">API Key <span className="text-red-500">*</span></label>
-        <input type="password" value={wecomKfConfig.wsKey} onChange={(e) => setWecomKfConfig({ ...wecomKfConfig, wsKey: e.target.value })}
+        <input type="password" value={smartKfConfig.wsKey} onChange={(e) => setSmartKfConfig({ ...smartKfConfig, wsKey: e.target.value })}
           placeholder={lang === 'zh' ? '请输入认证密钥' : 'Enter authentication key'} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
 
       <button
         onClick={async () => {
           try {
-            const result = await api.getAppSetting('wecom_kf_default_work_prompt');
-            setWecomKfDefaultWorkPrompt(result?.value || '');
+            const result = await api.getAppSetting('smart_kf_default_work_prompt');
+            setSmartKfDefaultWorkPrompt(result?.value || '');
           } catch {
-            setWecomKfDefaultWorkPrompt('');
+            setSmartKfDefaultWorkPrompt('');
           }
-          setShowWecomKfWorkPrompt(true);
+          setShowSmartKfWorkPrompt(true);
         }}
         className="skill-icon-button skill-icon-button-accent"
       >
@@ -545,12 +545,12 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       </button>
 
       <div className="flex items-center gap-2 pt-2">
-        {renderStartStopButtons('wecom-kf')}
+        {renderStartStopButtons('smart-kf')}
       </div>
 
-      {/* 企微客服默认工作提示词弹窗 */}
-      {showWecomKfWorkPrompt && (
-        <div className="settings-overlay" onClick={() => setShowWecomKfWorkPrompt(false)}>
+      {/* 智能客服默认工作提示词弹窗 */}
+      {showSmartKfWorkPrompt && (
+        <div className="settings-overlay" onClick={() => setShowSmartKfWorkPrompt(false)}>
           <div
             className="settings-container tab-model-picker-container"
             style={{ width: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
@@ -560,7 +560,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
               <h2 className="settings-title">
                 {lang === 'zh' ? '默认工作提示词' : 'Default Work Prompt'}
               </h2>
-              <button className="settings-close-button" onClick={() => setShowWecomKfWorkPrompt(false)}>
+              <button className="settings-close-button" onClick={() => setShowSmartKfWorkPrompt(false)}>
                 <X size={20} />
               </button>
             </div>
@@ -569,14 +569,14 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                 <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 什么是默认工作提示词？' : '💡 What is Default Work Prompt?'}</h4>
                 <p className="text-sm text-green-800">
                   {lang === 'zh'
-                    ? '设置后，新创建的企微客服 Tab 会自动填入此提示词。用户可以在 Tab 右键菜单中修改覆盖。'
-                    : 'Once set, new WeCom KF tabs will auto-fill this prompt. Users can override it via tab context menu.'}
+                    ? '设置后，新创建的智能客服 Tab 会自动填入此提示词。用户可以在 Tab 右键菜单中修改覆盖。'
+                    : 'Once set, new Smart KF tabs will auto-fill this prompt. Users can override it via tab context menu.'}
                 </p>
               </div>
               <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
                 <textarea
-                  value={wecomKfDefaultWorkPrompt}
-                  onChange={(e) => { if (e.target.value.length <= 10000) setWecomKfDefaultWorkPrompt(e.target.value); }}
+                  value={smartKfDefaultWorkPrompt}
+                  onChange={(e) => { if (e.target.value.length <= 10000) setSmartKfDefaultWorkPrompt(e.target.value); }}
                   className="settings-input"
                   style={{ width: '100%', minHeight: '300px', height: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
                   placeholder={lang === 'zh' ? '例如：\n你是一个专业的客服助手，请注意以下几点：\n1. 回复要简洁友好，不超过 200 字\n2. 遇到技术问题，先询问具体情况再给建议\n3. 无法解决的问题，引导用户联系人工客服' : 'e.g. You are a professional customer service assistant...'}
@@ -585,14 +585,14 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '12px', flexShrink: 0 }}>
                 <span style={{ fontSize: '12px', color: 'var(--terminal-text-dim, #999)' }}>
-                  {wecomKfDefaultWorkPrompt.length} / 10000
+                  {smartKfDefaultWorkPrompt.length} / 10000
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {wecomKfDefaultWorkPrompt && (
+                  {smartKfDefaultWorkPrompt && (
                     <button
                       onClick={async () => {
-                        await api.saveAppSetting('wecom_kf_default_work_prompt', '');
-                        setShowWecomKfWorkPrompt(false);
+                        await api.saveAppSetting('smart_kf_default_work_prompt', '');
+                        setShowSmartKfWorkPrompt(false);
                         showToast('success', lang === 'zh' ? '已清空默认工作提示词' : 'Default work prompt cleared');
                       }}
                       className="skill-icon-button"
@@ -603,8 +603,8 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                   )}
                   <button
                     onClick={async () => {
-                      await api.saveAppSetting('wecom_kf_default_work_prompt', wecomKfDefaultWorkPrompt.trim());
-                      setShowWecomKfWorkPrompt(false);
+                      await api.saveAppSetting('smart_kf_default_work_prompt', smartKfDefaultWorkPrompt.trim());
+                      setShowSmartKfWorkPrompt(false);
                       showToast('success', lang === 'zh' ? '默认工作提示词已保存' : 'Default work prompt saved');
                     }}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
@@ -771,8 +771,8 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                 ? (lang === 'zh' ? '飞书' : 'Feishu')
                 : connector.id === 'wecom'
                   ? (lang === 'zh' ? '企业微信' : 'WeCom')
-                  : connector.id === 'wecom-kf'
-                    ? (lang === 'zh' ? '企微（微信）客服' : 'WeCom KF')
+                  : connector.id === 'smart-kf'
+                    ? (lang === 'zh' ? '智能客服' : 'Smart KF')
                     : connector.name;
             // 微信 tab 不显示状态（每个实例内部已有独立状态）
             const health = isWechatTab ? undefined : connectorHealthMap[connector.id];
@@ -795,7 +795,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       {selectedConnector === 'feishu' && renderFeishuConfig()}
       {selectedConnector?.startsWith('wechat') && renderWechatConfig()}
       {selectedConnector === 'wecom' && renderWecomConfig()}
-      {selectedConnector === 'wecom-kf' && renderWecomKfConfig()}
+      {selectedConnector === 'smart-kf' && renderSmartKfConfig()}
     </div>
   );
 }

@@ -31,7 +31,7 @@ import { emailToolPlugin } from '../email-tool';
 import { apiToolPlugin } from '../api-tool';
 import { connectorToolPlugin } from '../connector-tool';
 import { wechatToolPlugin } from '../wechat-tool';
-import { wecomKfToolPlugin } from '../wecom-kf-tool';
+import { smartKfToolPlugin } from '../smart-kf-tool';
 import { wecomToolPlugin } from '../wecom-tool';
 import { crossTabCallToolPlugin } from '../cross-tab-call-tool';
 import { commandToolPlugin } from '../command-tool';
@@ -190,8 +190,8 @@ export class ToolLoader {
       // 微信工具
       tools.push(...await resolvePluginTools(wechatToolPlugin.create(pluginOpts)));
       
-      // 企微客服工具
-      tools.push(...await resolvePluginTools(wecomKfToolPlugin.create(pluginOpts)));
+      // 智能客服工具
+      tools.push(...await resolvePluginTools(smartKfToolPlugin.create(pluginOpts)));
 
       // 企业微信工具
       tools.push(...await resolvePluginTools(wecomToolPlugin.create(pluginOpts)));

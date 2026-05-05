@@ -70,10 +70,10 @@ export const TOOL_NAMES = {
   WECHAT_SEND_IMAGE: 'wechat_send_image',
   WECHAT_SEND_FILE: 'wechat_send_file',
 
-  // 企微客服工具
-  WECOM_KF_SEND_MESSAGE: 'wecom_kf_send_message',
-  WECOM_KF_SEND_IMAGE: 'wecom_kf_send_image',
-  WECOM_KF_SEND_FILE: 'wecom_kf_send_file',
+  // 智能客服工具
+  SMART_KF_SEND_MESSAGE: 'smart_kf_send_message',
+  SMART_KF_SEND_IMAGE: 'smart_kf_send_image',
+  SMART_KF_SEND_FILE: 'smart_kf_send_file',
 
   // 企业微信工具
   WECOM_SEND_MESSAGE: 'wecom_send_message',

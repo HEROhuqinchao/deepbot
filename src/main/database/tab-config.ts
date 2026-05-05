@@ -25,7 +25,7 @@ export interface TabConfigRow {
   work_prompt: string | null;   // 工作提示词（注入系统提示词）
   skill_whitelist: string | null; // Skill 白名单（JSON 数组）
   workspace_dirs: string | null;  // 自定义工作目录（JSON 数组，null=继承系统）
-  reply_mode: string | null;      // 回复模式：'agent' | 'direct'（企微客服 Tab 用）
+  reply_mode: string | null;      // 回复模式：'agent' | 'direct'（智能客服 Tab 用）
 }
 
 /**
@@ -45,9 +45,9 @@ export interface TabConfig {
   conversationId?: string;
   modelConfig?: TabModelConfig | null;  // Tab 独立模型配置（覆盖全局）
   workPrompt?: string | null;           // 工作提示词（注入系统提示词）
-  skillWhitelist?: string[] | null;     // Skill 白名单（企微客服用）
+  skillWhitelist?: string[] | null;     // Skill 白名单（智能客服用）
   workspaceDirs?: string[] | null;     // 自定义工作目录（null=继承系统）
-  replyMode?: 'agent' | 'direct';     // 回复模式（企微客服 Tab 用）
+  replyMode?: 'agent' | 'direct';     // 回复模式（智能客服 Tab 用）
 }
 
 /**
@@ -113,7 +113,7 @@ export function initTabConfigTable(db: Database.Database): void {
     // 列已存在，忽略
   }
 
-  // 兼容旧数据库：添加 reply_mode 列（企微客服 Tab 回复模式）
+  // 兼容旧数据库：添加 reply_mode 列（智能客服 Tab 回复模式）
   try {
     db.exec("ALTER TABLE agent_tabs ADD COLUMN reply_mode TEXT DEFAULT 'agent'");
   } catch {
@@ -125,6 +125,16 @@ export function initTabConfigTable(db: Database.Database): void {
     const result = db.prepare("UPDATE agent_tabs SET type = 'connector' WHERE type = 'wecom_kf'").run();
     if (result.changes > 0) {
       console.log(`[TabConfig] 🔄 已将 ${result.changes} 个 wecom_kf Tab 迁移为 connector 类型`);
+    }
+  } catch {
+    // 静默处理
+  }
+
+  // 兼容旧数据：将 connector_id 为 'wecom-kf' 的迁移为 'smart-kf'
+  try {
+    const result = db.prepare("UPDATE agent_tabs SET connector_id = 'smart-kf' WHERE connector_id = 'wecom-kf'").run();
+    if (result.changes > 0) {
+      console.log(`[TabConfig] 🔄 已将 ${result.changes} 个 wecom-kf Tab 迁移为 smart-kf`);
     }
   } catch {
     // 静默处理
@@ -318,7 +328,7 @@ export function updateTabWorkspaceDirs(db: Database.Database, tabId: string, dir
 }
 
 /**
- * 更新 Tab 的回复模式（企微客服 Tab 用）
+ * 更新 Tab 的回复模式（智能客服 Tab 用）
  */
 export function updateTabReplyMode(db: Database.Database, tabId: string, replyMode: 'agent' | 'direct'): void {
   const stmt = db.prepare(`

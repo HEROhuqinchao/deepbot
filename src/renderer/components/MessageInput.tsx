@@ -19,7 +19,7 @@ interface MessageInputProps {
   disableStop?: boolean; // 是否禁用 Stop 按钮（独立控制）
   isConnectorTab?: boolean; // 是否是连接器 Tab（显示 /stop 指令）
   activeTabId?: string; // 当前 Tab ID（用于按 Tab 隔离历史记录）
-  isWecomKfTab?: boolean; // 是否是企微客服 Tab（特殊输入框模式）
+  isSmartKfTab?: boolean; // 是否是智能客服 Tab（特殊输入框模式）
   wecomReplyMode?: 'agent' | 'direct'; // 企微回复模式（由父组件控制）
   onWecomReplyModeChange?: (mode: 'agent' | 'direct') => void; // 模式切换回调
   onDirectReply?: (content: string) => void; // 人工直接回复回调
@@ -40,7 +40,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   disableStop = false,
   isConnectorTab = false,
   activeTabId = 'default',
-  isWecomKfTab = false,
+  isSmartKfTab = false,
   wecomReplyMode = 'agent',
   onWecomReplyModeChange,
   onDirectReply,
@@ -179,8 +179,8 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   const handleSend = () => {
     const trimmedContent = content.trim();
     if (trimmedContent && !disabled) {
-      // 企微客服 Tab 直接回复模式
-      if (isWecomKfTab && wecomReplyMode === 'direct' && onDirectReply) {
+      // 智能客服 Tab 直接回复模式
+      if (isSmartKfTab && wecomReplyMode === 'direct' && onDirectReply) {
         onDirectReply(trimmedContent);
         setContent('');
         if (textareaRef.current) {
@@ -481,7 +481,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   };
 
   return (
-    <div className={`terminal-input-container ${isWecomKfTab ? 'wecom-kf-mode' : ''}`}>
+    <div className={`terminal-input-container ${isSmartKfTab ? 'smart-kf-mode' : ''}`}>
       {/* 🔥 命令提示列表 */}
       {showCommandSuggestions && (
         <div ref={commandSuggestionsRef} className="command-suggestions">
@@ -527,14 +527,14 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
         </div>
       )}
 
-      <div className={`terminal-input-wrapper ${isWecomKfTab ? `wecom-reply-${wecomReplyMode}` : ''}`}>
-        {/* 提示符 - 企微客服 Tab 不显示 */}
-        {!isWecomKfTab && (
+      <div className={`terminal-input-wrapper ${isSmartKfTab ? `wecom-reply-${wecomReplyMode}` : ''}`}>
+        {/* 提示符 - 智能客服 Tab 不显示 */}
+        {!isSmartKfTab && (
           <div className="terminal-input-prompt">{userName}@deepbot:~$</div>
         )}
 
-        {/* 企微客服 Tab 回复模式切换 */}
-        {isWecomKfTab && (
+        {/* 智能客服 Tab 回复模式切换 */}
+        {isSmartKfTab && (
           <div className="wecom-reply-mode-switch">
             <button
               className={`wecom-reply-mode-btn ${wecomReplyMode === 'agent' ? 'active agent' : ''}`}
@@ -582,7 +582,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
             onPaste={handlePaste}
             onCompositionStart={() => { isComposingRef.current = true; }}
             onCompositionEnd={() => { isComposingRef.current = false; }}
-            placeholder={isWecomKfTab
+            placeholder={isSmartKfTab
               ? (wecomReplyMode === 'agent'
                 ? (lang === 'zh' ? '输入问题，Agent 回答后自动回复客户...' : 'Ask a question, Agent will reply to customer...')
                 : (lang === 'zh' ? '输入内容，直接发送给客户...' : 'Type message to send directly to customer...'))
@@ -611,7 +611,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
 
           {/* 帮助提示 */}
           <div className="terminal-input-hint">
-            {isWecomKfTab
+            {isSmartKfTab
               ? (wecomReplyMode === 'agent'
                 ? (lang === 'zh' ? 'Agent 模式：Agent 回答后自动回复给客户　输入 / 查看可用指令' : 'Agent mode: Agent answers and auto-replies to customer　Type / for commands')
                 : (lang === 'zh' ? '人工模式：输入内容直接发送给客户' : 'Manual mode: Message sent directly to customer'))

@@ -89,8 +89,8 @@ function App() {
         return [...prev, data.tab];
       });
       
-      // 企微客服新 Tab 创建时触发通知
-      if (data.tab.connectorId === 'wecom-kf') {
+      // 智能客服新 Tab 创建时触发通知
+      if (data.tab.connectorId === 'smart-kf') {
         notifyWecomMessage(data.tab, data.tab.title || '新客户消息', false, () => {
           onTabClickRef.current(data.tab.id);
         });
@@ -414,9 +414,9 @@ function App() {
         
         const shouldLoad = !(chunk as any).skipLoading; // 人工模式不显示 Processing
         
-        // 企微客服消息通知：toast + 音效
+        // 智能客服消息通知：toast + 音效
         const targetTab = tabsRef.current.find(tab => tab.id === targetTabId);
-        if (targetTab?.connectorId === 'wecom-kf') {
+        if (targetTab?.connectorId === 'smart-kf') {
           notifyWecomMessage(targetTab, chunk.content, !shouldLoad, () => {
             onTabClickRef.current(targetTabId);
           });

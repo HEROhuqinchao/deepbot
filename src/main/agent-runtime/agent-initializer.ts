@@ -76,9 +76,9 @@ export class AgentInitializer {
   }
 
   /**
-   * 创建 beforeToolCall hook（企微客服安全沙箱）
+   * 创建 beforeToolCall hook（智能客服安全沙箱）
    * 
-   * 每次工具调用时动态检查 connectorId，当 Tab 为 wecom-kf 时：
+   * 每次工具调用时动态检查 connectorId，当 Tab 为 smart-kf 时：
    * - 禁止 write、edit 工具
    * - bash 只允许白名单命令 + Skill 目录下的 Python
    * - skill_manager 禁止 install/uninstall 等修改操作
@@ -216,17 +216,17 @@ export class AgentInitializer {
         }
       }
 
-      // 企微客服安全沙箱（仅 wecom-kf Tab）
+      // 智能客服安全沙箱（仅 smart-kf Tab）
       const connectorId = this.getConnectorId();
-      if (connectorId !== 'wecom-kf') return undefined;
+      if (connectorId !== 'smart-kf') return undefined;
 
       const skillDirs = settings.skillDirs || [];
       const scriptDir = settings.scriptDir || '';
 
       // 1. 禁止 write 和 edit 工具
       if (toolName === 'write' || toolName === 'edit') {
-        console.log(`[WecomKf沙箱] 🚫 拦截 ${toolName}`);
-        return { block: true, reason: '企微客服会话禁止文件写入操作' };
+        console.log(`[SmartKf沙箱] 🚫 拦截 ${toolName}`);
+        return { block: true, reason: '智能客服会话禁止文件写入操作' };
       }
 
       // 2. Bash 命令白名单检查
@@ -238,8 +238,8 @@ export class AgentInitializer {
         
         // 禁止子 shell 和命令替换语法（防止绕过白名单）
         if (command.includes('$(') || command.includes('`')) {
-          console.log(`[WecomKf沙箱] 🚫 拦截 bash: 禁止子 shell 语法`);
-          return { block: true, reason: '企微客服会话禁止使用子 shell 语法' };
+          console.log(`[SmartKf沙箱] 🚫 拦截 bash: 禁止子 shell 语法`);
+          return { block: true, reason: '智能客服会话禁止使用子 shell 语法' };
         }
 
         // 提取所有命令（处理 &&、||、;、| 链式和管道命令）
@@ -251,8 +251,8 @@ export class AgentInitializer {
           const cmd = trimmedPart.split(/\s/)[0].replace(/^.*\//, '');
 
           if (!BASH_WHITELIST.has(cmd)) {
-            console.log(`[WecomKf沙箱] 🚫 拦截 bash: ${cmd}`);
-            return { block: true, reason: `企微客服会话禁止执行命令: ${cmd}` };
+            console.log(`[SmartKf沙箱] 🚫 拦截 bash: ${cmd}`);
+            return { block: true, reason: `智能客服会话禁止执行命令: ${cmd}` };
           }
 
           // 记住 cd 的目标目录
@@ -266,14 +266,14 @@ export class AgentInitializer {
           if (cmd === 'python' || cmd === 'python3') {
             if (trimmedPart.includes(' -c ') || trimmedPart.includes(' -c"') || trimmedPart.includes(" -c'") ||
                 trimmedPart.includes(' -m ')) {
-              console.log(`[WecomKf沙箱] 🚫 拦截 python: 内联代码`);
-              return { block: true, reason: '企微客服会话禁止执行内联 Python 代码' };
+              console.log(`[SmartKf沙箱] 🚫 拦截 python: 内联代码`);
+              return { block: true, reason: '智能客服会话禁止执行内联 Python 代码' };
             }
 
             const pyFileMatch = trimmedPart.match(/(?:python3?)\s+(?:[^-]\S*\.py)/);
             if (!pyFileMatch) {
-              console.log(`[WecomKf沙箱] 🚫 拦截 python: 未指定 .py 文件`);
-              return { block: true, reason: '企微客服会话的 Python 命令必须指定 .py 文件' };
+              console.log(`[SmartKf沙箱] 🚫 拦截 python: 未指定 .py 文件`);
+              return { block: true, reason: '智能客服会话的 Python 命令必须指定 .py 文件' };
             }
 
             const pyPath = trimmedPart.match(/(?:python3?)\s+(\S+\.py)/)?.[1] || '';
@@ -284,14 +284,14 @@ export class AgentInitializer {
               (scriptDir && resolvedPath.startsWith(path.resolve(scriptDir)));
 
             if (!isInAllowedDir) {
-              console.log(`[WecomKf沙箱] 🚫 拦截 python: 路径不在允许目录`);
-              return { block: true, reason: '企微客服会话只能执行 Skill 目录或脚本目录下的 Python 文件' };
+              console.log(`[SmartKf沙箱] 🚫 拦截 python: 路径不在允许目录`);
+              return { block: true, reason: '智能客服会话只能执行 Skill 目录或脚本目录下的 Python 文件' };
             }
 
             const whitelist = configStore.getTabConfig(sessionId)?.skillWhitelist;
             if (!whitelist || whitelist.length === 0) {
-              console.log(`[WecomKf沙箱] 🚫 拦截 python: 未设置白名单`);
-              return { block: true, reason: '企微客服会话未设置 Skill 白名单，禁止执行任何 Skill' };
+              console.log(`[SmartKf沙箱] 🚫 拦截 python: 未设置白名单`);
+              return { block: true, reason: '智能客服会话未设置 Skill 白名单，禁止执行任何 Skill' };
             }
             for (const dir of skillDirs) {
               const resolvedDir = path.resolve(dir);
@@ -299,7 +299,7 @@ export class AgentInitializer {
                 const relative = resolvedPath.substring(resolvedDir.length + 1);
                 const skillName = relative.split(path.sep)[0];
                 if (!whitelist.includes(skillName)) {
-                  console.log(`[WecomKf沙箱] 🚫 拦截 Skill: ${skillName}`);
+                  console.log(`[SmartKf沙箱] 🚫 拦截 Skill: ${skillName}`);
                   return { block: true, reason: `Skill "${skillName}" 不在白名单中` };
                 }
                 break;
@@ -316,8 +316,8 @@ export class AgentInitializer {
         const action = args.action || '';
         const allowedActions = ['list', 'info', 'get-env'];
         if (!allowedActions.includes(action)) {
-          console.log(`[WecomKf沙箱] 🚫 拦截 skill_manager: ${action}`);
-          return { block: true, reason: `企微客服会话禁止 Skill 管理操作: ${action}` };
+          console.log(`[SmartKf沙箱] 🚫 拦截 skill_manager: ${action}`);
+          return { block: true, reason: `智能客服会话禁止 Skill 管理操作: ${action}` };
         }
         return undefined;
       }
@@ -327,7 +327,7 @@ export class AgentInitializer {
   }
 
   /**
-   * 创建 afterToolCall hook（企微客服 Skill 白名单过滤）
+   * 创建 afterToolCall hook（智能客服 Skill 白名单过滤）
    * 
    * 每次工具调用后动态检查，过滤 skill_manager list 的返回结果
    */
@@ -335,9 +335,9 @@ export class AgentInitializer {
     const sessionId = this.sessionId;
 
     return async (context: any) => {
-      // 每次工具调用时动态检查是否是企微客服 Tab
+      // 每次工具调用时动态检查是否是智能客服 Tab
       const connectorId = this.getConnectorId();
-      if (connectorId !== 'wecom-kf') return undefined;
+      if (connectorId !== 'smart-kf') return undefined;
 
       const toolName = context.toolCall?.name || '';
       const args = context.args as Record<string, any> || {};
