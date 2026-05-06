@@ -521,6 +521,54 @@ export function registerConnectorHandlers(): void {
     }
   );
 
+  // 添加客服账号
+  registerIpcHandler<{ name: string; avatarPath?: string }, { success: boolean; open_kfid?: string; error?: string }>(
+    IPC_CHANNELS.CONNECTOR_ADD_KF_ACCOUNT,
+    async (_event, request): Promise<{ success: boolean; open_kfid?: string; error?: string }> => {
+      try {
+        if (!gateway) throw new Error('Gateway 未初始化');
+        const connector = gateway.getConnectorManager().getConnector('smart-kf') as any;
+        if (!connector?.addKfAccount) throw new Error('连接器不支持添加客服账号');
+        return await connector.addKfAccount(request.name, request.avatarPath);
+      } catch (error) {
+        console.error('[IPC] 添加客服账号失败:', error);
+        return { success: false, error: getErrorMessage(error) };
+      }
+    }
+  );
+
+  // 删除客服账号
+  registerIpcHandler<{ openKfId: string }, { success: boolean; error?: string }>(
+    IPC_CHANNELS.CONNECTOR_DEL_KF_ACCOUNT,
+    async (_event, request): Promise<{ success: boolean; error?: string }> => {
+      try {
+        if (!gateway) throw new Error('Gateway 未初始化');
+        const connector = gateway.getConnectorManager().getConnector('smart-kf') as any;
+        if (!connector?.delKfAccount) throw new Error('连接器不支持删除客服账号');
+        return await connector.delKfAccount(request.openKfId);
+      } catch (error) {
+        console.error('[IPC] 删除客服账号失败:', error);
+        return { success: false, error: getErrorMessage(error) };
+      }
+    }
+  );
+
+  // 修改客服账号
+  registerIpcHandler<{ openKfId: string; name?: string; avatarPath?: string }, { success: boolean; error?: string }>(
+    IPC_CHANNELS.CONNECTOR_UPDATE_KF_ACCOUNT,
+    async (_event, request): Promise<{ success: boolean; error?: string }> => {
+      try {
+        if (!gateway) throw new Error('Gateway 未初始化');
+        const connector = gateway.getConnectorManager().getConnector('smart-kf') as any;
+        if (!connector?.updateKfAccount) throw new Error('连接器不支持修改客服账号');
+        return await connector.updateKfAccount(request.openKfId, request.name, request.avatarPath);
+      } catch (error) {
+        console.error('[IPC] 修改客服账号失败:', error);
+        return { success: false, error: getErrorMessage(error) };
+      }
+    }
+  );
+
   // 保存客服欢迎语配置
   registerIpcHandler<{ openKfId: string; welcome: string }, { success: boolean; error?: string }>(
     IPC_CHANNELS.CONNECTOR_SAVE_KF_WELCOME,

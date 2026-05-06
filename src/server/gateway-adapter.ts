@@ -577,6 +577,24 @@ export class GatewayAdapter extends EventEmitter {
     return await connector.getKfUrl(openKfId, scene);
   }
 
+  async connectorAddKfAccount(name: string, avatarPath?: string): Promise<any> {
+    const connector = this.gateway.getConnectorManager().getConnector('smart-kf') as any;
+    if (!connector?.addKfAccount) return { success: false, error: '连接器不支持添加客服账号' };
+    return await connector.addKfAccount(name, avatarPath);
+  }
+
+  async connectorDelKfAccount(openKfId: string): Promise<any> {
+    const connector = this.gateway.getConnectorManager().getConnector('smart-kf') as any;
+    if (!connector?.delKfAccount) return { success: false, error: '连接器不支持删除客服账号' };
+    return await connector.delKfAccount(openKfId);
+  }
+
+  async connectorUpdateKfAccount(openKfId: string, name?: string, avatarPath?: string): Promise<any> {
+    const connector = this.gateway.getConnectorManager().getConnector('smart-kf') as any;
+    if (!connector?.updateKfAccount) return { success: false, error: '连接器不支持修改客服账号' };
+    return await connector.updateKfAccount(openKfId, name, avatarPath);
+  }
+
   async connectorSaveKfWelcome(openKfId: string, welcome: string): Promise<any> {
     const { SystemConfigStore } = await import('../main/database/system-config-store');
     const store = SystemConfigStore.getInstance();

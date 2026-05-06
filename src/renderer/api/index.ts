@@ -302,6 +302,24 @@ export const api = {
     return webClient.get(`/api/connectors/smart-kf/kf-url${params}`);
   },
 
+  // 添加客服账号
+  async connectorAddKfAccount(name: string, avatarPath?: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorAddKfAccount(name, avatarPath);
+    return webClient.post('/api/connectors/smart-kf/kf-account', { name, avatarPath });
+  },
+
+  // 删除客服账号
+  async connectorDelKfAccount(openKfId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorDelKfAccount(openKfId);
+    return webClient.delete(`/api/connectors/smart-kf/kf-account?openKfId=${encodeURIComponent(openKfId)}`);
+  },
+
+  // 修改客服账号
+  async connectorUpdateKfAccount(openKfId: string, name?: string, avatarPath?: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorUpdateKfAccount(openKfId, name, avatarPath);
+    return webClient.post('/api/connectors/smart-kf/kf-account/update', { openKfId, name, avatarPath });
+  },
+
   // 保存客服欢迎语配置
   async connectorSaveKfWelcome(openKfId: string, welcome: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.connectorSaveKfWelcome(openKfId, welcome);

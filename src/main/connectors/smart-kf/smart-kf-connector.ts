@@ -496,6 +496,150 @@ export class SmartKfConnector implements Connector {
   }
 
   /**
+   * 添加客服账号
+   * @param name - 客服名称
+   * @param avatarPath - 头像图片本地路径（可选）
+   */
+  async addKfAccount(name: string, avatarPath?: string): Promise<{ success: boolean; open_kfid?: string; error?: string }> {
+    if (!this.ws || this.ws.readyState !== 1) {
+      return { success: false, error: 'WebSocket 未连接' };
+    }
+
+    // 如果有头像，先上传获取 media_id
+    let mediaId: string | undefined;
+    if (avatarPath) {
+      try {
+        const accessToken = await this.getAccessToken();
+        mediaId = await this.uploadMedia(accessToken, avatarPath, 'image');
+      } catch (err) {
+        return { success: false, error: `上传头像失败: ${getErrorMessage(err)}` };
+      }
+    }
+
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        this.ws?.removeListener('message', handler);
+        resolve({ success: false, error: '添加客服账号超时' });
+      }, 15000);
+
+      const handler = (data: any) => {
+        try {
+          const msg = JSON.parse(data.toString());
+          if (msg.request_id && msg.request_id !== requestId) return;
+          if (msg.type === 'kf_account_added') {
+            clearTimeout(timeout);
+            this.ws?.removeListener('message', handler);
+            resolve({ success: true, open_kfid: msg.open_kfid });
+          } else if (msg.type === 'error') {
+            clearTimeout(timeout);
+            this.ws?.removeListener('message', handler);
+            resolve({ success: false, error: msg.error || '添加失败' });
+          }
+        } catch { /* 忽略 */ }
+      };
+
+      this.ws.on('message', handler);
+      const payload: any = { type: 'add_kf_account', name, request_id: requestId };
+      if (mediaId) payload.media_id = mediaId;
+      this.ws.send(JSON.stringify(payload));
+    });
+  }
+
+  /**
+   * 删除客服账号
+   */
+  async delKfAccount(openKfId: string): Promise<{ success: boolean; error?: string }> {
+    if (!this.ws || this.ws.readyState !== 1) {
+      return { success: false, error: 'WebSocket 未连接' };
+    }
+
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        this.ws?.removeListener('message', handler);
+        resolve({ success: false, error: '删除客服账号超时' });
+      }, 10000);
+
+      const handler = (data: any) => {
+        try {
+          const msg = JSON.parse(data.toString());
+          if (msg.request_id && msg.request_id !== requestId) return;
+          if (msg.type === 'kf_account_deleted') {
+            clearTimeout(timeout);
+            this.ws?.removeListener('message', handler);
+            resolve({ success: true });
+          } else if (msg.type === 'error') {
+            clearTimeout(timeout);
+            this.ws?.removeListener('message', handler);
+            resolve({ success: false, error: msg.error || '删除失败' });
+          }
+        } catch { /* 忽略 */ }
+      };
+
+      this.ws.on('message', handler);
+      this.ws.send(JSON.stringify({ type: 'del_kf_account', open_kfid: openKfId, request_id: requestId }));
+    });
+  }
+
+  /**
+   * 修改客服账号（名称或头像）
+   */
+  async updateKfAccount(openKfId: string, name?: string, avatarPath?: string): Promise<{ success: boolean; error?: string }> {
+    if (!this.ws || this.ws.readyState !== 1) {
+      return { success: false, error: 'WebSocket 未连接' };
+    }
+
+    if (!name && !avatarPath) {
+      return { success: false, error: '名称和头像至少提供一个' };
+    }
+
+    // 如果有头像，先上传获取 media_id
+    let mediaId: string | undefined;
+    if (avatarPath) {
+      try {
+        const accessToken = await this.getAccessToken();
+        mediaId = await this.uploadMedia(accessToken, avatarPath, 'image');
+      } catch (err) {
+        return { success: false, error: `上传头像失败: ${getErrorMessage(err)}` };
+      }
+    }
+
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        this.ws?.removeListener('message', handler);
+        resolve({ success: false, error: '修改客服账号超时' });
+      }, 15000);
+
+      const handler = (data: any) => {
+        try {
+          const msg = JSON.parse(data.toString());
+          if (msg.request_id && msg.request_id !== requestId) return;
+          if (msg.type === 'kf_account_updated') {
+            clearTimeout(timeout);
+            this.ws?.removeListener('message', handler);
+            resolve({ success: true });
+          } else if (msg.type === 'error') {
+            clearTimeout(timeout);
+            this.ws?.removeListener('message', handler);
+            resolve({ success: false, error: msg.error || '修改失败' });
+          }
+        } catch { /* 忽略 */ }
+      };
+
+      this.ws.on('message', handler);
+      const payload: any = { type: 'update_kf_account', open_kfid: openKfId, request_id: requestId };
+      if (name) payload.name = name;
+      if (mediaId) payload.media_id = mediaId;
+      this.ws.send(JSON.stringify(payload));
+    });
+  }
+
+  /**
    * 获取客服账号链接
    */
   async getKfUrl(openKfId: string, scene?: string): Promise<{ success: boolean; url?: string; error?: string }> {

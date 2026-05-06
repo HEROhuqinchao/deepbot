@@ -77,6 +77,9 @@ const IPC_CHANNELS = {
   CONNECTOR_DIRECT_REPLY: 'connector:direct-reply',
   CONNECTOR_GET_KF_LIST: 'connector:get-kf-list',
   CONNECTOR_GET_KF_URL: 'connector:get-kf-url',
+  CONNECTOR_ADD_KF_ACCOUNT: 'connector:add-kf-account',
+  CONNECTOR_DEL_KF_ACCOUNT: 'connector:del-kf-account',
+  CONNECTOR_UPDATE_KF_ACCOUNT: 'connector:update-kf-account',
   CONNECTOR_SAVE_KF_WELCOME: 'connector:save-kf-welcome',
   CONNECTOR_GET_KF_WELCOME: 'connector:get-kf-welcome',
   CONNECTOR_SAVE_WORK_PROMPT: 'connector:save-work-prompt',
@@ -413,6 +416,21 @@ contextBridge.exposeInMainWorld('deepbot', {
   // 获取客服账号链接
   connectorGetKfUrl: (openKfId: string, scene?: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_GET_KF_URL, { openKfId, scene });
+  },
+
+  // 添加客服账号
+  connectorAddKfAccount: (name: string, avatarPath?: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_ADD_KF_ACCOUNT, { name, avatarPath });
+  },
+
+  // 删除客服账号
+  connectorDelKfAccount: (openKfId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_DEL_KF_ACCOUNT, { openKfId });
+  },
+
+  // 修改客服账号
+  connectorUpdateKfAccount: (openKfId: string, name?: string, avatarPath?: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_UPDATE_KF_ACCOUNT, { openKfId, name, avatarPath });
   },
 
   // 保存客服欢迎语配置

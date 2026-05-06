@@ -223,6 +223,39 @@ export function createConnectorsRouter(gatewayAdapter: GatewayAdapter): Router {
     }
   };
 
+  const addKfAccount: RequestHandler = async (req, res) => {
+    try {
+      const { name, avatarPath } = req.body;
+      if (!name) { res.status(400).json({ success: false, error: '缺少 name' }); return; }
+      const result = await gatewayAdapter.connectorAddKfAccount(name, avatarPath);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const delKfAccount: RequestHandler = async (req, res) => {
+    try {
+      const openKfId = req.query.openKfId as string;
+      if (!openKfId) { res.status(400).json({ success: false, error: '缺少 openKfId' }); return; }
+      const result = await gatewayAdapter.connectorDelKfAccount(openKfId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const updateKfAccount: RequestHandler = async (req, res) => {
+    try {
+      const { openKfId, name, avatarPath } = req.body;
+      if (!openKfId) { res.status(400).json({ success: false, error: '缺少 openKfId' }); return; }
+      const result = await gatewayAdapter.connectorUpdateKfAccount(openKfId, name, avatarPath);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
   const saveKfWelcome: RequestHandler = async (req, res) => {
     try {
       const { openKfId, welcome } = req.body;
@@ -259,6 +292,9 @@ export function createConnectorsRouter(gatewayAdapter: GatewayAdapter): Router {
 
   router.get('/smart-kf/kf-list', getKfList);
   router.get('/smart-kf/kf-url', getKfUrl);
+  router.post('/smart-kf/kf-account', addKfAccount);
+  router.delete('/smart-kf/kf-account', delKfAccount);
+  router.post('/smart-kf/kf-account/update', updateKfAccount);
   router.post('/smart-kf/kf-welcome', saveKfWelcome);
   router.get('/smart-kf/kf-welcome', getKfWelcome);
   router.post('/work-prompt', saveWorkPrompt);

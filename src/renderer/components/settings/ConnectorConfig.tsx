@@ -8,7 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api';
 import { showToast } from '../../utils/toast';
 import { getLanguage } from '../../i18n';
-import { Check, Shield, Trash2, Copy, Link, Play, Square, X, FileText, RefreshCw } from 'lucide-react';
+import { Check, Shield, Trash2, Copy, Link, Play, Square, X, FileText, RefreshCw, Pencil, Plus, FolderOpen } from 'lucide-react';
 
 interface ConnectorConfigProps {
   onClose: () => void;
@@ -77,6 +77,13 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const [kfWelcomeOpenKfId, setKfWelcomeOpenKfId] = useState('');
   const [kfWelcomeName, setKfWelcomeName] = useState('');
   const [kfWelcomeContent, setKfWelcomeContent] = useState('');
+  // 客服账号编辑弹窗
+  const [showKfNameInput, setShowKfNameInput] = useState(false);
+  const [kfNameInputValue, setKfNameInputValue] = useState('');
+  const [kfNameInputTitle, setKfNameInputTitle] = useState('');
+  const [kfAvatarPath, setKfAvatarPath] = useState('');
+  const [kfAvatarPreview, setKfAvatarPreview] = useState('');
+  const [kfNameInputCallback, setKfNameInputCallback] = useState<((name: string, avatarPath?: string) => Promise<void> | void) | null>(null);
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -124,6 +131,16 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
     setWorkPromptSettingKey(settingKey);
     setWorkPromptConnectorId(connectorId);
     setShowWorkPromptModal(true);
+  };
+
+  // 打开客服账号编辑弹窗
+  const openKfNameInput = (title: string, defaultValue: string, callback: (name: string, avatarPath?: string) => Promise<void> | void) => {
+    setKfNameInputTitle(title);
+    setKfNameInputValue(defaultValue);
+    setKfAvatarPath('');
+    setKfAvatarPreview('');
+    setKfNameInputCallback(() => callback);
+    setShowKfNameInput(true);
   };
 
   const loadConnectors = async (preserveSelection = false) => {
@@ -782,10 +799,10 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '智能客服连接器说明' : 'Smart KF Connector Info'}</h4>
         <p className="text-sm text-green-800">
           {lang === 'zh'
-            ? '智能客服连接器通过 WebSocket 连接"微信客服"云端服务，接收 kf.weixin.qq.com 中配置的客服账号。支持同时连接多个客服，针对每个客服设置（训练）为不同的应答方式，100% 灵活自主配置。'
-            : 'Smart KF connector connects to WeChat Customer Service cloud via WebSocket, receiving messages from KF accounts configured at kf.weixin.qq.com. Supports multiple KF accounts with independent response training.'}
+            ? '智能客服连接器通过 WebSocket 连接"微信客服"云端服务，接收 kf.weixin.qq.com 中配置的客服账号。支持同时连接多个客服，针对每个客服独立设置工作提示词和欢迎语。'
+            : 'Smart KF connector connects to WeChat Customer Service cloud via WebSocket. Supports multiple KF accounts with independent work prompts and welcome messages.'}
         </p>
-        <p className="text-sm text-green-800 mt-2">
+        <p className="text-sm text-green-800 mt-1">
           {lang === 'zh' ? '如需使用请扫码' : 'To subscribe, scan the QR code in '}<a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('subscription'); }} className="font-medium underline text-green-900 hover:text-green-700 cursor-pointer">{lang === 'zh' ? '「订阅及付费」' : '"Subscribe & Pay"'}</a>{lang === 'zh' ? '中的二维码获取服务。' : ' to get the service.'}
         </p>
       </div>
@@ -823,7 +840,33 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       {/* 客服账号列表 */}
       {connectors.find(c => c.id === 'smart-kf')?.enabled && kfAccountList.length > 0 && (
         <div className="space-y-2 pt-2">
-          <label className="block text-sm font-medium text-gray-700">{lang === 'zh' ? '客服账号列表' : 'KF Account List'}</label>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">{lang === 'zh' ? '客服账号列表' : 'KF Account List'}</label>
+            <button
+              onClick={() => openKfNameInput(
+                lang === 'zh' ? '添加客服账号' : 'Add KF Account',
+                '',
+                async (name, avatarPath) => {
+                  try {
+                    const result = await api.connectorAddKfAccount(name, avatarPath);
+                    const actualResult = result?.data || result;
+                    if (actualResult?.success) {
+                      showToast('success', lang === 'zh' ? '客服账号已添加' : 'KF account added');
+                      await loadKfList();
+                    } else {
+                      showToast('error', actualResult?.error || (lang === 'zh' ? '添加失败' : 'Failed to add'));
+                    }
+                  } catch {
+                    showToast('error', lang === 'zh' ? '添加失败' : 'Failed to add');
+                  }
+                }
+              )}
+              className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
+            >
+              <Plus size={12} />
+              <span>{lang === 'zh' ? '添加客服' : 'Add KF'}</span>
+            </button>
+          </div>
           <div className="space-y-2">
             {kfAccountList.map((kf) => (
               <div key={kf.open_kfid} className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
@@ -843,7 +886,7 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                     className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
                   >
                     <FileText size={12} />
-                    <span>{lang === 'zh' ? '工作提示词' : 'Prompt'}</span>
+                    <span>{lang === 'zh' ? '提示词' : 'Prompt'}</span>
                   </button>
                   <button
                     onClick={async () => {
@@ -881,7 +924,51 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                     className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
                   >
                     <Link size={12} />
-                    <span>{lang === 'zh' ? '获取链接' : 'Get URL'}</span>
+                    <span>{lang === 'zh' ? '链接' : 'URL'}</span>
+                  </button>
+                  <button
+                    onClick={() => openKfNameInput(
+                      lang === 'zh' ? `修改客服名称` : `Rename KF`,
+                      kf.name,
+                      async (newName, avatarPath) => {
+                        if (newName === kf.name && !avatarPath) return;
+                        try {
+                          const result = await api.connectorUpdateKfAccount(kf.open_kfid, newName !== kf.name ? newName : undefined, avatarPath);
+                          const actualResult = result?.data || result;
+                          if (actualResult?.success) {
+                            showToast('success', lang === 'zh' ? '客服已修改' : 'KF updated');
+                            await loadKfList();
+                          } else {
+                            showToast('error', actualResult?.error || (lang === 'zh' ? '修改失败' : 'Failed to update'));
+                          }
+                        } catch {
+                          showToast('error', lang === 'zh' ? '修改失败' : 'Failed to update');
+                        }
+                      }
+                    )}
+                    className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!confirm(lang === 'zh' ? `确定要删除客服「${kf.name}」吗？此操作不可撤销。` : `Delete KF "${kf.name}"? This cannot be undone.`)) return;
+                      try {
+                        const result = await api.connectorDelKfAccount(kf.open_kfid);
+                        const actualResult = result?.data || result;
+                        if (actualResult?.success) {
+                          showToast('success', lang === 'zh' ? '客服账号已删除' : 'KF account deleted');
+                          await loadKfList();
+                        } else {
+                          showToast('error', actualResult?.error || (lang === 'zh' ? '删除失败' : 'Failed to delete'));
+                        }
+                      } catch {
+                        showToast('error', lang === 'zh' ? '删除失败' : 'Failed to delete');
+                      }
+                    }}
+                    className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors text-red-500"
+                  >
+                    <Trash2 size={12} />
                   </button>
                 </div>
               </div>
@@ -892,8 +979,36 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
 
       {/* 连接器已启动但客服列表为空 */}
       {connectors.find(c => c.id === 'smart-kf')?.enabled && kfAccountList.length === 0 && !kfListLoading && (
-        <div className="text-center py-4 text-gray-400 text-sm">
-          {lang === 'zh' ? '暂无客服账号，请点击"刷新客服列表"获取' : 'No KF accounts found. Click "Refresh KF List" to fetch.'}
+        <div className="space-y-3 pt-2">
+          <div className="text-center py-4 text-gray-400 text-sm">
+            {lang === 'zh' ? '暂无客服账号' : 'No KF accounts found'}
+          </div>
+          <div className="flex justify-center">
+            <button
+              onClick={() => openKfNameInput(
+                lang === 'zh' ? '添加客服账号' : 'Add KF Account',
+                '',
+                async (name, avatarPath) => {
+                  try {
+                    const result = await api.connectorAddKfAccount(name, avatarPath);
+                    const actualResult = result?.data || result;
+                    if (actualResult?.success) {
+                      showToast('success', lang === 'zh' ? '客服账号已添加' : 'KF account added');
+                      await loadKfList();
+                    } else {
+                      showToast('error', actualResult?.error || (lang === 'zh' ? '添加失败' : 'Failed to add'));
+                    }
+                  } catch {
+                    showToast('error', lang === 'zh' ? '添加失败' : 'Failed to add');
+                  }
+                }
+              )}
+              className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs rounded transition-colors"
+            >
+              <Plus size={12} />
+              <span>{lang === 'zh' ? '添加客服账号' : 'Add KF Account'}</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -1216,6 +1331,123 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                     {lang === 'zh' ? '保存' : 'Save'}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 客服账号编辑弹窗 */}
+      {showKfNameInput && (
+        <div className="settings-overlay" onClick={() => setShowKfNameInput(false)}>
+          <div
+            className="tab-model-picker-container"
+            style={{ width: '450px', maxWidth: '90vw', display: 'flex', flexDirection: 'column', background: 'var(--settings-bg)', color: 'var(--settings-text)', border: '1px solid var(--settings-border)', borderRadius: '8px', boxShadow: '0 20px 60px var(--terminal-overlay)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">{kfNameInputTitle}</h2>
+              <button className="settings-close-button" onClick={() => setShowKfNameInput(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">{lang === 'zh' ? '客服名称' : 'KF Name'} <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={kfNameInputValue}
+                  onChange={(e) => setKfNameInputValue(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder={lang === 'zh' ? '请输入客服名称' : 'Enter KF name'}
+                  autoFocus
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter' && kfNameInputValue.trim()) {
+                      setShowKfNameInput(false);
+                      showToast('success', lang === 'zh' ? '保存中...' : 'Saving...', { duration: 30000 });
+                      await kfNameInputCallback?.(kfNameInputValue.trim(), kfAvatarPath || undefined);
+                    }
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">{lang === 'zh' ? '客服头像' : 'Avatar'}</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={kfAvatarPath ? kfAvatarPath.split('/').pop() || '' : ''}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm text-gray-600"
+                    placeholder={lang === 'zh' ? '选择头像图片（PNG/JPG，≤5MB）' : 'Choose avatar (PNG/JPG, ≤5MB)'}
+                  />
+                  <button
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/png,image/jpeg,image/jpg';
+                      input.onchange = async (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) {
+                          showToast('error', lang === 'zh' ? '图片大小不能超过 5MB' : 'Image must be under 5MB');
+                          return;
+                        }
+                        try {
+                          const dataUrl = await new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result as string);
+                            reader.readAsDataURL(file);
+                          });
+                          const result = await api.uploadImage(file.name, dataUrl, file.size);
+                          if (result.success && result.image?.path) {
+                            setKfAvatarPath(result.image.path);
+                            setKfAvatarPreview(dataUrl);
+                          } else {
+                            showToast('error', lang === 'zh' ? '上传头像失败' : 'Failed to upload avatar');
+                          }
+                        } catch {
+                          showToast('error', lang === 'zh' ? '上传头像失败' : 'Failed to upload avatar');
+                        }
+                      };
+                      input.click();
+                    }}
+                    className="skill-icon-button"
+                  >
+                    <FolderOpen size={16} />
+                  </button>
+                </div>
+                {kfAvatarPreview && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <img src={kfAvatarPreview} alt="preview" className="w-10 h-10 rounded-full object-cover" />
+                    <button
+                      onClick={() => { setKfAvatarPath(''); setKfAvatarPreview(''); }}
+                      className="text-xs text-gray-400 hover:text-red-500"
+                    >
+                      {lang === 'zh' ? '移除' : 'Remove'}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '12px' }}>
+                <button
+                  onClick={() => setShowKfNameInput(false)}
+                  className="skill-icon-button"
+                  style={{ padding: '8px 20px', fontSize: '13px' }}
+                >
+                  {lang === 'zh' ? '取消' : 'Cancel'}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!kfNameInputValue.trim()) return;
+                    setShowKfNameInput(false);
+                    showToast('success', lang === 'zh' ? '保存中...' : 'Saving...', { duration: 30000 });
+                    await kfNameInputCallback?.(kfNameInputValue.trim(), kfAvatarPath || undefined);
+                  }}
+                  disabled={!kfNameInputValue.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {lang === 'zh' ? '保存' : 'Save'}
+                </button>
               </div>
             </div>
           </div>
