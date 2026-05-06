@@ -229,6 +229,13 @@ ${responseForAI}
         description: t.description,
       })), null, 2) + '\n```\n\n';
       
+      // 工作提示词（通过 transformContext 注入，不在 systemPrompt 中）
+      const tabConfig = store.getTabConfig(this.runtimeConfig.sessionId);
+      if (tabConfig?.workPrompt) {
+        promptContent += '## Work Prompt (via transformContext)\n\n';
+        promptContent += '```\n' + tabConfig.workPrompt + '\n```\n\n';
+      }
+
       promptContent += '## Messages\n\n';
       const messages = this.instanceManager.agent?.state.messages || [];
       for (const msg of messages) {
@@ -301,8 +308,11 @@ ${responseForAI}
       const toolsJson = JSON.stringify(actualTools);
       const toolsTokens = estimateTextTokens(toolsJson);
       
-      // 总 token = 系统提示词 + 历史消息 + 新消息 + 工具定义
-      const totalTokens = systemPromptTokens + messagesTokens + newMessageTokens + toolsTokens;
+      // 计算工作提示词的 token
+      const workPromptTokens = tabConfig?.workPrompt ? estimateTextTokens(tabConfig.workPrompt) : 0;
+      
+      // 总 token = 系统提示词 + 历史消息 + 新消息 + 工具定义 + 工作提示词
+      const totalTokens = systemPromptTokens + messagesTokens + newMessageTokens + toolsTokens + workPromptTokens;
       
       promptContent += `- **对话轮数**: ${conversationRounds} 轮\n`;
       promptContent += `- **用户消息数**: ${userMessageCount} 条\n`;
@@ -311,6 +321,7 @@ ${responseForAI}
       promptContent += `- **历史消息 Token**: ${messagesTokens.toLocaleString()}\n`;
       promptContent += `- **新消息 Token**: ${newMessageTokens.toLocaleString()}\n`;
       promptContent += `- **工具定义 Token**: ${toolsTokens.toLocaleString()}\n`;
+      promptContent += `- **工作提示词 Token**: ${workPromptTokens.toLocaleString()}\n`;
       promptContent += `- **总 Token 数**: ${totalTokens.toLocaleString()}\n`;
       promptContent += `- **模型上下文窗口**: ${this.runtimeConfig.model.contextWindow?.toLocaleString() || 'N/A'}\n`;
       

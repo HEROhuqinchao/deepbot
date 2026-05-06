@@ -481,7 +481,7 @@ export class SystemConfigStore {
     return TabConfigModule.saveTabConfig(this.db, tabId, config);
   }
 
-  getTabConfig(tabId: string): { memoryFile?: string; agentName?: string; isPersistent?: boolean; modelConfig?: import('./tab-config').TabModelConfig | null } | null {
+  getTabConfig(tabId: string): { memoryFile?: string; agentName?: string; isPersistent?: boolean; modelConfig?: import('./tab-config').TabModelConfig | null; workPrompt?: string | null; skillWhitelist?: string[] | null; workspaceDirs?: string[] | null; replyMode?: 'agent' | 'direct' } | null {
     const TabConfigModule = require('./tab-config');
     return TabConfigModule.getTabConfig(this.db, tabId);
   }

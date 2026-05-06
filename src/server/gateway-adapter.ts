@@ -81,7 +81,8 @@ export class GatewayAdapter extends EventEmitter {
             messageId: data.messageId,
             role: 'user',
             content: data.content,
-            done: false
+            done: false,
+            skipLoading: data.skipLoading, // 人工模式不显示 Processing
           });
         } else if (data.done) {
           // AI 响应完成 - 转发到 WebSocket
@@ -454,6 +455,10 @@ export class GatewayAdapter extends EventEmitter {
     
     const connectorManager = this.gateway.getConnectorManager();
     await connectorManager.startConnector(connectorId as any);
+
+    // 企业微信启动后：更新已有 Tab 标题（botName 可能已变更）
+    connectorManager.updateWecomTabTitles(connectorId);
+
     return { success: true, message: '连接器已启动' };
   }
   

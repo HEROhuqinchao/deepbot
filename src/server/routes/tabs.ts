@@ -197,7 +197,7 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
       const { tabId } = req.params;
       const { title } = req.body;
       if (!title) return res.status(400).json({ success: false, error: 'title is required' });
-      if (title.length > 10) return res.json({ success: false, error: '名称不能超过 10 个字符' });
+      if (title.length > 20) return res.json({ success: false, error: '名称不能超过 20 个字符' });
 
       const { getGatewayInstance } = await import('../../main/gateway');
       const gateway = getGatewayInstance();
@@ -251,6 +251,138 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
   };
 
   router.post('/:tabId/rename', renameTab);
+
+  // 工作提示词
+  const getTabWorkPrompt: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId as string);
+      res.json({ success: true, workPrompt: tabConfig?.workPrompt || '' });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabWorkPrompt: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { workPrompt } = req.body;
+      const { updateTabWorkPrompt } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const trimmed = workPrompt ? workPrompt.substring(0, 10000) : null;
+      updateTabWorkPrompt(store.getDb(), tabId as string, trimmed);
+      const { getGatewayInstance } = await import('../../main/gateway');
+      const gateway = getGatewayInstance();
+      if (gateway) gateway.invalidateSessionSystemPrompt(tabId as string);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/work-prompt', getTabWorkPrompt);
+  router.post('/:tabId/work-prompt', setTabWorkPrompt);
+
+  // Skill 白名单
+  const getTabSkillWhitelist: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId as string);
+      res.json({ success: true, whitelist: tabConfig?.skillWhitelist || [] });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabSkillWhitelist: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { whitelist } = req.body;
+      const { updateTabSkillWhitelist } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      updateTabSkillWhitelist(store.getDb(), tabId as string, whitelist);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/skill-whitelist', getTabSkillWhitelist);
+  router.post('/:tabId/skill-whitelist', setTabSkillWhitelist);
+
+  // 工作目录
+  const getTabWorkspaceDirs: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId as string);
+      res.json({ success: true, workspaceDirs: tabConfig?.workspaceDirs || null });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabWorkspaceDirs: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { dirs } = req.body;
+      const { updateTabWorkspaceDirs } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      updateTabWorkspaceDirs(store.getDb(), tabId as string, dirs);
+      // 销毁 Runtime，下次使用时用新工作目录重建
+      const { getGatewayInstance } = await import('../../main/gateway');
+      const gw = getGatewayInstance();
+      if (gw) {
+        await gw.destroySessionRuntime(tabId as string);
+        gw.invalidateSessionSystemPrompt(tabId as string);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/workspace-dirs', getTabWorkspaceDirs);
+  router.post('/:tabId/workspace-dirs', setTabWorkspaceDirs);
+
+  // 回复模式
+  const getTabReplyMode: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { getTabConfig } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const db = SystemConfigStore.getInstance().getDb();
+      const config = getTabConfig(db, tabId as string);
+      res.json({ success: true, replyMode: config?.replyMode || 'agent' });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabReplyMode: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { replyMode } = req.body;
+      const { updateTabReplyMode } = await import('../../main/database/tab-config');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const db = SystemConfigStore.getInstance().getDb();
+      updateTabReplyMode(db, tabId as string, replyMode);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/reply-mode', getTabReplyMode);
+  router.post('/:tabId/reply-mode', setTabReplyMode);
   
   return router;
 }

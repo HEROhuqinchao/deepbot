@@ -397,8 +397,8 @@
 
 /* ========== 所有按钮统一（排除 tab 按钮） ========== */
 .settings-button,
-.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action),
-.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action) {
+.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):not(.settings-close-button),
+.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):not(.settings-close-button) {
   background: transparent !important;
   border: 1px solid var(--settings-accent) !important;
   color: var(--settings-accent) !important;
@@ -546,23 +546,23 @@ button.skill-card-action:hover {
 
 /* 英文模式下按钮取消大写 */
 [data-lang="en"] .settings-button,
-[data-lang="en"] .settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action),
-[data-lang="en"] .fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action) {
+[data-lang="en"] .settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):not(.settings-close-button),
+[data-lang="en"] .fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):not(.settings-close-button) {
   text-transform: none !important;
   letter-spacing: normal !important;
 }
 
 .settings-button:hover:not(:disabled),
-.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):hover:not(:disabled),
-.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):hover:not(:disabled) {
+.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):not(.settings-close-button):hover:not(:disabled),
+.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):not(.settings-close-button):hover:not(:disabled) {
   background: var(--settings-accent) !important;
   color: var(--settings-bg) !important;
   box-shadow: 0 0 16px var(--terminal-accent-glow) !important;
 }
 
 .settings-button:disabled,
-.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):disabled,
-.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):disabled {
+.settings-panel button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):not(.settings-close-button):disabled,
+.fixed button:not(.settings-tab):not(.skill-icon-button):not(.skill-card-action):not(.settings-close-button):disabled {
   opacity: 0.3 !important;
   cursor: not-allowed !important;
 }

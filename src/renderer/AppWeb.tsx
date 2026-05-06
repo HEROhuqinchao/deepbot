@@ -16,7 +16,8 @@ import type { AgentTab } from '../types/agent-tab';
 import { api } from './api';
 import { ThemeContext } from './App';
 import { useTheme } from './hooks/useTheme';
-import { onToast } from './utils/toast';
+import { onToast, type ToastEvent } from './utils/toast';
+import { notifyWecomMessage } from './utils/wecom-notification';
 
 export function AppWeb() {
   // 主题管理
@@ -51,13 +52,21 @@ export function AppWeb() {
   const [isKicked, setIsKicked] = useState(false);
 
   // 全局 Toast
-  const [globalToast, setGlobalToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [globalToast, setGlobalToast] = useState<ToastEvent | null>(null);
+  const globalToastTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    const unsub = onToast(({ type, text }) => {
-      setGlobalToast({ type, text });
-      setTimeout(() => setGlobalToast(null), 3000);
+    const unsub = onToast((event) => {
+      if (globalToastTimerRef.current) {
+        clearTimeout(globalToastTimerRef.current);
+      }
+      setGlobalToast(event);
+      const duration = event.duration || 3000;
+      globalToastTimerRef.current = setTimeout(() => setGlobalToast(null), duration);
     });
-    return unsub;
+    return () => {
+      unsub();
+      if (globalToastTimerRef.current) clearTimeout(globalToastTimerRef.current);
+    };
   }, []);
 
   // 检查登录状态并建立 WebSocket 连接
@@ -113,6 +122,13 @@ export function AppWeb() {
         }
         return [...prev, data.tab];
       });
+      
+      // 智能客服新 Tab 创建时触发通知
+      if (data.tab.connectorId === 'smart-kf') {
+        notifyWecomMessage(data.tab, data.tab.title || '新客户消息', false, () => {
+          onTabClickRef.current(data.tab.id);
+        });
+      }
     });
 
     const unsubscribeTabUpdated = api.onTabUpdated((data: { tabId: string; title: string }) => {
@@ -272,6 +288,8 @@ export function AppWeb() {
       console.error('切换 Tab 失败:', error);
     }
   };
+  const onTabClickRef = React.useRef(handleSwitchTab);
+  onTabClickRef.current = handleSwitchTab;
   
   // 更新当前 Tab 的消息
   const updateCurrentTabMessages = (updater: (prev: Message[]) => Message[]) => {
@@ -414,19 +432,29 @@ export function AppWeb() {
           timestamp: Date.now(),
         };
         
+        const shouldLoad = !(chunk as any).skipLoading; // 人工模式不显示 Processing
+        
+        // 智能客服消息通知：toast + 音效
+        const targetTab = tabsRef.current.find(tab => tab.id === targetTabId);
+        if (targetTab?.connectorId === 'smart-kf') {
+          notifyWecomMessage(targetTab, chunk.content, !shouldLoad, () => {
+            onTabClickRef.current(targetTabId);
+          });
+        }
+        
         requestAnimationFrame(() => {
           setTabs(prev => prev.map(tab => {
             if (tab.id !== targetTabId) return tab;
             return { 
               ...tab, 
               messages: [...(tab.messages || []), userMessage],
-              isLoading: true,
+              isLoading: shouldLoad,
             };
           }));
           
           if (targetTabId === activeTabId) {
             setMessages(prev => [...prev, userMessage]);
-            setIsLoading(true);
+            if (shouldLoad) setIsLoading(true);
           }
         });
         
@@ -805,7 +833,16 @@ export function AppWeb() {
 
       {/* 全局 Toast */}
       {globalToast && (
-        <div className={`global-toast global-toast-${globalToast.type}`}>
+        <div
+          className={`global-toast global-toast-${globalToast.type}`}
+          onClick={() => {
+            if (globalToast.onClick) {
+              globalToast.onClick();
+              setGlobalToast(null);
+            }
+          }}
+          style={globalToast.onClick ? { cursor: 'pointer' } : undefined}
+        >
           {globalToast.text}
         </div>
       )}

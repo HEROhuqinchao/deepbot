@@ -44,18 +44,8 @@ export async function buildSystemPrompt(params: SystemPromptParams, sessionId?: 
   lines.push(`用户称呼: ${nameConfig.userName}`);
   lines.push('');
   
-  // 工作目录信息（实时从数据库读取，确保配置修改后立即生效）
-  const settings = configStore.getWorkspaceSettings();
-  lines.push('## 工作目录', '');
-  lines.push(`- 工作目录: ${settings.workspaceDirs.join(', ')}`);
-  lines.push(`- 脚本目录: ${settings.scriptDir}`);
-  lines.push(`- 图片目录: ${settings.imageDir}`);
-  lines.push(`- 记忆目录: ${settings.memoryDir}`);
-  if (settings.skillDirs && settings.skillDirs.length > 0) {
-    lines.push(`- Skill 目录: ${settings.skillDirs.join(', ')}`);
-  }
-  lines.push('');
-  // lines.push('注意：如果用户要求修改你的名字或用户称呼，使用 memory 工具更新记忆，系统会自动同步到数据库和提示符。');
+  // 工作目录信息已移除（由代码层面控制，不需要在提示词中告知 AI，避免破坏缓存）
+  
   lines.push('');
 
   // 2. 时间信息（已移至每条用户消息的 systemHint 动态注入，保持系统提示词静态可 cache）
@@ -94,10 +84,35 @@ export async function buildSystemPrompt(params: SystemPromptParams, sessionId?: 
 
   // 6. 运行时信息（已移至每条用户消息的 systemHint 动态注入，保持系统提示词静态可 cache）
 
-  // 7. 已安装的 Skills（放在最后，框架会在此之后追加 ## Tools）
+  // 8. 已安装的 Skills（智能客服 Tab 只组装白名单中的 Skill）
   try {
     const db = initDatabase();
-    const skills = listInstalledSkills(db, { enabled: true });
+    let skills = listInstalledSkills(db, { enabled: true });
+    
+    // 智能客服 Tab：按 Skill 白名单过滤
+    if (sessionId) {
+      const tabConfig = configStore.getTabConfig(sessionId);
+      // 检查是否是智能客服 Tab
+      let isSmartKf = false;
+      try {
+        const { getGatewayInstance } = require('../gateway');
+        const gateway = getGatewayInstance();
+        if (gateway) {
+          const tab = gateway.getTabManager().getAllTabs().find((t: any) => t.id === sessionId);
+          isSmartKf = tab?.connectorId === 'smart-kf';
+        }
+      } catch { /* 静默处理 */ }
+      
+      if (isSmartKf) {
+        const whitelist = tabConfig?.skillWhitelist;
+        if (whitelist && whitelist.length > 0) {
+          skills = skills.filter(s => whitelist.includes(s.name));
+        } else {
+          skills = []; // 未设置白名单时不组装任何 Skill
+        }
+      }
+    }
+    
     if (skills.length > 0) {
       lines.push('## Skills', '');
       lines.push('```json');
@@ -109,6 +124,9 @@ export async function buildSystemPrompt(params: SystemPromptParams, sessionId?: 
   } catch (error) {
     // Skills 加载失败不影响主流程
   }
+
+  // 注意：工作提示词不在 systemPrompt 中注入，而是通过 Agent 的 transformContext hook
+  // 在每次 LLM 调用前作为消息注入，放在 tools 定义之后，最大化前缀缓存命中率
 
   const prompt = lines.filter(Boolean).join('\n');
 

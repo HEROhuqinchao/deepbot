@@ -52,7 +52,7 @@ export type ClientMessage =
  */
 export type ServerMessage =
   | { type: 'pong' }
-  | { type: 'message:stream'; sessionId: string; messageId: string; content: string; done: boolean; role?: string; executionSteps?: any[]; totalDuration?: number; sentAt?: number; modelId?: string; isSubAgentResult?: boolean; subAgentTask?: string }
+  | { type: 'message:stream'; sessionId: string; messageId: string; content: string; done: boolean; role?: string; executionSteps?: any[]; totalDuration?: number; sentAt?: number; modelId?: string; isSubAgentResult?: boolean; subAgentTask?: string; skipLoading?: boolean }
   | { type: 'execution-step:update'; sessionId: string; messageId: string; executionSteps: any[] }
   | { type: 'agent_status'; tabId: string; status: string }
   | { type: 'message:error'; sessionId: string; error: string }

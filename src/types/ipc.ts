@@ -110,11 +110,24 @@ export const IPC_CHANNELS = {
   CONNECTOR_PENDING_COUNT_UPDATED: 'connector:pending-count-updated', // 待授权用户数量变化推送
   CONNECTOR_CREATE_WECHAT: 'connector:create-wechat',   // 创建微信实例
   CONNECTOR_REMOVE_WECHAT: 'connector:remove-wechat',   // 删除微信实例
+  CONNECTOR_CREATE_WECOM: 'connector:create-wecom',     // 创建企业微信实例
+  CONNECTOR_REMOVE_WECOM: 'connector:remove-wecom',     // 删除企业微信实例
+  CONNECTOR_DIRECT_REPLY: 'connector:direct-reply',     // 人工直接回复连接器消息
+  
+  // Tab 回复模式
+  GET_TAB_REPLY_MODE: 'tab:get-reply-mode',
+  SET_TAB_REPLY_MODE: 'tab:set-reply-mode',
   
   // Tab 模型配置
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',
   GET_TAB_MODEL_CONFIG: 'tab:get-model-config',
   RENAME_TAB: 'tab:rename',
+  GET_TAB_WORK_PROMPT: 'tab:get-work-prompt',
+  SET_TAB_WORK_PROMPT: 'tab:set-work-prompt',
+  GET_TAB_SKILL_WHITELIST: 'tab:get-skill-whitelist',
+  SET_TAB_SKILL_WHITELIST: 'tab:set-skill-whitelist',
+  GET_TAB_WORKSPACE_DIRS: 'tab:get-workspace-dirs',
+  SET_TAB_WORKSPACE_DIRS: 'tab:set-workspace-dirs',
   
   // 应用信息
 } as const;

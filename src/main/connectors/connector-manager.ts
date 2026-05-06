@@ -426,6 +426,50 @@ export class ConnectorManager {
   }
 
   /**
+   * 创建企业微信连接器实例
+   */
+  createWecomInstance(): string {
+    let nextNum = 1;
+    while (this.connectors.has(`wecom-${nextNum}`)) {
+      nextNum++;
+    }
+    const instanceId = `wecom-${nextNum}`;
+
+    const { WecomConnector } = require('./wecom/wecom-connector');
+    const connector = new WecomConnector(this, instanceId);
+    this.registerConnector(connector);
+
+    console.log(`[ConnectorManager] ✅ 创建企业微信实例: ${instanceId}`);
+    return instanceId;
+  }
+
+  /**
+   * 删除企业微信连接器实例
+   */
+  async removeWecomInstance(connectorId: string): Promise<void> {
+    if (!connectorId.startsWith('wecom')) {
+      throw new Error('只能删除企业微信连接器实例');
+    }
+
+    const connector = this.connectors.get(connectorId);
+    if (!connector) {
+      throw new Error(`连接器实例不存在: ${connectorId}`);
+    }
+
+    try {
+      await connector.stop();
+    } catch { /* 忽略 */ }
+
+    this.connectors.delete(connectorId);
+
+    const { SystemConfigStore } = require('../database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    store.deleteConnectorConfig(connectorId);
+
+    console.log(`[ConnectorManager] ✅ 已删除企业微信实例: ${connectorId}`);
+  }
+
+  /**
    * 销毁所有连接器
    */
   async destroy(): Promise<void> {
@@ -445,5 +489,60 @@ export class ConnectorManager {
     
     this.connectors.clear();
     console.log('[ConnectorManager] ✅ 所有连接器已销毁');
+  }
+
+  /**
+   * 企业微信启动后更新已有 Tab 标题
+   * 根据最新的 botName 重新生成标题格式
+   */
+  updateWecomTabTitles(connectorId: string): void {
+    if (!connectorId.startsWith('wecom')) return;
+    const wecomConnector = this.connectors.get(connectorId) as any;
+    const botName = wecomConnector?.getBotName?.() || '';
+    const tabManager = this.gateway.getTabManager();
+    const allTabs = tabManager.getAllTabs();
+    const num = connectorId.match(/wecom-(\d+)/)?.[1] || '1';
+
+    // 先收集群聊 Tab，统一重新编号
+    const groupTabs: { id: string; title: string }[] = [];
+    const singleTabs: { id: string; senderName: string }[] = [];
+
+    for (const tab of allTabs) {
+      if (tab.connectorId !== connectorId) continue;
+      const title = tab.title || '';
+      if (!title.startsWith('WC')) continue;
+      // 群聊格式：WC-name-群N 或 WC{num}-群N 或旧格式 WC-name-群-sender / WC{num}-群-sender
+      if (title.match(/群\d*$/)) {
+        // 新格式群聊（WC-name-群N）
+        groupTabs.push({ id: tab.id, title });
+      } else if (title.includes('-群-')) {
+        // 旧格式群聊（WC-name-群-sender），迁移为新格式
+        groupTabs.push({ id: tab.id, title });
+      } else {
+        // 单聊：提取发送者名称（最后一个 - 后面的部分）
+        const lastDash = title.lastIndexOf('-');
+        if (lastDash > 0) {
+          singleTabs.push({ id: tab.id, senderName: title.substring(lastDash + 1) });
+        }
+      }
+    }
+
+    // 更新群聊 Tab 标题（重新编号）
+    const groupPrefix = botName ? `WC-${botName}-群` : `WC${num}-群`;
+    groupTabs.forEach((tab, idx) => {
+      const newTitle = `${groupPrefix}${idx + 1}`;
+      if (newTitle !== tab.title) {
+        tabManager.updateTabTitle(tab.id, newTitle);
+      }
+    });
+
+    // 更新单聊 Tab 标题
+    for (const tab of singleTabs) {
+      const newTitle = botName ? `WC-${botName}-${tab.senderName}` : `WC${num}-${tab.senderName}`;
+      const existingTab = allTabs.find(t => t.id === tab.id);
+      if (existingTab && newTitle !== existingTab.title) {
+        tabManager.updateTabTitle(tab.id, newTitle);
+      }
+    }
   }
 }

@@ -14,7 +14,8 @@ import type { AgentTab } from '../types/agent-tab';
 import { api } from './api';
 import { useTheme, ThemeMode } from './hooks/useTheme';
 import { setPendingUpdate } from './utils/update-store';
-import { onToast } from './utils/toast';
+import { onToast, type ToastEvent } from './utils/toast';
+import { notifyWecomMessage } from './utils/wecom-notification';
 
 // 主题 Context
 export const ThemeContext = createContext<{
@@ -50,13 +51,22 @@ function App() {
   const [hasModelConfig, setHasModelConfig] = useState(true);
 
   // 全局 Toast
-  const [globalToast, setGlobalToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [globalToast, setGlobalToast] = useState<ToastEvent | null>(null);
+  const globalToastTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    const unsub = onToast(({ type, text }) => {
-      setGlobalToast({ type, text });
-      setTimeout(() => setGlobalToast(null), 3000);
+    const unsub = onToast((event) => {
+      // 清除上一个 toast 的定时器
+      if (globalToastTimerRef.current) {
+        clearTimeout(globalToastTimerRef.current);
+      }
+      setGlobalToast(event);
+      const duration = event.duration || 3000;
+      globalToastTimerRef.current = setTimeout(() => setGlobalToast(null), duration);
     });
-    return unsub;
+    return () => {
+      unsub();
+      if (globalToastTimerRef.current) clearTimeout(globalToastTimerRef.current);
+    };
   }, []);
   const [pendingPairingCount, setPendingPairingCount] = useState(0);
 
@@ -78,6 +88,13 @@ function App() {
         }
         return [...prev, data.tab];
       });
+      
+      // 智能客服新 Tab 创建时触发通知
+      if (data.tab.connectorId === 'smart-kf') {
+        notifyWecomMessage(data.tab, data.tab.title || '新客户消息', false, () => {
+          onTabClickRef.current(data.tab.id);
+        });
+      }
     });
 
     // 监听 Tab 标题更新（如飞书群名称变更）
@@ -244,6 +261,8 @@ function App() {
       console.error('切换 Tab 失败:', error);
     }
   };
+  const onTabClickRef = React.useRef(handleSwitchTab);
+  onTabClickRef.current = handleSwitchTab;
   
   // 更新当前 Tab 的消息
   const updateCurrentTabMessages = (updater: (prev: Message[]) => Message[]) => {
@@ -393,6 +412,16 @@ function App() {
           timestamp: Date.now(),
         };
         
+        const shouldLoad = !(chunk as any).skipLoading; // 人工模式不显示 Processing
+        
+        // 智能客服消息通知：toast + 音效
+        const targetTab = tabsRef.current.find(tab => tab.id === targetTabId);
+        if (targetTab?.connectorId === 'smart-kf') {
+          notifyWecomMessage(targetTab, chunk.content, !shouldLoad, () => {
+            onTabClickRef.current(targetTabId);
+          });
+        }
+        
         // 🔥 批量更新：使用 requestAnimationFrame 减少重渲染
         requestAnimationFrame(() => {
           // 更新目标 Tab 的消息，并设置为加载状态
@@ -401,14 +430,14 @@ function App() {
             return { 
               ...tab, 
               messages: [...(tab.messages || []), userMessage],
-              isLoading: true,
+              isLoading: shouldLoad,
             };
           }));
           
           // 如果是当前 Tab，同步更新 messages 和 isLoading 状态
           if (targetTabId === activeTabId) {
             setMessages(prev => [...prev, userMessage]);
-            setIsLoading(true);
+            if (shouldLoad) setIsLoading(true);
           }
         });
         
@@ -761,7 +790,16 @@ function App() {
 
       {/* 全局 Toast */}
       {globalToast && (
-        <div className={`global-toast global-toast-${globalToast.type}`}>
+        <div
+          className={`global-toast global-toast-${globalToast.type}`}
+          onClick={() => {
+            if (globalToast.onClick) {
+              globalToast.onClick();
+              setGlobalToast(null);
+            }
+          }}
+          style={globalToast.onClick ? { cursor: 'pointer' } : undefined}
+        >
           {globalToast.text}
         </div>
       )}

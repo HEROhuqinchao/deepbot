@@ -74,11 +74,27 @@ export class Gateway {
     this.connectorManager.registerConnector(feishuConnector);
     console.log('[Gateway] ✅ 飞书连接器已注册');
 
-    // 注册微信连接器（从数据库恢复已有实例，没有则创建默认实例）
-    const { WechatConnector } = require('./connectors/wechat/wechat-connector');
+    // 注册企业微信连接器（从数据库恢复已有实例，没有则创建默认实例）
+    const { WecomConnector } = require('./connectors/wecom/wecom-connector');
     const { SystemConfigStore: ConfigStore } = require('./database/system-config-store');
     const store = ConfigStore.getInstance();
     const allConnectorConfigs = store.getAllConnectorConfigs();
+    const wecomConfigs = allConnectorConfigs.filter((c: any) => c.connectorId.startsWith('wecom-'));
+
+    if (wecomConfigs.length > 0) {
+      for (const cfg of wecomConfigs) {
+        const wc = new WecomConnector(this.connectorManager, cfg.connectorId);
+        this.connectorManager.registerConnector(wc);
+        console.log(`[Gateway] ✅ 企业微信连接器已恢复: ${cfg.connectorId}`);
+      }
+    } else {
+      const wecomConnector = new WecomConnector(this.connectorManager, 'wecom-1');
+      this.connectorManager.registerConnector(wecomConnector);
+      console.log('[Gateway] ✅ 企业微信连接器已注册: wecom-1');
+    }
+
+    // 注册微信连接器（从数据库恢复已有实例，没有则创建默认实例）
+    const { WechatConnector } = require('./connectors/wechat/wechat-connector');
     const wechatConfigs = allConnectorConfigs.filter((c: any) => c.connectorId.startsWith('wechat'));
     
     if (wechatConfigs.length > 0) {
@@ -105,6 +121,21 @@ export class Gateway {
       this.connectorManager.registerConnector(wechatConnector);
       console.log('[Gateway] ✅ 微信连接器已注册: wechat-1');
     }
+
+    // 注册智能客服连接器（放在微信之后）
+    // 迁移旧的 wecom-kf 配置到 smart-kf
+    try {
+      const oldConfig = store.getConnectorConfig('wecom-kf');
+      if (oldConfig) {
+        store.saveConnectorConfig('smart-kf', '智能客服', oldConfig.config, oldConfig.enabled);
+        store.deleteConnectorConfig('wecom-kf');
+        console.log('[Gateway] 🔄 已迁移 wecom-kf 配置到 smart-kf');
+      }
+    } catch { /* 静默 */ }
+    const { SmartKfConnector } = require('./connectors/smart-kf/smart-kf-connector');
+    const smartKfConnector = new SmartKfConnector(this.connectorManager);
+    this.connectorManager.registerConnector(smartKfConnector);
+    console.log('[Gateway] ✅ 智能客服连接器已注册');
     
     // 设置 Gateway 实例供 scheduled-task-tool 使用
     setGatewayInstance(this);
@@ -123,6 +154,14 @@ export class Gateway {
     const { setGatewayForWechatTool } = require('./tools/wechat-tool');
     setGatewayForWechatTool(this);
     console.info('[Gateway] Gateway 实例已传递给 Wechat Tool');
+
+    const { setGatewayForSmartKfTool } = require('./tools/smart-kf-tool');
+    setGatewayForSmartKfTool(this);
+    console.info('[Gateway] Gateway 实例已传递给 SmartKf Tool');
+
+    const { setGatewayForWecomTool } = require('./tools/wecom-tool');
+    setGatewayForWecomTool(this);
+    console.info('[Gateway] Gateway 实例已传递给 Wecom Tool');
     
     // 设置 configStore 供飞书云文档工具使用
     const { setConfigStoreForFeishuDocTool } = require('./tools/feishu-doc-tool');
@@ -489,12 +528,13 @@ export class Gateway {
       const store = SystemConfigStore.getInstance();
       const settings = store.getWorkspaceSettings();
       
-      const workspaceDir = settings.workspaceDir;
-      console.info(`[Gateway] 使用工作目录: ${workspaceDir}`);
-      
-      // 获取 tab 级别的模型覆盖配置
+      // 获取 tab 级别配置
       const tabConfig = store.getTabConfig(sessionId);
       const modelConfigOverride = tabConfig?.modelConfig || undefined;
+      
+      // Tab 级别工作目录覆盖（null=继承系统）
+      const workspaceDir = tabConfig?.workspaceDirs?.[0] || settings.workspaceDir;
+      console.info(`[Gateway] 使用工作目录: ${workspaceDir}${tabConfig?.workspaceDirs ? ' (Tab 自定义)' : ''}`);
       
       runtime = new AgentRuntime(workspaceDir, sessionId, modelConfigOverride);
       
@@ -733,6 +773,37 @@ export class Gateway {
    */
   async sendResponseToConnector(tabId: string, response: string): Promise<void> {
     await this.connectorHandler.sendResponseToConnector(tabId, response);
+  }
+
+  /**
+   * 人工直接回复连接器消息
+   * 统一处理：发送到连接器 → 保存历史 → 通知前端显示
+   */
+  async sendManualReply(tabId: string, content: string): Promise<void> {
+    // 1. 发送到连接器
+    await this.connectorHandler.sendResponseToConnector(tabId, content);
+
+    // 2. 保存到历史记录
+    if (this.sessionManager) {
+      await this.sessionManager.saveAssistantMessage(tabId, `[人工回复] ${content}`);
+    }
+
+    // 3. 通知前端显示（Electron 模式通过 BrowserWindow，Web 模式通过虚拟窗口 → GatewayAdapter）
+    if (this.mainWindow) {
+      const manualMsgId = generateMessageId();
+      sendToWindow(this.mainWindow, 'message:stream', {
+        messageId: manualMsgId,
+        content: `[人工回复] ${content}`,
+        done: false,
+        sessionId: tabId,
+      });
+      sendToWindow(this.mainWindow, 'message:stream', {
+        messageId: manualMsgId,
+        content: '',
+        done: true,
+        sessionId: tabId,
+      });
+    }
   }
   
   /**

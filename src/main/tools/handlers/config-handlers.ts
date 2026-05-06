@@ -31,7 +31,8 @@ const logger = createLogger('Config-Handlers');
  */
 export async function handleGetConfig(
   params: { configType: 'workspace' | 'model' | 'image-generation' | 'web-search' | 'all' },
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  sessionId?: string
 ): Promise<ToolResult> {
   try {
     logger.info('获取配置:', params.configType);
@@ -44,7 +45,16 @@ export async function handleGetConfig(
     
     // 根据类型获取配置
     if (params.configType === 'workspace' || params.configType === 'all') {
-      result.workspace = store.getWorkspaceSettings();
+      const workspace = { ...store.getWorkspaceSettings() };
+      // Tab 级别工作目录覆盖
+      if (sessionId) {
+        const tabConfig = store.getTabConfig(sessionId);
+        if (tabConfig?.workspaceDirs && tabConfig.workspaceDirs.length > 0) {
+          workspace.workspaceDirs = tabConfig.workspaceDirs;
+          workspace.workspaceDir = tabConfig.workspaceDirs[0];
+        }
+      }
+      result.workspace = workspace;
     }
     
     if (params.configType === 'model' || params.configType === 'all') {

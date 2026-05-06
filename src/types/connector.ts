@@ -225,12 +225,71 @@ export interface WechatIncomingMessage {
   raw: any;
 }
 
+// ========== 智能客服特定类型 ==========
+
+/**
+ * 智能客服连接器配置
+ */
+export interface SmartKfConnectorConfig extends ConnectorConfig {
+  wsUrl: string;              // WebSocket 地址
+  wsKey: string;              // WebSocket 认证密钥
+}
+
+/**
+ * 智能客服消息（内部格式）
+ */
+export interface SmartKfIncomingMessage {
+  messageId: string;
+  timestamp: number;
+  sender: {
+    id: string;               // external_userid
+    name: string;             // nickname
+  };
+  conversation: {
+    id: string;               // {external_userid}||{open_kfid}
+    type: 'p2p';
+  };
+  content: {
+    type: 'text' | 'image' | 'file' | 'voice' | 'video';
+    text: string;
+    imagePath?: string;       // 本地图片路径
+    filePath?: string;        // 本地文件路径
+    fileName?: string;        // 文件名
+  };
+  systemContext?: string;
+  raw: any;
+}
+
 // ========== 通用连接器消息 ==========
+
+/**
+ * 企业微信消息（内部格式）
+ */
+export interface WecomIncomingMessage {
+  messageId: string;
+  timestamp: number;
+  sender: {
+    id: string;
+    name: string;
+  };
+  conversation: {
+    id: string;
+    type: 'p2p' | 'group';
+  };
+  content: {
+    type: 'text' | 'image' | 'file' | 'voice' | 'video';
+    text: string;
+    imagePath?: string;
+    filePath?: string;
+  };
+  systemContext?: string;
+  raw: any;
+}
 
 /**
  * 通用连接器消息（ConnectorManager 使用）
  */
-export type ConnectorIncomingMessage = FeishuIncomingMessage | WechatIncomingMessage;
+export type ConnectorIncomingMessage = FeishuIncomingMessage | WechatIncomingMessage | SmartKfIncomingMessage | WecomIncomingMessage;
 
 /**
  * Pairing 记录

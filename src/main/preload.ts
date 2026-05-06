@@ -72,9 +72,20 @@ const IPC_CHANNELS = {
   CONNECTOR_PENDING_COUNT_UPDATED: 'connector:pending-count-updated',
   CONNECTOR_CREATE_WECHAT: 'connector:create-wechat',
   CONNECTOR_REMOVE_WECHAT: 'connector:remove-wechat',
+  CONNECTOR_CREATE_WECOM: 'connector:create-wecom',
+  CONNECTOR_REMOVE_WECOM: 'connector:remove-wecom',
+  CONNECTOR_DIRECT_REPLY: 'connector:direct-reply',
+  GET_TAB_REPLY_MODE: 'tab:get-reply-mode',
+  SET_TAB_REPLY_MODE: 'tab:set-reply-mode',
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',
   GET_TAB_MODEL_CONFIG: 'tab:get-model-config',
   RENAME_TAB: 'tab:rename',
+  GET_TAB_WORK_PROMPT: 'tab:get-work-prompt',
+  SET_TAB_WORK_PROMPT: 'tab:set-work-prompt',
+  GET_TAB_SKILL_WHITELIST: 'tab:get-skill-whitelist',
+  SET_TAB_SKILL_WHITELIST: 'tab:set-skill-whitelist',
+  GET_TAB_WORKSPACE_DIRS: 'tab:get-workspace-dirs',
+  SET_TAB_WORKSPACE_DIRS: 'tab:set-workspace-dirs',
 } as const;
 
 /**
@@ -376,6 +387,19 @@ contextBridge.exposeInMainWorld('deepbot', {
     return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_REMOVE_WECHAT, { connectorId });
   },
 
+  connectorCreateWecom: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_CREATE_WECOM, {});
+  },
+
+  connectorRemoveWecom: (connectorId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_REMOVE_WECOM, { connectorId });
+  },
+
+  // 人工直接回复连接器消息
+  connectorDirectReply: (tabId: string, content: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_DIRECT_REPLY, { tabId, content });
+  },
+
   setTabModelConfig: (tabId: string, modelConfig: any) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_MODEL_CONFIG, { tabId, modelConfig });
   },
@@ -386,6 +410,38 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   renameTab: (tabId: string, title: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.RENAME_TAB, { tabId, title });
+  },
+
+  getTabWorkPrompt: (tabId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_WORK_PROMPT, { tabId });
+  },
+
+  setTabWorkPrompt: (tabId: string, workPrompt: string | null) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_WORK_PROMPT, { tabId, workPrompt });
+  },
+
+  getTabSkillWhitelist: (tabId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_SKILL_WHITELIST, { tabId });
+  },
+
+  setTabSkillWhitelist: (tabId: string, whitelist: string[] | null) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_SKILL_WHITELIST, { tabId, whitelist });
+  },
+
+  getTabWorkspaceDirs: (tabId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_WORKSPACE_DIRS, { tabId });
+  },
+
+  setTabWorkspaceDirs: (tabId: string, dirs: string[] | null) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_WORKSPACE_DIRS, { tabId, dirs });
+  },
+
+  getTabReplyMode: (tabId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_REPLY_MODE, { tabId });
+  },
+
+  setTabReplyMode: (tabId: string, replyMode: 'agent' | 'direct') => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_REPLY_MODE, { tabId, replyMode });
   },
 
   // 监听待授权用户数量变化

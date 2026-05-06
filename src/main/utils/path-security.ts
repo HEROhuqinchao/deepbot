@@ -74,9 +74,6 @@ export function getAllowedDirectories(): string[] {
  * @returns 是否允许访问
  */
 export function isPathAllowed(filePath: string): boolean {
-  // Docker 模式下跳过路径检查（容器内目录已固定，无需限制）
-  if (isDockerMode()) return true;
-
   // 展开 ~ 为用户主目录
   const expandedPath = expandHomePath(filePath);
   
@@ -84,6 +81,12 @@ export function isPathAllowed(filePath: string): boolean {
   const resolvedPath = path.resolve(expandedPath);
   const normalizedPath = path.normalize(resolvedPath);
   
+  // Docker 模式：强制限制在 /data/ 目录下
+  if (isDockerMode()) {
+    const dockerAllowed = ['/data/', '/tmp/', '/private/tmp/'];
+    return dockerAllowed.some(prefix => normalizedPath.startsWith(prefix) || normalizedPath === prefix.slice(0, -1));
+  }
+
   // 获取所有允许的目录
   const allowedDirs = getAllowedDirectories();
   
@@ -96,6 +99,20 @@ export function isPathAllowed(filePath: string): boolean {
       : normalizedAllowedDir + path.sep;
     
     return normalizedPath.startsWith(dirWithSep) || normalizedPath === normalizedAllowedDir;
+  });
+}
+
+/**
+ * 检查路径是否在指定的目录列表内（用于 Tab 级别工作目录检查）
+ */
+export function isPathInDirs(filePath: string, dirs: string[]): boolean {
+  const expandedPath = expandHomePath(filePath);
+  const normalizedPath = path.normalize(path.resolve(expandedPath));
+  
+  return dirs.some(dir => {
+    const normalizedDir = path.normalize(path.resolve(dir));
+    const dirWithSep = normalizedDir.endsWith(path.sep) ? normalizedDir : normalizedDir + path.sep;
+    return normalizedPath.startsWith(dirWithSep) || normalizedPath === normalizedDir;
   });
 }
 

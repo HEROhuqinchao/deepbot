@@ -824,8 +824,8 @@ function registerIpcHandlers() {
       // 获取 tab 信息，连接器 tab 自动加前缀
       const allTabs = tabManager.getAllTabs();
       const tab = allTabs.find(t => t.id === tabId);
-      if (title.length > 10) {
-        return { success: false, error: '名称不能超过 10 个字符' };
+      if (title.length > 20) {
+        return { success: false, error: '名称不能超过 20 个字符' };
       }
       let finalTitle = title;
       if (tab?.type === 'connector') {
@@ -866,6 +866,131 @@ function registerIpcHandlers() {
       gateway.invalidateAllSystemPrompts();
       
       return { success: true, title: finalTitle };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 获取 Tab 工作提示词
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_WORK_PROMPT, async (_event, { tabId }) => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId);
+      return { success: true, workPrompt: tabConfig?.workPrompt || '' };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 设置 Tab 工作提示词
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_WORK_PROMPT, async (_event, { tabId, workPrompt }) => {
+    try {
+      const { updateTabWorkPrompt } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      
+      // 限制最大 10000 字符
+      const trimmed = workPrompt ? workPrompt.substring(0, 10000) : null;
+      updateTabWorkPrompt(db, tabId, trimmed);
+      
+      // 标记该会话的系统提示词需要重建
+      if (gateway) {
+        gateway.invalidateSessionSystemPrompt(tabId);
+      }
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 获取 Tab Skill 白名单
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_SKILL_WHITELIST, async (_event, { tabId }) => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId);
+      return { success: true, whitelist: tabConfig?.skillWhitelist || [] };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 设置 Tab Skill 白名单
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_SKILL_WHITELIST, async (_event, { tabId, whitelist }) => {
+    try {
+      const { updateTabSkillWhitelist } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      
+      updateTabSkillWhitelist(db, tabId, whitelist);
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 获取 Tab 工作目录
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_WORKSPACE_DIRS, async (_event, { tabId }) => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const tabConfig = store.getTabConfig(tabId);
+      return { success: true, workspaceDirs: tabConfig?.workspaceDirs || null };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 设置 Tab 工作目录
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_WORKSPACE_DIRS, async (_event, { tabId, dirs }) => {
+    try {
+      const { updateTabWorkspaceDirs } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      
+      updateTabWorkspaceDirs(db, tabId, dirs);
+      
+      // 销毁该 Tab 的 Runtime，下次使用时用新工作目录重建
+      if (gateway) {
+        await gateway.destroySessionRuntime(tabId);
+        gateway.invalidateSessionSystemPrompt(tabId);
+      }
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 获取 Tab 回复模式
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_REPLY_MODE, async (_event, { tabId }) => {
+    try {
+      const { getTabConfig } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      const config = getTabConfig(db, tabId);
+      return { success: true, replyMode: config?.replyMode || 'agent' };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error), replyMode: 'agent' };
+    }
+  });
+
+  // 设置 Tab 回复模式
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_REPLY_MODE, async (_event, { tabId, replyMode }) => {
+    try {
+      const { updateTabReplyMode } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      updateTabReplyMode(db, tabId, replyMode);
+      return { success: true };
     } catch (error) {
       return { success: false, error: getErrorMessage(error) };
     }

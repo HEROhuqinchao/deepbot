@@ -69,6 +69,16 @@ export const TOOL_NAMES = {
   WECHAT_SEND_MESSAGE: 'wechat_send_message',
   WECHAT_SEND_IMAGE: 'wechat_send_image',
   WECHAT_SEND_FILE: 'wechat_send_file',
+
+  // 智能客服工具
+  SMART_KF_SEND_MESSAGE: 'smart_kf_send_message',
+  SMART_KF_SEND_IMAGE: 'smart_kf_send_image',
+  SMART_KF_SEND_FILE: 'smart_kf_send_file',
+
+  // 企业微信工具
+  WECOM_SEND_MESSAGE: 'wecom_send_message',
+  WECOM_SEND_IMAGE: 'wecom_send_image',
+  WECOM_SEND_FILE: 'wecom_send_file',
   
   // 飞书云文档工具
   FEISHU_DOC_CREATE: 'feishu_doc_create',

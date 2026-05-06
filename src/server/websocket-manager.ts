@@ -239,7 +239,8 @@ export class WebSocketManager {
         sentAt: event.sentAt,
         modelId: event.modelId,
         isSubAgentResult: event.isSubAgentResult,
-        subAgentTask: event.subAgentTask
+        subAgentTask: event.subAgentTask,
+        skipLoading: event.skipLoading,
       });
     });
     

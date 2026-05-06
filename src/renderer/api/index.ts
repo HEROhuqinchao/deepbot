@@ -273,6 +273,22 @@ export const api = {
     return webClient.delete(`/api/connectors/${connectorId}`);
   },
 
+  async connectorCreateWecom(): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorCreateWecom();
+    return webClient.post('/api/connectors/wecom/create', {});
+  },
+
+  async connectorRemoveWecom(connectorId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorRemoveWecom(connectorId);
+    return webClient.delete(`/api/connectors/wecom/${connectorId}`);
+  },
+
+  // 人工直接回复连接器消息
+  async connectorDirectReply(tabId: string, content: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorDirectReply(tabId, content);
+    return webClient.post('/api/connectors/direct-reply', { tabId, content });
+  },
+
   async setTabModelConfig(tabId: string, modelConfig: any): Promise<any> {
     if (isElectron()) return (window as any).deepbot.setTabModelConfig(tabId, modelConfig);
     return webClient.post(`/api/tabs/${tabId}/model-config`, { modelConfig });
@@ -281,6 +297,46 @@ export const api = {
   async renameTab(tabId: string, title: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.renameTab(tabId, title);
     return webClient.post(`/api/tabs/${tabId}/rename`, { title });
+  },
+
+  async getTabWorkPrompt(tabId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getTabWorkPrompt(tabId);
+    return webClient.get(`/api/tabs/${tabId}/work-prompt`);
+  },
+
+  async setTabWorkPrompt(tabId: string, workPrompt: string | null): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.setTabWorkPrompt(tabId, workPrompt);
+    return webClient.post(`/api/tabs/${tabId}/work-prompt`, { workPrompt });
+  },
+
+  async getTabSkillWhitelist(tabId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getTabSkillWhitelist(tabId);
+    return webClient.get(`/api/tabs/${tabId}/skill-whitelist`);
+  },
+
+  async setTabSkillWhitelist(tabId: string, whitelist: string[] | null): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.setTabSkillWhitelist(tabId, whitelist);
+    return webClient.post(`/api/tabs/${tabId}/skill-whitelist`, { whitelist });
+  },
+
+  async getTabWorkspaceDirs(tabId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getTabWorkspaceDirs(tabId);
+    return webClient.get(`/api/tabs/${tabId}/workspace-dirs`);
+  },
+
+  async setTabWorkspaceDirs(tabId: string, dirs: string[] | null): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.setTabWorkspaceDirs(tabId, dirs);
+    return webClient.post(`/api/tabs/${tabId}/workspace-dirs`, { dirs });
+  },
+
+  async getTabReplyMode(tabId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getTabReplyMode(tabId);
+    return webClient.get(`/api/tabs/${tabId}/reply-mode`);
+  },
+
+  async setTabReplyMode(tabId: string, replyMode: 'agent' | 'direct'): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.setTabReplyMode(tabId, replyMode);
+    return webClient.post(`/api/tabs/${tabId}/reply-mode`, { replyMode });
   },
 
   async getTabModelConfig(tabId: string): Promise<any> {
