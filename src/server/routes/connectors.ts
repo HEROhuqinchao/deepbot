@@ -233,11 +233,12 @@ export function createConnectorsRouter(gatewayAdapter: GatewayAdapter): Router {
     }
   };
 
-  const saveKfWorkPrompt: RequestHandler = async (req, res) => {
+  // 通用：保存连接器工作提示词（同步到所有 Tab）
+  const saveWorkPrompt: RequestHandler = async (req, res) => {
     try {
-      const { openKfId, workPrompt } = req.body;
-      if (!openKfId) { res.status(400).json({ success: false, error: '缺少 openKfId' }); return; }
-      const result = await gatewayAdapter.connectorSaveKfWorkPrompt(openKfId, workPrompt || '');
+      const { settingKey, workPrompt, connectorId } = req.body;
+      if (!settingKey || !connectorId) { res.status(400).json({ success: false, error: '缺少 settingKey 或 connectorId' }); return; }
+      const result = await gatewayAdapter.connectorSaveKfWorkPrompt(settingKey, workPrompt || '', connectorId);
       res.json(result);
     } catch (error) {
       res.status(500).json({ success: false, error: getErrorMessage(error) });
@@ -247,7 +248,7 @@ export function createConnectorsRouter(gatewayAdapter: GatewayAdapter): Router {
   router.get('/smart-kf/kf-list', getKfList);
   router.post('/smart-kf/kf-welcome', saveKfWelcome);
   router.get('/smart-kf/kf-welcome', getKfWelcome);
-  router.post('/smart-kf/kf-work-prompt', saveKfWorkPrompt);
+  router.post('/work-prompt', saveWorkPrompt);
 
   router.get('/:connectorId/config', getConnectorConfig);
   router.post('/:connectorId/config', saveConnectorConfig);

@@ -583,19 +583,26 @@ export class GatewayAdapter extends EventEmitter {
     return { success: true, value };
   }
 
-  async connectorSaveKfWorkPrompt(openKfId: string, workPrompt: string): Promise<any> {
+  async connectorSaveKfWorkPrompt(settingKey: string, workPrompt: string, connectorId: string): Promise<any> {
     const { SystemConfigStore } = await import('../main/database/system-config-store');
     const { updateTabWorkPrompt } = await import('../main/database/tab-config');
     const store = SystemConfigStore.getInstance();
     const trimmed = workPrompt ? workPrompt.substring(0, 10000) : '';
-    store.setAppSetting(`smart_kf_work_prompt_${openKfId}`, trimmed);
+    store.setAppSetting(settingKey, trimmed);
 
-    // 同步到所有该客服的 Tab
+    // 同步到所有匹配的 Tab
     const db = store.getDb();
     const tabManager = this.gateway.getTabManager();
     const allTabs = tabManager.getAllTabs();
     for (const tab of allTabs) {
-      if (tab.connectorId === 'smart-kf' && tab.conversationId?.split('||')[1] === openKfId) {
+      let match = false;
+      if (connectorId === 'smart-kf') {
+        const openKfId = settingKey.replace('smart_kf_work_prompt_', '');
+        match = tab.connectorId === 'smart-kf' && tab.conversationId?.split('||')[1] === openKfId;
+      } else {
+        match = tab.connectorId === connectorId;
+      }
+      if (match) {
         updateTabWorkPrompt(db, tab.id, trimmed || null);
         this.gateway.invalidateSessionSystemPrompt(tab.id);
       }

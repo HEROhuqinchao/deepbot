@@ -532,23 +532,34 @@ export function registerConnectorHandlers(): void {
     }
   );
 
-  // 保存客服工作提示词（同步到所有该客服的 Tab）
-  registerIpcHandler<{ openKfId: string; workPrompt: string }, { success: boolean; error?: string }>(
-    IPC_CHANNELS.CONNECTOR_SAVE_KF_WORK_PROMPT,
+  // 保存连接器工作提示词（同步到所有该连接器的 Tab）
+  registerIpcHandler<{ settingKey: string; workPrompt: string; connectorId: string }, { success: boolean; error?: string }>(
+    IPC_CHANNELS.CONNECTOR_SAVE_WORK_PROMPT,
     async (_event, request): Promise<{ success: boolean; error?: string }> => {
       try {
         const store = SystemConfigStore.getInstance();
         const trimmed = request.workPrompt ? request.workPrompt.substring(0, 10000) : '';
-        store.setAppSetting(`smart_kf_work_prompt_${request.openKfId}`, trimmed);
+        store.setAppSetting(request.settingKey, trimmed);
 
-        // 同步到所有该客服的 Tab
+        // 同步到所有匹配的 Tab
         if (gateway) {
           const { updateTabWorkPrompt } = require('../database/tab-config');
           const db = store.getDb();
           const tabManager = gateway.getTabManager();
           const allTabs = tabManager.getAllTabs();
+
           for (const tab of allTabs) {
-            if (tab.connectorId === 'smart-kf' && tab.conversationId?.split('||')[1] === request.openKfId) {
+            let match = false;
+            if (request.connectorId === 'smart-kf') {
+              // 智能客服：按 open_kfid 匹配
+              const openKfId = request.settingKey.replace('smart_kf_work_prompt_', '');
+              match = tab.connectorId === 'smart-kf' && tab.conversationId?.split('||')[1] === openKfId;
+            } else {
+              // 企业微信/飞书：按 connectorId 匹配
+              match = tab.connectorId === request.connectorId;
+            }
+
+            if (match) {
               updateTabWorkPrompt(db, tab.id, trimmed || null);
               gateway.invalidateSessionSystemPrompt(tab.id);
             }
@@ -557,7 +568,7 @@ export function registerConnectorHandlers(): void {
 
         return { success: true };
       } catch (error) {
-        console.error('[IPC] 保存客服工作提示词失败:', error);
+        console.error('[IPC] 保存连接器工作提示词失败:', error);
         return { success: false, error: getErrorMessage(error) };
       }
     }

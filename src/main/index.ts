@@ -895,23 +895,42 @@ function registerIpcHandlers() {
       const trimmed = workPrompt ? workPrompt.substring(0, 10000) : null;
       updateTabWorkPrompt(db, tabId, trimmed);
       
-      // 智能客服 Tab：同步工作提示词到 app setting 和同客服的所有 Tab
+      // 连接器 Tab：同步工作提示词到 app setting 和同组的所有 Tab
       if (gateway) {
         const tabManager = gateway.getTabManager();
         const tab = tabManager.getTab(tabId);
+
         if (tab?.connectorId === 'smart-kf' && tab.conversationId) {
+          // 智能客服：按 open_kfid 同步
           const openKfId = tab.conversationId.split('||')[1];
           if (openKfId) {
-            // 同步到 app setting
             store.setAppSetting(`smart_kf_work_prompt_${openKfId}`, trimmed || '');
-
-            // 同步到同客服的所有其他 Tab
             const allTabs = tabManager.getAllTabs();
             for (const t of allTabs) {
               if (t.id !== tabId && t.connectorId === 'smart-kf' && t.conversationId?.split('||')[1] === openKfId) {
                 updateTabWorkPrompt(db, t.id, trimmed);
                 gateway.invalidateSessionSystemPrompt(t.id);
               }
+            }
+          }
+        } else if (tab?.connectorId?.startsWith('wecom')) {
+          // 企业微信：按 connectorId 同步
+          store.setAppSetting(`wecom_work_prompt_${tab.connectorId}`, trimmed || '');
+          const allTabs = tabManager.getAllTabs();
+          for (const t of allTabs) {
+            if (t.id !== tabId && t.connectorId === tab.connectorId) {
+              updateTabWorkPrompt(db, t.id, trimmed);
+              gateway.invalidateSessionSystemPrompt(t.id);
+            }
+          }
+        } else if (tab?.connectorId === 'feishu') {
+          // 飞书：全局同步
+          store.setAppSetting('feishu_default_work_prompt', trimmed || '');
+          const allTabs = tabManager.getAllTabs();
+          for (const t of allTabs) {
+            if (t.id !== tabId && t.connectorId === 'feishu') {
+              updateTabWorkPrompt(db, t.id, trimmed);
+              gateway.invalidateSessionSystemPrompt(t.id);
             }
           }
         }

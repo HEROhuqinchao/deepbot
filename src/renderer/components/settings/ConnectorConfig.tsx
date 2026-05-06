@@ -63,14 +63,13 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
   const [loadingPairing, setLoadingPairing] = useState(false);
   const [connectorHealthMap, setConnectorHealthMap] = useState<Record<string, 'healthy' | 'unhealthy' | 'checking'>>({});
   const hasLoadedRef = useRef(false);
-  const [showSmartKfWorkPrompt, setShowSmartKfWorkPrompt] = useState(false);
-  const [smartKfDefaultWorkPrompt, setSmartKfDefaultWorkPrompt] = useState('');
-  const [showWecomWorkPrompt, setShowWecomWorkPrompt] = useState(false);
-  const [wecomDefaultWorkPrompt, setWecomDefaultWorkPrompt] = useState('');
-  const [wecomWorkPromptInstanceId, setWecomWorkPromptInstanceId] = useState('');
   const [wecomConfigs, setWecomConfigs] = useState<Record<string, { botId: string; secret: string; botName?: string }>>({});
-  const [showFeishuWorkPrompt, setShowFeishuWorkPrompt] = useState(false);
-  const [feishuDefaultWorkPrompt, setFeishuDefaultWorkPrompt] = useState('');
+  // 统一工作提示词弹窗
+  const [showWorkPromptModal, setShowWorkPromptModal] = useState(false);
+  const [workPromptContent, setWorkPromptContent] = useState('');
+  const [workPromptTitle, setWorkPromptTitle] = useState('');
+  const [workPromptSettingKey, setWorkPromptSettingKey] = useState('');
+  const [workPromptConnectorId, setWorkPromptConnectorId] = useState('');
   // 智能客服账号列表
   const [kfAccountList, setKfAccountList] = useState<Array<{ open_kfid: string; name: string; avatar: string }>>([]);
   const [kfListLoading, setKfListLoading] = useState(false);
@@ -112,6 +111,20 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       }
     }
   }, [selectedConnector, connectors]);
+
+  // 打开工作提示词弹窗
+  const openWorkPromptModal = async (title: string, settingKey: string, connectorId: string) => {
+    try {
+      const result = await api.getAppSetting(settingKey);
+      setWorkPromptContent(result?.value || '');
+    } catch {
+      setWorkPromptContent('');
+    }
+    setWorkPromptTitle(title);
+    setWorkPromptSettingKey(settingKey);
+    setWorkPromptConnectorId(connectorId);
+    setShowWorkPromptModal(true);
+  };
 
   const loadConnectors = async (preserveSelection = false) => {
     try {
@@ -383,18 +396,14 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
               <label className="block text-sm font-medium text-gray-700">App ID <span className="text-red-500">*</span></label>
               <button
                 className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
-                onClick={async () => {
-                  try {
-                    const result = await api.getAppSetting('feishu_default_work_prompt');
-                    setFeishuDefaultWorkPrompt(result?.value || '');
-                  } catch {
-                    setFeishuDefaultWorkPrompt('');
-                  }
-                  setShowFeishuWorkPrompt(true);
-                }}
+                onClick={() => openWorkPromptModal(
+                  lang === 'zh' ? '飞书工作提示词' : 'Feishu Work Prompt',
+                  'feishu_default_work_prompt',
+                  'feishu'
+                )}
               >
                 <FileText size={12} />
-                <span>{lang === 'zh' ? '默认工作提示词' : 'Default Work Prompt'}</span>
+                <span>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
               </button>
             </div>
             <input type="text" value={feishuConfig.appId} onChange={(e) => setFeishuConfig({ ...feishuConfig, appId: e.target.value })}
@@ -594,19 +603,14 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                 <div className="flex items-center gap-2">
                   <button
                     className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
-                    onClick={async () => {
-                      try {
-                        const result = await api.getAppSetting(`wecom_work_prompt_${wc.id}`);
-                        setWecomDefaultWorkPrompt(result?.value || '');
-                      } catch {
-                        setWecomDefaultWorkPrompt('');
-                      }
-                      setShowWecomWorkPrompt(true);
-                      setWecomWorkPromptInstanceId(wc.id);
-                    }}
+                    onClick={() => openWorkPromptModal(
+                      lang === 'zh' ? `工作提示词 - ${wcDisplayName}` : `Work Prompt - ${wcDisplayName}`,
+                      `wecom_work_prompt_${wc.id}`,
+                      wc.id
+                    )}
                   >
                     <FileText size={12} />
-                    <span>{lang === 'zh' ? '默认工作提示词' : 'Default Work Prompt'}</span>
+                    <span>{lang === 'zh' ? '工作提示词' : 'Work Prompt'}</span>
                   </button>
                   {!isFirst && !wc.enabled && (
                     <button
@@ -767,76 +771,6 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
         </div>
       )}
 
-      {/* 企业微信默认工作提示词弹窗 */}
-      {showWecomWorkPrompt && (
-        <div className="settings-overlay" onClick={() => setShowWecomWorkPrompt(false)}>
-          <div
-            className="settings-container tab-model-picker-container"
-            style={{ width: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="settings-header">
-              <h2 className="settings-title">
-                {lang === 'zh' ? '默认工作提示词' : 'Default Work Prompt'}
-              </h2>
-              <button className="settings-close-button" onClick={() => setShowWecomWorkPrompt(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-              <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px', flexShrink: 0 }}>
-                <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 什么是默认工作提示词？' : '💡 What is Default Work Prompt?'}</h4>
-                <p className="text-sm text-green-800">
-                  {lang === 'zh'
-                    ? '设置后，所有新创建的企业微信会话 Tab 都会自动带入此工作提示词，AI 在每次对话中都会遵循这些指导。'
-                    : 'Once set, all new WeCom chat tabs will automatically use this work prompt.'}
-                </p>
-              </div>
-              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-                <textarea
-                  value={wecomDefaultWorkPrompt}
-                  onChange={(e) => { if (e.target.value.length <= 10000) setWecomDefaultWorkPrompt(e.target.value); }}
-                  className="settings-input"
-                  style={{ width: '100%', minHeight: '300px', height: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
-                  placeholder={lang === 'zh' ? '例如：\n你是企业微信助手，请注意以下几点：\n1. 回复要简洁专业\n2. 支持 Markdown 格式' : 'e.g. You are a WeCom assistant...'}
-                  autoFocus
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '12px', flexShrink: 0 }}>
-                <span style={{ fontSize: '12px', color: 'var(--terminal-text-dim, #999)' }}>
-                  {wecomDefaultWorkPrompt.length} / 10000
-                </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {wecomDefaultWorkPrompt && (
-                    <button
-                      onClick={async () => {
-                        await api.saveAppSetting(`wecom_work_prompt_${wecomWorkPromptInstanceId}`, '');
-                        setShowWecomWorkPrompt(false);
-                        showToast('success', lang === 'zh' ? '已清空工作提示词' : 'Work prompt cleared');
-                      }}
-                      className="skill-icon-button"
-                      style={{ padding: '8px 20px', fontSize: '13px' }}
-                    >
-                      {lang === 'zh' ? '清空' : 'Clear'}
-                    </button>
-                  )}
-                  <button
-                    onClick={async () => {
-                      await api.saveAppSetting(`wecom_work_prompt_${wecomWorkPromptInstanceId}`, wecomDefaultWorkPrompt.trim());
-                      setShowWecomWorkPrompt(false);
-                      showToast('success', lang === 'zh' ? '工作提示词已保存' : 'Work prompt saved');
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                  >
-                    {lang === 'zh' ? '保存' : 'Save'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
     );
   };
@@ -904,17 +838,11 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={async () => {
-                      try {
-                        const result = await api.getAppSetting(`smart_kf_work_prompt_${kf.open_kfid}`);
-                        setSmartKfDefaultWorkPrompt(result?.value || '');
-                      } catch {
-                        setSmartKfDefaultWorkPrompt('');
-                      }
-                      setKfWelcomeOpenKfId(kf.open_kfid);
-                      setKfWelcomeName(kf.name);
-                      setShowSmartKfWorkPrompt(true);
-                    }}
+                    onClick={() => openWorkPromptModal(
+                      lang === 'zh' ? `工作提示词 - ${kf.name}` : `Work Prompt - ${kf.name}`,
+                      `smart_kf_work_prompt_${kf.open_kfid}`,
+                      'smart-kf'
+                    )}
                     className="skill-card-action flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
                   >
                     <FileText size={12} />
@@ -949,76 +877,6 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       {connectors.find(c => c.id === 'smart-kf')?.enabled && kfAccountList.length === 0 && !kfListLoading && (
         <div className="text-center py-4 text-gray-400 text-sm">
           {lang === 'zh' ? '暂无客服账号，请点击"刷新客服列表"获取' : 'No KF accounts found. Click "Refresh KF List" to fetch.'}
-        </div>
-      )}
-
-      {/* 智能客服默认工作提示词弹窗 */}
-      {showSmartKfWorkPrompt && (
-        <div className="settings-overlay" onClick={() => setShowSmartKfWorkPrompt(false)}>
-          <div
-            className="settings-container tab-model-picker-container"
-            style={{ width: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="settings-header">
-              <h2 className="settings-title">
-                {lang === 'zh' ? `默认工作提示词 - ${kfWelcomeName}` : `Default Work Prompt - ${kfWelcomeName}`}
-              </h2>
-              <button className="settings-close-button" onClick={() => setShowSmartKfWorkPrompt(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-              <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px', flexShrink: 0 }}>
-                <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 什么是默认工作提示词？' : '💡 What is Default Work Prompt?'}</h4>
-                <p className="text-sm text-green-800">
-                  {lang === 'zh'
-                    ? '设置后，该客服新创建的 Tab 会自动填入此提示词。用户可以在 Tab 右键菜单中修改覆盖。'
-                    : 'Once set, new tabs for this KF account will auto-fill this prompt. Users can override it via tab context menu.'}
-                </p>
-              </div>
-              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-                <textarea
-                  value={smartKfDefaultWorkPrompt}
-                  onChange={(e) => { if (e.target.value.length <= 10000) setSmartKfDefaultWorkPrompt(e.target.value); }}
-                  className="settings-input"
-                  style={{ width: '100%', minHeight: '300px', height: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
-                  placeholder={lang === 'zh' ? '例如：\n你是一个专业的客服助手，请注意以下几点：\n1. 回复要简洁友好，不超过 200 字\n2. 遇到技术问题，先询问具体情况再给建议\n3. 无法解决的问题，引导用户联系人工客服' : 'e.g. You are a professional customer service assistant...'}
-                  autoFocus
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '12px', flexShrink: 0 }}>
-                <span style={{ fontSize: '12px', color: 'var(--terminal-text-dim, #999)' }}>
-                  {smartKfDefaultWorkPrompt.length} / 10000
-                </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {smartKfDefaultWorkPrompt && (
-                    <button
-                      onClick={async () => {
-                        await api.connectorSaveKfWorkPrompt(kfWelcomeOpenKfId, '');
-                        setShowSmartKfWorkPrompt(false);
-                        showToast('success', lang === 'zh' ? '已清空默认工作提示词' : 'Default work prompt cleared');
-                      }}
-                      className="skill-icon-button"
-                      style={{ padding: '8px 20px', fontSize: '13px' }}
-                    >
-                      {lang === 'zh' ? '清空' : 'Clear'}
-                    </button>
-                  )}
-                  <button
-                    onClick={async () => {
-                      await api.connectorSaveKfWorkPrompt(kfWelcomeOpenKfId, smartKfDefaultWorkPrompt.trim());
-                      setShowSmartKfWorkPrompt(false);
-                      showToast('success', lang === 'zh' ? '默认工作提示词已保存' : 'Default work prompt saved');
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                  >
-                    {lang === 'zh' ? '保存配置' : 'Save Configuration'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
@@ -1271,53 +1129,49 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
       {selectedConnector === 'feishu' && renderFeishuConfig()}
       {selectedConnector?.startsWith('wechat') && renderWechatConfig()}
       {selectedConnector?.startsWith('wecom') && renderWecomConfig()}
-      {selectedConnector === 'smart-kf' && renderSmartKfConfig()}
-
-      {/* 飞书默认工作提示词弹窗 */}
-      {showFeishuWorkPrompt && (
-        <div className="settings-overlay" onClick={() => setShowFeishuWorkPrompt(false)}>
+      {/* 统一工作提示词弹窗 */}
+      {showWorkPromptModal && (
+        <div className="settings-overlay" onClick={() => setShowWorkPromptModal(false)}>
           <div
             className="settings-container tab-model-picker-container"
             style={{ width: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="settings-header">
-              <h2 className="settings-title">
-                {lang === 'zh' ? '飞书默认工作提示词' : 'Feishu Default Work Prompt'}
-              </h2>
-              <button className="settings-close-button" onClick={() => setShowFeishuWorkPrompt(false)}>
+              <h2 className="settings-title">{workPromptTitle}</h2>
+              <button className="settings-close-button" onClick={() => setShowWorkPromptModal(false)}>
                 <X size={20} />
               </button>
             </div>
             <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
               <div className="settings-alert settings-alert-success" style={{ marginBottom: '12px', flexShrink: 0 }}>
-                <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 什么是默认工作提示词？' : '💡 What is Default Work Prompt?'}</h4>
+                <h4 className="text-sm font-medium text-green-900 mb-2">{lang === 'zh' ? '💡 工作提示词' : '💡 Work Prompt'}</h4>
                 <p className="text-sm text-green-800">
                   {lang === 'zh'
-                    ? '设置后，所有新创建的飞书会话 Tab 都会自动带入此工作提示词，AI 在每次对话中都会遵循这些指导。'
-                    : 'Once set, all new Feishu chat tabs will automatically use this work prompt.'}
+                    ? '工作提示词会注入到 AI 的系统提示中，指导 AI 在对话中的行为方式、回复风格和专业领域。'
+                    : 'The work prompt is injected into the AI system prompt, guiding its behavior, response style, and expertise in conversations.'}
                 </p>
               </div>
               <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
                 <textarea
-                  value={feishuDefaultWorkPrompt}
-                  onChange={(e) => { if (e.target.value.length <= 10000) setFeishuDefaultWorkPrompt(e.target.value); }}
+                  value={workPromptContent}
+                  onChange={(e) => { if (e.target.value.length <= 10000) setWorkPromptContent(e.target.value); }}
                   className="settings-input"
                   style={{ width: '100%', minHeight: '300px', height: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '13px', lineHeight: '1.5' }}
-                  placeholder={lang === 'zh' ? '例如：\n你是飞书助手，请注意以下几点：\n1. 回复要简洁专业\n2. 支持 Markdown 格式' : 'e.g. You are a Feishu assistant...'}
+                  placeholder={lang === 'zh' ? '例如：\n你是一个专业的助手，请注意以下几点：\n1. 回复要简洁友好\n2. 遇到问题先询问具体情况\n3. 无法解决的问题，引导用户联系人工' : 'e.g. You are a professional assistant...'}
                   autoFocus
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '12px', flexShrink: 0 }}>
                 <span style={{ fontSize: '12px', color: 'var(--terminal-text-dim, #999)' }}>
-                  {feishuDefaultWorkPrompt.length} / 10000
+                  {workPromptContent.length} / 10000
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {feishuDefaultWorkPrompt && (
+                  {workPromptContent && (
                     <button
                       onClick={async () => {
-                        await api.saveAppSetting('feishu_default_work_prompt', '');
-                        setShowFeishuWorkPrompt(false);
+                        await api.connectorSaveWorkPrompt(workPromptSettingKey, '', workPromptConnectorId);
+                        setShowWorkPromptModal(false);
                         showToast('success', lang === 'zh' ? '已清空工作提示词' : 'Work prompt cleared');
                       }}
                       className="skill-icon-button"
@@ -1328,8 +1182,8 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
                   )}
                   <button
                     onClick={async () => {
-                      await api.saveAppSetting('feishu_default_work_prompt', feishuDefaultWorkPrompt.trim());
-                      setShowFeishuWorkPrompt(false);
+                      await api.connectorSaveWorkPrompt(workPromptSettingKey, workPromptContent.trim(), workPromptConnectorId);
+                      setShowWorkPromptModal(false);
                       showToast('success', lang === 'zh' ? '工作提示词已保存' : 'Work prompt saved');
                     }}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
@@ -1342,6 +1196,8 @@ export function ConnectorConfig({ onClose, onNavigate }: ConnectorConfigProps) {
           </div>
         </div>
       )}
+
+      {selectedConnector === 'smart-kf' && renderSmartKfConfig()}
     </div>
   );
 }

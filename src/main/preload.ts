@@ -78,7 +78,7 @@ const IPC_CHANNELS = {
   CONNECTOR_GET_KF_LIST: 'connector:get-kf-list',
   CONNECTOR_SAVE_KF_WELCOME: 'connector:save-kf-welcome',
   CONNECTOR_GET_KF_WELCOME: 'connector:get-kf-welcome',
-  CONNECTOR_SAVE_KF_WORK_PROMPT: 'connector:save-kf-work-prompt',
+  CONNECTOR_SAVE_WORK_PROMPT: 'connector:save-work-prompt',
   GET_TAB_REPLY_MODE: 'tab:get-reply-mode',
   SET_TAB_REPLY_MODE: 'tab:set-reply-mode',
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',
@@ -419,9 +419,9 @@ contextBridge.exposeInMainWorld('deepbot', {
     return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_GET_KF_WELCOME, { openKfId });
   },
 
-  // 保存客服工作提示词（同步到所有 Tab）
-  connectorSaveKfWorkPrompt: (openKfId: string, workPrompt: string) => {
-    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_SAVE_KF_WORK_PROMPT, { openKfId, workPrompt });
+  // 保存连接器工作提示词（同步到所有 Tab）
+  connectorSaveWorkPrompt: (settingKey: string, workPrompt: string, connectorId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONNECTOR_SAVE_WORK_PROMPT, { settingKey, workPrompt, connectorId });
   },
 
   setTabModelConfig: (tabId: string, modelConfig: any) => {

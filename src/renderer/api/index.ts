@@ -307,10 +307,10 @@ export const api = {
     return webClient.get(`/api/connectors/smart-kf/kf-welcome?openKfId=${encodeURIComponent(openKfId)}`);
   },
 
-  // 保存客服工作提示词（同步到所有 Tab）
-  async connectorSaveKfWorkPrompt(openKfId: string, workPrompt: string): Promise<any> {
-    if (isElectron()) return (window as any).deepbot.connectorSaveKfWorkPrompt(openKfId, workPrompt);
-    return webClient.post('/api/connectors/smart-kf/kf-work-prompt', { openKfId, workPrompt });
+  // 保存连接器工作提示词（同步到所有 Tab）
+  async connectorSaveWorkPrompt(settingKey: string, workPrompt: string, connectorId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorSaveWorkPrompt(settingKey, workPrompt, connectorId);
+    return webClient.post('/api/connectors/work-prompt', { settingKey, workPrompt, connectorId });
   },
 
   async setTabModelConfig(tabId: string, modelConfig: any): Promise<any> {

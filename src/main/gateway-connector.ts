@@ -1358,45 +1358,33 @@ Use the file_read tool to read the file content.`
   }
 
   /**
-   * 企业微信 Tab 配置继承
-   * 从同 connectorId 的已有 Tab 复制：工作提示词、工作目录
-   * 如果没有已有 Tab，则使用默认工作提示词
+   * 企业微信/飞书 Tab 配置继承
+   * 工作提示词：统一从 app setting 读取
+   * 工作目录：从同 connectorId 的已有 Tab 继承
    */
   private inheritConnectorGroupConfig(newTabId: string, connectorId: string, defaultPromptKey: string): void {
     try {
+      const store = SystemConfigStore.getInstance();
+      const db = store.getDb();
+      const { updateTabWorkPrompt, updateTabWorkspaceDirs } = require('./database/tab-config');
+
+      // 工作提示词：从 app setting 读取
+      const workPrompt = store.getAppSetting(defaultPromptKey);
+      if (workPrompt) {
+        updateTabWorkPrompt(db, newTabId, workPrompt);
+      }
+
+      // 工作目录：从同 connectorId 的已有 Tab 继承
       const allTabs = this.tabManager!.getAllTabs();
       const siblingTab = allTabs.find(t =>
         t.id !== newTabId &&
         t.connectorId === connectorId
       );
-
-      const store = SystemConfigStore.getInstance();
-      const db = store.getDb();
-
-      if (!siblingTab) {
-        // 没有兄弟 Tab：使用默认工作提示词
-        const defaultWorkPrompt = store.getAppSetting(defaultPromptKey);
-        if (defaultWorkPrompt) {
-          const { updateTabWorkPrompt } = require('./database/tab-config');
-          updateTabWorkPrompt(db, newTabId, defaultWorkPrompt);
+      if (siblingTab) {
+        const siblingConfig = store.getTabConfig(siblingTab.id);
+        if (siblingConfig?.workspaceDirs && siblingConfig.workspaceDirs.length > 0) {
+          updateTabWorkspaceDirs(db, newTabId, siblingConfig.workspaceDirs);
         }
-        return;
-      }
-
-      // 从已有 Tab 读取配置
-      const siblingConfig = store.getTabConfig(siblingTab.id);
-      if (!siblingConfig) return;
-
-      const { updateTabWorkPrompt, updateTabWorkspaceDirs } = require('./database/tab-config');
-
-      // 复制工作提示词
-      if (siblingConfig.workPrompt) {
-        updateTabWorkPrompt(db, newTabId, siblingConfig.workPrompt);
-      }
-
-      // 复制工作目录
-      if (siblingConfig.workspaceDirs && siblingConfig.workspaceDirs.length > 0) {
-        updateTabWorkspaceDirs(db, newTabId, siblingConfig.workspaceDirs);
       }
     } catch (error) {
       logger.error(`❌ ${connectorId} 继承分组配置失败:`, error);
