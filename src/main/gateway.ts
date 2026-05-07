@@ -30,6 +30,10 @@ import { GatewayMessageHandler } from './gateway-message';
 export class Gateway {
   private mainWindow: BrowserWindow | null = null;
   private agentRuntimes: Map<string, AgentRuntime> = new Map(); // 每个 Tab 一个 Runtime
+  private runtimeLastActive: Map<string, number> = new Map(); // Runtime 最后活跃时间
+  private runtimeGcTimer: ReturnType<typeof setInterval> | null = null; // Runtime 空闲回收定时器
+  private readonly RUNTIME_IDLE_TIMEOUT = 30 * 60 * 1000; // Runtime 空闲超时（30 分钟）
+  private readonly RUNTIME_GC_INTERVAL = 60 * 1000; // GC 扫描间隔（60秒）
   private defaultSessionId: string = 'default'; // 默认会话 ID
   private isWebMode: boolean = false; // 是否为 Web 模式
   
@@ -541,6 +545,12 @@ export class Gateway {
       this.agentRuntimes.set(sessionId, runtime);
     }
     
+    // 更新最后活跃时间
+    this.runtimeLastActive.set(sessionId, Date.now());
+    
+    // 确保 GC 定时器已启动
+    this.ensureRuntimeGcStarted();
+    
     return runtime;
   }
 
@@ -573,6 +583,10 @@ export class Gateway {
    */
   destroy(): void {
     console.info('[Gateway] 开始销毁 Gateway...');
+    if (this.runtimeGcTimer) {
+      clearInterval(this.runtimeGcTimer);
+      this.runtimeGcTimer = null;
+    }
     this.destroyAllRuntimes();
     console.info('[Gateway] Gateway 已销毁');
   }
@@ -588,6 +602,7 @@ export class Gateway {
       void runtime.destroy();
     }
     this.agentRuntimes.clear();
+    this.runtimeLastActive.clear();
   }
 
   /**
@@ -602,9 +617,54 @@ export class Gateway {
       console.log(`[Gateway] 销毁会话 Runtime: ${sessionId}`);
       await runtime.destroy();
       this.agentRuntimes.delete(sessionId);
+      this.runtimeLastActive.delete(sessionId);
       console.log(`[Gateway] ✅ 会话 Runtime 已销毁并移除`);
     } else {
       console.log(`[Gateway] 会话 Runtime 不存在: ${sessionId}`);
+    }
+  }
+
+  /**
+   * 启动 Runtime 空闲回收定时器
+   */
+  private ensureRuntimeGcStarted(): void {
+    if (this.runtimeGcTimer) return;
+    this.runtimeGcTimer = setInterval(() => this.gcIdleRuntimes(), this.RUNTIME_GC_INTERVAL);
+    console.log('[Gateway] ✅ Runtime 空闲回收定时器已启动');
+  }
+
+  /**
+   * 回收空闲超时的 Runtime
+   */
+  private gcIdleRuntimes(): void {
+    const now = Date.now();
+    const toRemove: string[] = [];
+
+    for (const [sessionId, lastActive] of this.runtimeLastActive.entries()) {
+      if (now - lastActive > this.RUNTIME_IDLE_TIMEOUT) {
+        const runtime = this.agentRuntimes.get(sessionId);
+        if (runtime && !runtime.isCurrentlyGenerating()) {
+          toRemove.push(sessionId);
+        }
+      }
+    }
+
+    if (toRemove.length > 0) {
+      for (const sessionId of toRemove) {
+        const runtime = this.agentRuntimes.get(sessionId);
+        if (runtime) {
+          void runtime.destroy();
+          this.agentRuntimes.delete(sessionId);
+          this.runtimeLastActive.delete(sessionId);
+        }
+      }
+      console.log(`[Gateway] 🗑️ 回收 ${toRemove.length} 个空闲 Runtime，剩余: ${this.agentRuntimes.size}`);
+    }
+
+    // 如果没有 Runtime 了，停止定时器
+    if (this.agentRuntimes.size === 0 && this.runtimeGcTimer) {
+      clearInterval(this.runtimeGcTimer);
+      this.runtimeGcTimer = null;
     }
   }
 
