@@ -52,3 +52,7 @@ temp/
 *.gz
 /scripts/package-releases.sh
 /docs/deepbot-as-harness-engineering.md
+
+# Docker
+docker-compose.yml
+Dockerfile

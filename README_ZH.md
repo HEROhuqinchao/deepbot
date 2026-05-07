@@ -99,28 +99,7 @@ APPLE_TEAM_ID=your-team-id
 
 ### Docker 部署
 
-适用于 Linux 服务器或任何支持 Docker 的环境：
-
-```bash
-# 构建 Docker 镜像
-docker build -t deepbot:latest .
-
-# 使用 docker-compose 启动
-docker-compose up -d
-
-# 查看日志
-docker-compose logs -f
-
-# 停止服务
-docker-compose down
-```
-
-启动后访问 `http://localhost:3008` 即可通过 Web 页面访问。
-
-配置说明：
-- 复制 `.env.example` 为 `.env`，填入模型 API Key 等配置
-- `docker-compose.yml` 中可调整端口映射和数据卷挂载
-- 数据默认持久化到 `./data` 目录
+Docker 部署适用于 Linux 服务器。如需 Docker 版本，请联系作者获取。
 
 **macOS 构建说明**：正式签名构建（`dist:mac`）通过 Gatekeeper 验证，无安全问题。本地构建（`dist:mac:local`）未签名，首次启动会触发安全警告，解决方法见下方。
 
