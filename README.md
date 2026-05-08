@@ -99,28 +99,7 @@ APPLE_TEAM_ID=your-team-id
 
 ### Docker Deployment
 
-For Linux servers or any Docker-supported environment:
-
-```bash
-# Build the Docker image
-docker build -t deepbot:latest .
-
-# Start with docker-compose
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the service
-docker-compose down
-```
-
-Once running, open `http://localhost:3008` to access the web interface.
-
-Configuration:
-- Copy `.env.example` to `.env` and fill in your model API keys
-- Adjust port mappings and volume mounts in `docker-compose.yml`
-- Data is persisted to `./data` by default
+Docker deployment is available for Linux servers. If you need the Docker version, please contact the author.
 
 **Note for macOS builds**: Signed builds (`dist:mac`) pass Gatekeeper verification and work without issues. Local builds (`dist:mac:local`) are unsigned and will trigger security warnings — see below for solutions.
 

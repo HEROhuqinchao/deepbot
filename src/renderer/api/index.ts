@@ -289,6 +289,69 @@ export const api = {
     return webClient.post('/api/connectors/direct-reply', { tabId, content });
   },
 
+  // 获取智能客服账号列表
+  async connectorGetKfList(): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorGetKfList();
+    return webClient.get('/api/connectors/smart-kf/kf-list');
+  },
+
+  // 获取客服账号链接
+  async connectorGetKfUrl(openKfId: string, scene?: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorGetKfUrl(openKfId, scene);
+    const params = scene
+      ? `?openKfId=${encodeURIComponent(openKfId)}&scene=${encodeURIComponent(scene)}`
+      : `?openKfId=${encodeURIComponent(openKfId)}`;
+    return webClient.get(`/api/connectors/smart-kf/kf-url${params}`);
+  },
+
+  // 添加客服账号
+  async connectorAddKfAccount(name: string, avatarPath?: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorAddKfAccount(name, avatarPath);
+    return webClient.post('/api/connectors/smart-kf/kf-account', { name, avatarPath });
+  },
+
+  // 删除客服账号
+  async connectorDelKfAccount(openKfId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorDelKfAccount(openKfId);
+    return webClient.delete(`/api/connectors/smart-kf/kf-account?openKfId=${encodeURIComponent(openKfId)}`);
+  },
+
+  // 修改客服账号
+  async connectorUpdateKfAccount(openKfId: string, name?: string, avatarPath?: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorUpdateKfAccount(openKfId, name, avatarPath);
+    return webClient.post('/api/connectors/smart-kf/kf-account/update', { openKfId, name, avatarPath });
+  },
+
+  // 保存客服欢迎语配置
+  async connectorSaveKfWelcome(openKfId: string, welcome: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorSaveKfWelcome(openKfId, welcome);
+    return webClient.post('/api/connectors/smart-kf/kf-welcome', { openKfId, welcome });
+  },
+
+  // 获取客服欢迎语配置
+  async connectorGetKfWelcome(openKfId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorGetKfWelcome(openKfId);
+    return webClient.get(`/api/connectors/smart-kf/kf-welcome?openKfId=${encodeURIComponent(openKfId)}`);
+  },
+
+  // 保存连接器工作提示词（同步到所有 Tab）
+  async connectorSaveWorkPrompt(settingKey: string, workPrompt: string, connectorId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorSaveWorkPrompt(settingKey, workPrompt, connectorId);
+    return webClient.post('/api/connectors/work-prompt', { settingKey, workPrompt, connectorId });
+  },
+
+  // 保存连接器工作目录（同步到所有 Tab）
+  async connectorSaveKfWorkspaceDirs(settingKey: string, connectorId: string, dirs: string[] | null): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorSaveKfWorkspaceDirs(settingKey, connectorId, dirs);
+    return webClient.post('/api/connectors/smart-kf/kf-workspace-dirs', { settingKey, connectorId, dirs });
+  },
+
+  // 获取连接器工作目录
+  async connectorGetKfWorkspaceDirs(settingKey: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.connectorGetKfWorkspaceDirs(settingKey);
+    return webClient.get(`/api/connectors/smart-kf/kf-workspace-dirs?settingKey=${encodeURIComponent(settingKey)}`);
+  },
+
   async setTabModelConfig(tabId: string, modelConfig: any): Promise<any> {
     if (isElectron()) return (window as any).deepbot.setTabModelConfig(tabId, modelConfig);
     return webClient.post(`/api/tabs/${tabId}/model-config`, { modelConfig });

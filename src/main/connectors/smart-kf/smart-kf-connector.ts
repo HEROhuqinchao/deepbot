@@ -34,6 +34,9 @@ export class SmartKfConnector implements Connector {
   private processedMessages: Set<string> = new Set();
   private readonly MAX_PROCESSED_MESSAGES = 1000;
 
+  // 待处理的请求-响应映射（用于 getKfList、getKfUrl 等）
+  private pendingRequests: Map<string, { resolve: (msg: any) => void; timeout: ReturnType<typeof setTimeout> }> = new Map();
+
   constructor(connectorManager: ConnectorManager) {
     this.connectorManager = connectorManager;
   }
@@ -289,8 +292,24 @@ export class SmartKfConnector implements Connector {
         console.error('[SmartKfConnector] ❌ 服务端错误:', message.error);
         break;
 
+      // 以下类型由各方法的临时 handler 处理，此处静默忽略
+      case 'kf_list':
+      case 'kf_url':
+      case 'kf_account_added':
+      case 'kf_account_deleted':
+      case 'kf_account_updated':
+      case 'token':
+      case 'welcome_sent':
+      case 'welcome_error':
+        // 尝试匹配 pending request
+        this.resolvePendingRequest(message);
+        break;
+
       default:
-        console.log('[SmartKfConnector] 📨 收到未知消息类型:', type);
+        // 尝试匹配 pending request（兜底）
+        if (!this.resolvePendingRequest(message)) {
+          console.log('[SmartKfConnector] 📨 收到未知消息类型:', type);
+        }
     }
   }
 
@@ -309,9 +328,17 @@ export class SmartKfConnector implements Connector {
         if (first) this.processedMessages.delete(first);
       }
 
-      // 跳过事件类型消息（如用户进入会话等）
+      // 处理事件类型消息（如用户进入会话等）
       if (msg.msgtype === 'event') {
-        console.log('[SmartKfConnector] 📌 跳过事件消息:', msg.event?.event_type);
+        console.log('[SmartKfConnector] 📌 收到事件消息:', msg.event?.event_type);
+        // 检查是否有 welcome_code，有则自动发送欢迎语
+        const welcomeCode = msg.event?.welcome_code;
+        const openKfId = msg.event?.open_kfid || msg.open_kfid || '';
+        if (welcomeCode && openKfId) {
+          this.handleWelcomeEvent(welcomeCode, openKfId).catch((err) => {
+            console.error('[SmartKfConnector] ❌ 发送欢迎语失败:', getErrorMessage(err));
+          });
+        }
         return;
       }
 
@@ -461,6 +488,198 @@ export class SmartKfConnector implements Connector {
     const tempDir = path.join(settings.workspaceDir, '.deepbot', 'temp', 'uploads');
     ensureDirectoryExists(tempDir);
     return tempDir;
+  }
+
+  /**
+   * 发送请求并等待匹配的响应（通过 handleWsMessage 分发）
+   */
+  private sendRequestAndWait(payload: any, expectedTypes: string[], timeoutMs = 10000): Promise<any> {
+    if (!this.ws || this.ws.readyState !== 1) {
+      return Promise.reject(new Error('WebSocket 未连接'));
+    }
+
+    const requestId = payload.request_id || `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    if (!payload.request_id) payload.request_id = requestId;
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId);
+        resolve({ _timeout: true });
+      }, timeoutMs);
+
+      this.pendingRequests.set(requestId, { resolve, timeout });
+      this.ws.send(JSON.stringify(payload));
+    });
+  }
+
+  /**
+   * 尝试匹配并 resolve 一个 pending request
+   */
+  private resolvePendingRequest(message: any): boolean {
+    const requestId = message.request_id;
+    if (!requestId) {
+      // 没有 request_id 的消息，尝试匹配第一个 pending request（兼容旧服务端）
+      if (this.pendingRequests.size === 1) {
+        const entry = this.pendingRequests.entries().next().value;
+        if (entry) {
+          const [key, pending] = entry;
+          clearTimeout(pending.timeout);
+          this.pendingRequests.delete(key);
+          pending.resolve(message);
+          return true;
+        }
+      }
+      return false;
+    }
+    const pending = this.pendingRequests.get(requestId);
+    if (pending) {
+      clearTimeout(pending.timeout);
+      this.pendingRequests.delete(requestId);
+      pending.resolve(message);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 处理欢迎语事件：从配置中读取欢迎语并发送
+   */
+  private async handleWelcomeEvent(welcomeCode: string, openKfId: string): Promise<void> {
+    // 从数据库读取该客服的欢迎语配置
+    const store = SystemConfigStore.getInstance();
+    const welcomeText = store.getAppSetting(`smart_kf_welcome_${openKfId}`);
+
+    if (!welcomeText) {
+      console.log('[SmartKfConnector] 📌 该客服未配置欢迎语，跳过:', openKfId);
+      return;
+    }
+
+    console.log('[SmartKfConnector] 📨 发送欢迎语:', { openKfId, welcomeCode: welcomeCode.substring(0, 16) + '...' });
+
+    // 通过 WebSocket 通知服务端调用 send_msg_on_event 接口
+    const result = await this.sendWelcomeMessage(welcomeCode, welcomeText);
+    if (result.success) {
+      console.log('[SmartKfConnector] ✅ 欢迎语已发送');
+    } else {
+      console.error('[SmartKfConnector] ❌ 欢迎语发送失败:', result.error);
+    }
+  }
+
+  /**
+   * 添加客服账号
+   * @param name - 客服名称
+   * @param avatarPath - 头像图片本地路径（可选）
+   */
+  async addKfAccount(name: string, avatarPath?: string): Promise<{ success: boolean; open_kfid?: string; error?: string }> {
+    // 如果有头像，先上传获取 media_id
+    let mediaId: string | undefined;
+    if (avatarPath) {
+      try {
+        const accessToken = await this.getAccessToken();
+        mediaId = await this.uploadMedia(accessToken, avatarPath, 'image');
+      } catch (err) {
+        return { success: false, error: `上传头像失败: ${getErrorMessage(err)}` };
+      }
+    }
+
+    try {
+      const payload: any = { type: 'add_kf_account', name, media_id: mediaId || '' };
+      const msg = await this.sendRequestAndWait(payload, ['kf_account_added', 'error'], 15000);
+      if (msg._timeout) return { success: false, error: '添加客服账号超时' };
+      if (msg.type === 'error') return { success: false, error: msg.error || '添加失败' };
+      return { success: true, open_kfid: msg.open_kfid };
+    } catch (err) {
+      return { success: false, error: getErrorMessage(err) };
+    }
+  }
+
+  /**
+   * 删除客服账号
+   */
+  async delKfAccount(openKfId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const msg = await this.sendRequestAndWait({ type: 'del_kf_account', open_kfid: openKfId }, ['kf_account_deleted', 'error']);
+      if (msg._timeout) return { success: false, error: '删除客服账号超时' };
+      if (msg.type === 'error') return { success: false, error: msg.error || '删除失败' };
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: getErrorMessage(err) };
+    }
+  }
+
+  /**
+   * 修改客服账号（名称或头像）
+   */
+  async updateKfAccount(openKfId: string, name?: string, avatarPath?: string): Promise<{ success: boolean; error?: string }> {
+    if (!name && !avatarPath) {
+      return { success: false, error: '名称和头像至少提供一个' };
+    }
+
+    // 如果有头像，先上传获取 media_id
+    let mediaId: string | undefined;
+    if (avatarPath) {
+      try {
+        const accessToken = await this.getAccessToken();
+        mediaId = await this.uploadMedia(accessToken, avatarPath, 'image');
+      } catch (err) {
+        return { success: false, error: `上传头像失败: ${getErrorMessage(err)}` };
+      }
+    }
+
+    try {
+      const payload: any = { type: 'update_kf_account', open_kfid: openKfId };
+      if (name) payload.name = name;
+      if (mediaId) payload.media_id = mediaId;
+      const msg = await this.sendRequestAndWait(payload, ['kf_account_updated', 'error'], 15000);
+      if (msg._timeout) return { success: false, error: '修改客服账号超时' };
+      if (msg.type === 'error') return { success: false, error: msg.error || '修改失败' };
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: getErrorMessage(err) };
+    }
+  }
+
+  /**
+   * 获取客服账号链接
+   */
+  async getKfUrl(openKfId: string, scene?: string): Promise<{ success: boolean; url?: string; error?: string }> {
+    try {
+      const payload: any = { type: 'get_kf_url', open_kfid: openKfId };
+      if (scene) payload.scene = scene;
+      const msg = await this.sendRequestAndWait(payload, ['kf_url', 'error']);
+      if (msg._timeout) return { success: false, error: '获取客服链接超时' };
+      if (msg.type === 'error') return { success: false, error: msg.error || '服务端返回错误' };
+      return { success: true, url: msg.url || '' };
+    } catch (err) {
+      return { success: false, error: getErrorMessage(err) };
+    }
+  }
+
+  /**
+   * 获取客服账号列表
+   */
+  async getKfList(): Promise<{ success: boolean; accountList?: Array<{ open_kfid: string; name: string; avatar: string }>; error?: string }> {
+    try {
+      const msg = await this.sendRequestAndWait({ type: 'get_kf_list' }, ['kf_list']);
+      if (msg._timeout) return { success: false, error: '获取客服列表超时' };
+      return { success: true, accountList: msg.account_list || [] };
+    } catch (err) {
+      return { success: false, error: getErrorMessage(err) };
+    }
+  }
+
+  /**
+   * 发送事件响应消息（欢迎语）
+   */
+  async sendWelcomeMessage(code: string, content: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const msg = await this.sendRequestAndWait({ type: 'send_welcome', code, content }, ['welcome_sent', 'welcome_error'], 15000);
+      if (msg._timeout) return { success: true }; // 超时视为成功（兼容旧版服务端）
+      if (msg.type === 'welcome_error') return { success: false, error: msg.error || '发送欢迎语失败' };
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: getErrorMessage(err) };
+    }
   }
 
   /**

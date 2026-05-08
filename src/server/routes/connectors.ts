@@ -200,6 +200,132 @@ export function createConnectorsRouter(gatewayAdapter: GatewayAdapter): Router {
   };
   
   router.get('/', getAllConnectors);
+  
+  // 智能客服专用路由（必须在 /:connectorId 通配符之前注册）
+  const getKfList: RequestHandler = async (req, res) => {
+    try {
+      const result = await gatewayAdapter.connectorGetKfList();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const getKfUrl: RequestHandler = async (req, res) => {
+    try {
+      const openKfId = req.query.openKfId as string;
+      const scene = req.query.scene as string | undefined;
+      if (!openKfId) { res.status(400).json({ success: false, error: '缺少 openKfId' }); return; }
+      const result = await gatewayAdapter.connectorGetKfUrl(openKfId, scene);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const addKfAccount: RequestHandler = async (req, res) => {
+    try {
+      const { name, avatarPath } = req.body;
+      if (!name) { res.status(400).json({ success: false, error: '缺少 name' }); return; }
+      const result = await gatewayAdapter.connectorAddKfAccount(name, avatarPath);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const delKfAccount: RequestHandler = async (req, res) => {
+    try {
+      const openKfId = req.query.openKfId as string;
+      if (!openKfId) { res.status(400).json({ success: false, error: '缺少 openKfId' }); return; }
+      const result = await gatewayAdapter.connectorDelKfAccount(openKfId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const updateKfAccount: RequestHandler = async (req, res) => {
+    try {
+      const { openKfId, name, avatarPath } = req.body;
+      if (!openKfId) { res.status(400).json({ success: false, error: '缺少 openKfId' }); return; }
+      const result = await gatewayAdapter.connectorUpdateKfAccount(openKfId, name, avatarPath);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const saveKfWelcome: RequestHandler = async (req, res) => {
+    try {
+      const { openKfId, welcome } = req.body;
+      if (!openKfId) { res.status(400).json({ success: false, error: '缺少 openKfId' }); return; }
+      const result = await gatewayAdapter.connectorSaveKfWelcome(openKfId, welcome || '');
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const getKfWelcome: RequestHandler = async (req, res) => {
+    try {
+      const openKfId = req.query.openKfId as string;
+      if (!openKfId) { res.status(400).json({ success: false, error: '缺少 openKfId' }); return; }
+      const result = await gatewayAdapter.connectorGetKfWelcome(openKfId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  // 通用：保存连接器工作提示词（同步到所有 Tab）
+  const saveWorkPrompt: RequestHandler = async (req, res) => {
+    try {
+      const { settingKey, workPrompt, connectorId } = req.body;
+      if (!settingKey || !connectorId) { res.status(400).json({ success: false, error: '缺少 settingKey 或 connectorId' }); return; }
+      const result = await gatewayAdapter.connectorSaveKfWorkPrompt(settingKey, workPrompt || '', connectorId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/smart-kf/kf-list', getKfList);
+  router.get('/smart-kf/kf-url', getKfUrl);
+  router.post('/smart-kf/kf-account', addKfAccount);
+  router.delete('/smart-kf/kf-account', delKfAccount);
+  router.post('/smart-kf/kf-account/update', updateKfAccount);
+  router.post('/smart-kf/kf-welcome', saveKfWelcome);
+  router.get('/smart-kf/kf-welcome', getKfWelcome);
+  router.post('/work-prompt', saveWorkPrompt);
+
+  // 智能客服：保存工作目录
+  const saveKfWorkspaceDirs: RequestHandler = async (req, res) => {
+    try {
+      const { settingKey, connectorId, dirs } = req.body;
+      if (!settingKey || !connectorId) { res.status(400).json({ success: false, error: '缺少 settingKey 或 connectorId' }); return; }
+      const result = await gatewayAdapter.connectorSaveKfWorkspaceDirs(settingKey, connectorId, dirs);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  // 智能客服：获取工作目录
+  const getKfWorkspaceDirs: RequestHandler = async (req, res) => {
+    try {
+      const settingKey = req.query.settingKey as string;
+      if (!settingKey) { res.status(400).json({ success: false, error: '缺少 settingKey' }); return; }
+      const result = await gatewayAdapter.connectorGetKfWorkspaceDirs(settingKey);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  router.post('/smart-kf/kf-workspace-dirs', saveKfWorkspaceDirs);
+  router.get('/smart-kf/kf-workspace-dirs', getKfWorkspaceDirs);
+
   router.get('/:connectorId/config', getConnectorConfig);
   router.post('/:connectorId/config', saveConnectorConfig);
   router.post('/:connectorId/start', startConnector);

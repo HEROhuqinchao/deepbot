@@ -560,6 +560,116 @@ export class GatewayAdapter extends EventEmitter {
     const records = store.getAllPairingRecords();
     return { success: true, records };
   }
+
+  async connectorGetKfList(): Promise<any> {
+    const connectorManager = this.gateway.getConnectorManager();
+    const connector = connectorManager.getConnector('smart-kf') as any;
+    if (!connector) return { success: false, error: '智能客服连接器未注册' };
+    if (!connector.getKfList) return { success: false, error: '连接器不支持获取客服列表' };
+    return await connector.getKfList();
+  }
+
+  async connectorGetKfUrl(openKfId: string, scene?: string): Promise<any> {
+    const connectorManager = this.gateway.getConnectorManager();
+    const connector = connectorManager.getConnector('smart-kf') as any;
+    if (!connector) return { success: false, error: '智能客服连接器未注册' };
+    if (!connector.getKfUrl) return { success: false, error: '连接器不支持获取客服链接' };
+    return await connector.getKfUrl(openKfId, scene);
+  }
+
+  async connectorAddKfAccount(name: string, avatarPath?: string): Promise<any> {
+    const connector = this.gateway.getConnectorManager().getConnector('smart-kf') as any;
+    if (!connector?.addKfAccount) return { success: false, error: '连接器不支持添加客服账号' };
+    return await connector.addKfAccount(name, avatarPath);
+  }
+
+  async connectorDelKfAccount(openKfId: string): Promise<any> {
+    const connector = this.gateway.getConnectorManager().getConnector('smart-kf') as any;
+    if (!connector?.delKfAccount) return { success: false, error: '连接器不支持删除客服账号' };
+    return await connector.delKfAccount(openKfId);
+  }
+
+  async connectorUpdateKfAccount(openKfId: string, name?: string, avatarPath?: string): Promise<any> {
+    const connector = this.gateway.getConnectorManager().getConnector('smart-kf') as any;
+    if (!connector?.updateKfAccount) return { success: false, error: '连接器不支持修改客服账号' };
+    return await connector.updateKfAccount(openKfId, name, avatarPath);
+  }
+
+  async connectorSaveKfWelcome(openKfId: string, welcome: string): Promise<any> {
+    const { SystemConfigStore } = await import('../main/database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    store.setAppSetting(`smart_kf_welcome_${openKfId}`, welcome);
+    return { success: true };
+  }
+
+  async connectorGetKfWelcome(openKfId: string): Promise<any> {
+    const { SystemConfigStore } = await import('../main/database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    const value = store.getAppSetting(`smart_kf_welcome_${openKfId}`);
+    return { success: true, value };
+  }
+
+  async connectorSaveKfWorkPrompt(settingKey: string, workPrompt: string, connectorId: string): Promise<any> {
+    const { SystemConfigStore } = await import('../main/database/system-config-store');
+    const { updateTabWorkPrompt } = await import('../main/database/tab-config');
+    const store = SystemConfigStore.getInstance();
+    const trimmed = workPrompt ? workPrompt.substring(0, 10000) : '';
+    store.setAppSetting(settingKey, trimmed);
+
+    // 同步到所有匹配的 Tab
+    const db = store.getDb();
+    const tabManager = this.gateway.getTabManager();
+    const allTabs = tabManager.getAllTabs();
+    for (const tab of allTabs) {
+      let match = false;
+      if (connectorId === 'smart-kf') {
+        const openKfId = settingKey.replace('smart_kf_work_prompt_', '');
+        match = tab.connectorId === 'smart-kf' && tab.conversationId?.split('||')[1] === openKfId;
+      } else {
+        match = tab.connectorId === connectorId;
+      }
+      if (match) {
+        updateTabWorkPrompt(db, tab.id, trimmed || null);
+        this.gateway.invalidateSessionSystemPrompt(tab.id);
+      }
+    }
+
+    return { success: true };
+  }
+
+  async connectorSaveKfWorkspaceDirs(settingKey: string, connectorId: string, dirs: string[] | null): Promise<any> {
+    const { SystemConfigStore } = await import('../main/database/system-config-store');
+    const { updateTabWorkspaceDirs } = await import('../main/database/tab-config');
+    const store = SystemConfigStore.getInstance();
+    store.setAppSetting(settingKey, dirs ? JSON.stringify(dirs) : '');
+
+    const db = store.getDb();
+    const tabManager = this.gateway.getTabManager();
+    const allTabs = tabManager.getAllTabs();
+    for (const tab of allTabs) {
+      let match = false;
+      if (connectorId === 'smart-kf') {
+        const openKfId = settingKey.replace('smart_kf_workspace_dirs_', '');
+        match = tab.connectorId === 'smart-kf' && tab.conversationId?.split('||')[1] === openKfId;
+      } else {
+        match = tab.connectorId === connectorId;
+      }
+      if (match) {
+        updateTabWorkspaceDirs(db, tab.id, dirs);
+        await this.gateway.destroySessionRuntime(tab.id);
+        this.gateway.invalidateSessionSystemPrompt(tab.id);
+      }
+    }
+    return { success: true };
+  }
+
+  async connectorGetKfWorkspaceDirs(settingKey: string): Promise<any> {
+    const { SystemConfigStore } = await import('../main/database/system-config-store');
+    const store = SystemConfigStore.getInstance();
+    const json = store.getAppSetting(settingKey);
+    const dirs = json ? JSON.parse(json) : null;
+    return { success: true, dirs };
+  }
   
   /**
    * 定时任务
