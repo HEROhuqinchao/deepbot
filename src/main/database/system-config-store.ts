@@ -38,6 +38,16 @@ export class SystemConfigStore {
   private db: Database.Database;
   private static instance: SystemConfigStore | null = null;
 
+  // 模型服务商路由默认配置（统一维护）
+  private static readonly DEFAULT_ROUTINGS = [
+    { modelId: 'deepseek-v4-flash', providerOrder: 'deepseek,novita,atlas-cloud', allowFallbacks: 0 },
+    { modelId: 'deepseek-v4-pro', providerOrder: 'deepseek,novita,atlas-cloud', allowFallbacks: 0 },
+    { modelId: 'minimax-m2.7', providerOrder: 'minimax,minimax/highspeed', allowFallbacks: 0 },
+    { modelId: 'kimi-k2.5', providerOrder: 'deepinfra,modelrun', allowFallbacks: 0 },
+    { modelId: 'glm-4.7', providerOrder: 'deepinfra,atlas-cloud,siliconflow', allowFallbacks: 0 },
+    { modelId: 'glm-5.1', providerOrder: 'deepinfra,friendli,siliconflow,z-ai', allowFallbacks: 0 },
+  ];
+
   constructor(dbPath?: string) {
     // Docker 模式：优先读 DB_DIR 环境变量（本地调试用），fallback 到 /data/db（生产容器）
     // 普通模式：默认 ~/.deepbot/system-config.db
@@ -132,6 +142,24 @@ export class SystemConfigStore {
     } catch (error) {
       console.error('[SystemConfigStore] ❌ 数据库迁移失败:', error);
     }
+
+    // 🔥 数据库迁移：添加 provider_order 和 allow_fallbacks 字段（如果不存在）
+    try {
+      const tableInfo2 = this.db.prepare("PRAGMA table_info(model_config)").all() as any[];
+      const hasProviderOrder = tableInfo2.some((col: any) => col.name === 'provider_order');
+      if (hasProviderOrder) {
+        // 旧字段存在则删除（已迁移到独立表）— SQLite 不支持 DROP COLUMN，忽略即可
+      }
+    } catch { /* 忽略 */ }
+
+    // 模型服务商路由配置表（按模型 ID 存储）
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS model_provider_routing (
+        model_id TEXT PRIMARY KEY,
+        provider_order TEXT NOT NULL,
+        allow_fallbacks INTEGER NOT NULL DEFAULT 0
+      )
+    `);
 
     // 工具配置表 - 图片生成工具
     this.db.exec(`
@@ -418,6 +446,54 @@ export class SystemConfigStore {
 
   deleteModelConfig(): void {
     return ModelConfigModule.deleteModelConfig(this.db);
+  }
+
+  // ========== 模型服务商路由配置 ==========
+
+  /** 获取模型的默认服务商路由 */
+  getDefaultModelProviderRouting(modelId: string): { providerOrder: string; allowFallbacks: boolean } | null {
+    const found = SystemConfigStore.DEFAULT_ROUTINGS.find(r => r.modelId === modelId);
+    if (!found) return null;
+    return { providerOrder: found.providerOrder, allowFallbacks: found.allowFallbacks === 1 };
+  }
+
+  getModelProviderRouting(modelId: string): { providerOrder: string; allowFallbacks: boolean } | null {
+    try {
+      const row = this.db.prepare(
+        'SELECT provider_order, allow_fallbacks FROM model_provider_routing WHERE model_id = ?'
+      ).get(modelId) as any;
+      if (!row) return null;
+      return {
+        providerOrder: row.provider_order,
+        allowFallbacks: row.allow_fallbacks === 1,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  saveModelProviderRouting(modelId: string, providerOrder: string, allowFallbacks: boolean): void {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO model_provider_routing (model_id, provider_order, allow_fallbacks)
+      VALUES (?, ?, ?)
+    `).run(modelId, providerOrder, allowFallbacks ? 1 : 0);
+  }
+
+  deleteModelProviderRouting(modelId: string): void {
+    this.db.prepare('DELETE FROM model_provider_routing WHERE model_id = ?').run(modelId);
+  }
+
+  getAllModelProviderRoutings(): Array<{ modelId: string; providerOrder: string; allowFallbacks: boolean }> {
+    try {
+      const rows = this.db.prepare('SELECT model_id, provider_order, allow_fallbacks FROM model_provider_routing').all() as any[];
+      return rows.map(row => ({
+        modelId: row.model_id,
+        providerOrder: row.provider_order,
+        allowFallbacks: row.allow_fallbacks === 1,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   // ========== 工具配置 ==========

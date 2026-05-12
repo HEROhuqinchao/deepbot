@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { PROVIDER_PRESETS } from '../../../shared/config/default-configs';
 import { api } from '../../api';
 import { showToast } from '../../utils/toast';
@@ -51,6 +52,9 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
   const [isFromEnv, setIsFromEnv] = useState(false); // 当前配置是否来自环境变量
   const [showApiKeyHelp, setShowApiKeyHelp] = useState(false); // 显示 API Key 帮助模态框
   const [showModelDropdown, setShowModelDropdown] = useState(false); // DeepBot 模型下拉菜单
+  const [showAdvancedModal, setShowAdvancedModal] = useState(false); // 高级路由配置模态框
+  const [advProviderOrder, setAdvProviderOrder] = useState(''); // 服务商列表
+  const [advAllowFallbacks, setAdvAllowFallbacks] = useState(false); // 自动调配
 
   // 加载当前配置（防止 Strict Mode 重复执行）
   useEffect(() => {
@@ -321,9 +325,36 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
 
       {/* 模型 ID */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {lang === 'zh' ? '模型 ID（主模型）' : 'Model ID (Primary)'} <span className="text-red-500">*</span>
-        </label>
+        <div className="flex items-center gap-2 mb-2">
+          <label className="text-sm font-medium text-gray-700">
+            {lang === 'zh' ? '模型 ID（主模型）' : 'Model ID (Primary)'} <span className="text-red-500">*</span>
+          </label>
+          {config.providerType === 'deepbot' && (
+            <span
+              onClick={async () => {
+                // 打开模态框前加载当前模型的路由配置
+                try {
+                  const result = await api.getModelProviderRouting(config.modelId);
+                  const actualResult = (result as any).data || result;
+                  if (actualResult.success && actualResult.routing) {
+                    setAdvProviderOrder(actualResult.routing.providerOrder || '');
+                    setAdvAllowFallbacks(actualResult.routing.allowFallbacks || false);
+                  } else {
+                    setAdvProviderOrder('');
+                    setAdvAllowFallbacks(false);
+                  }
+                } catch {
+                  setAdvProviderOrder('');
+                  setAdvAllowFallbacks(false);
+                }
+                setShowAdvancedModal(true);
+              }}
+              style={{ fontSize: '12px', color: 'var(--settings-accent, #3b82f6)', cursor: 'pointer' }}
+            >
+              {lang === 'zh' ? '高级' : 'Advanced'}
+            </span>
+          )}
+        </div>
         {config.providerType === 'deepbot' ? (
           <div style={{ position: 'relative' }}>
             <input
@@ -485,6 +516,116 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
 
       {/* 如何获取 API Key 模态框 */}
       {showApiKeyHelp && <ApiKeyHelpModal onClose={() => setShowApiKeyHelp(false)} />}
+
+      {/* 高级路由配置模态框 */}
+      {showAdvancedModal && (
+        <div className="settings-overlay" onClick={() => setShowAdvancedModal(false)}>
+          <div
+            className="tab-model-picker-container"
+            style={{ width: '500px', maxWidth: '90vw', display: 'flex', flexDirection: 'column', background: 'var(--settings-bg)', color: 'var(--settings-text)', border: '1px solid var(--settings-border)', borderRadius: '8px', boxShadow: '0 20px 60px var(--terminal-overlay)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">{lang === 'zh' ? '高级路由配置' : 'Advanced Routing'}</h2>
+              <button className="settings-close-button" onClick={() => setShowAdvancedModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px' }}>
+              <div className="settings-alert settings-alert-success" style={{ marginBottom: '0', flexShrink: 0 }}>
+                <p className="text-sm text-green-800">
+                  {lang === 'zh'
+                    ? '不要在没有管理员指导的情况下修改'
+                    : 'Do not modify without administrator guidance'}
+                </p>
+              </div>
+
+              {/* 当前模型 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {lang === 'zh' ? '当前模型' : 'Current Model'}
+                </label>
+                <div style={{ padding: '8px 12px', marginTop: '6px', background: 'var(--settings-bg-light, #f9fafb)', borderRadius: '6px', fontSize: '13px', color: 'var(--settings-text, #333)' }}>
+                  {config.modelId || '-'}
+                </div>
+              </div>
+
+              {/* 服务商输入框 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {lang === 'zh' ? '服务商列表' : 'Provider List'}
+                </label>
+                <input
+                  type="text"
+                  value={advProviderOrder}
+                  onChange={(e) => setAdvProviderOrder(e.target.value)}
+                  placeholder={lang === 'zh' ? '逗号分隔，如: deepseek,novita,atlas-cloud' : 'Comma-separated, e.g.: deepseek,novita,atlas-cloud'}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{ fontSize: '13px', marginTop: '6px' }}
+                />
+                <p style={{ marginTop: '4px', fontSize: '11px', color: 'var(--settings-text-dim, #6b7280)' }}>
+                  {lang === 'zh' ? '按优先级排列的服务商，留空则使用系统默认路由' : 'Providers in priority order. Leave empty for system default routing'}
+                </p>
+              </div>
+
+              {/* 自动调配 checkbox（仅在服务商有值时显示） */}
+              {advProviderOrder.trim() && (
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--settings-text, #374151)' }}>
+                    <input
+                      type="checkbox"
+                      checked={advAllowFallbacks}
+                      onChange={(e) => setAdvAllowFallbacks(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    {lang === 'zh' ? '允许自动调配（当首选服务商不可用时自动切换）' : 'Allow fallbacks (auto-switch when preferred provider is unavailable)'}
+                  </label>
+                </div>
+              )}
+
+              {/* 底部按钮 */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '4px' }}>
+                <button
+                  onClick={async () => {
+                    // 清空数据库记录（还原为默认值）
+                    await api.saveModelProviderRouting(config.modelId, '', false);
+                    // 重新加载：如果有默认值会回填，没有则清空
+                    try {
+                      const result = await api.getModelProviderRouting(config.modelId);
+                      const actualResult = (result as any).data || result;
+                      if (actualResult.success && actualResult.routing) {
+                        setAdvProviderOrder(actualResult.routing.providerOrder || '');
+                        setAdvAllowFallbacks(actualResult.routing.allowFallbacks || false);
+                      } else {
+                        setAdvProviderOrder('');
+                        setAdvAllowFallbacks(false);
+                      }
+                    } catch {
+                      setAdvProviderOrder('');
+                      setAdvAllowFallbacks(false);
+                    }
+                    showToast('success', lang === 'zh' ? '已还原默认值' : 'Restored to default');
+                  }}
+                  className="skill-icon-button"
+                  style={{ padding: '8px 16px', borderRadius: '6px' }}
+                >
+                  {lang === 'zh' ? '还原默认' : 'Reset'}
+                </button>
+                <button
+                  onClick={async () => {
+                    await api.saveModelProviderRouting(config.modelId, advProviderOrder.trim(), advAllowFallbacks);
+                    setShowAdvancedModal(false);
+                    showToast('success', lang === 'zh' ? '路由配置已保存' : 'Routing config saved');
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                  {lang === 'zh' ? '保存' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

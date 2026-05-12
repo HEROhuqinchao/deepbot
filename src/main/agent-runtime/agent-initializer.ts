@@ -390,6 +390,7 @@ export class AgentInitializer {
     const tools = await this.loadTools();
     
     // 创建 Agent 实例（历史消息由 AgentRuntime 加载）
+    const configStore = this.configStore;
     const agent = new Agent({
       initialState: {
         systemPrompt: '', // 稍后异步设置
@@ -402,6 +403,30 @@ export class AgentInitializer {
       transformContext: this.createTransformContext(),
       beforeToolCall: this.createBeforeToolCall(),
       afterToolCall: this.createAfterToolCall(),
+      // 在请求发送前注入 OpenRouter provider 参数（指定服务商）
+      onPayload: (payload: unknown) => {
+        try {
+          const modelConfig = configStore.getModelConfig();
+          if ((modelConfig?.providerType as string) === 'deepbot') {
+            const body = payload as any;
+            const modelId = body.model || modelConfig?.modelId || '';
+            // 从独立表中读取该模型的服务商路由配置，没有则使用默认值
+            const routing = configStore.getModelProviderRouting(modelId) || configStore.getDefaultModelProviderRouting(modelId);
+            if (!body.provider && routing && routing.providerOrder) {
+              const order = routing.providerOrder.split(',').map((s: string) => s.trim()).filter(Boolean);
+              if (order.length > 0) {
+                body.provider = {
+                  order,
+                  allow_fallbacks: routing.allowFallbacks,
+                };
+                console.log(`[onPayload] ✅ 已注入 provider: ${order.join(',')}, fallbacks: ${routing.allowFallbacks}, 模型: ${modelId}`);
+              }
+            }
+            return body;
+          }
+        } catch { /* 忽略 */ }
+        return undefined; // 不修改
+      },
     });
     
     console.log('✅ Agent 实例创建完成');
@@ -410,8 +435,18 @@ export class AgentInitializer {
     if (!(globalThis.fetch as any).__deepbotIntercepted) {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = async (input: any, init?: any) => {
-        const response = await originalFetch(input, init);
+        // 日志：确认请求体中是否包含 provider
         const url = typeof input === 'string' ? input : input?.url || '';
+        if (init?.body && url.includes('chat/completions')) {
+          try {
+            const body = JSON.parse(init.body);
+            if (body.provider) {
+              console.log(`[fetch] 📤 请求包含 provider: ${JSON.stringify(body.provider)}, 模型: ${body.model}`);
+            }
+          } catch { /* 忽略 */ }
+        }
+        
+        const response = await originalFetch(input, init);
         if (!response.ok && (url.includes('chat/completions') || url.includes(this.model.baseUrl || ''))) {
           console.error(`🌐 API 错误: ${response.status} ${response.statusText} - ${url}`);
           try {

@@ -755,4 +755,16 @@ export const api = {
     if (isElectron()) return (window as any).deepbot.getTokenUsage(startDate, endDate);
     return webClient.get(`/api/token-usage?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`);
   },
+
+  // ==================== 模型服务商路由配置 ====================
+
+  async getModelProviderRouting(modelId: string): Promise<{ success: boolean; routing: any }> {
+    if (isElectron()) return (window as any).deepbot.getModelProviderRouting(modelId);
+    return webClient.get(`/api/model-provider-routing?modelId=${encodeURIComponent(modelId)}`);
+  },
+
+  async saveModelProviderRouting(modelId: string, providerOrder: string, allowFallbacks: boolean): Promise<{ success: boolean }> {
+    if (isElectron()) return (window as any).deepbot.saveModelProviderRouting(modelId, providerOrder, allowFallbacks);
+    return webClient.post('/api/model-provider-routing', { modelId, providerOrder, allowFallbacks });
+  },
 };

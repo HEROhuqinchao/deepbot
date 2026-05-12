@@ -46,6 +46,8 @@ export const IPC_CHANNELS = {
   GET_MODEL_CONFIG: 'model-config:get',
   SAVE_MODEL_CONFIG: 'model-config:save',
   TEST_MODEL_CONFIG: 'model-config:test',
+  GET_MODEL_PROVIDER_ROUTING: 'model-config:get-provider-routing',
+  SAVE_MODEL_PROVIDER_ROUTING: 'model-config:save-provider-routing',
   
   // 图片读取
   READ_IMAGE: 'image:read',

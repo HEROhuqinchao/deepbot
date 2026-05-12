@@ -120,7 +120,12 @@ export class AgentMessageProcessor {
       return true;
     }
 
-    // 🔥 假执行未命中，使用 AI 判断是否需要继续
+    // 规则判断未命中，视为任务完成
+    console.log('✅ [detectUnfinishedIntent] 规则判断：任务完成');
+    return false;
+
+    // 🔥 以下 AI 判断逻辑暂时屏蔽（避免额外 API 调用影响缓存命中率）
+    /*
     console.log('🤖 [detectUnfinishedIntent] 使用 AI 判断是否需要继续...');
     
     try {
@@ -168,6 +173,7 @@ ${responseForAI}
       // AI 判断失败，默认不继续（保守策略）
       return false;
     }
+    */
   }
   
   /**

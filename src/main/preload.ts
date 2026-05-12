@@ -88,6 +88,8 @@ const IPC_CHANNELS = {
   GET_TAB_REPLY_MODE: 'tab:get-reply-mode',
   SET_TAB_REPLY_MODE: 'tab:set-reply-mode',
   GET_TOKEN_USAGE: 'token-usage:get',
+  GET_MODEL_PROVIDER_ROUTING: 'model-config:get-provider-routing',
+  SAVE_MODEL_PROVIDER_ROUTING: 'model-config:save-provider-routing',
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',
   GET_TAB_MODEL_CONFIG: 'tab:get-model-config',
   RENAME_TAB: 'tab:rename',
@@ -467,6 +469,15 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   getTabModelConfig: (tabId: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_MODEL_CONFIG, { tabId });
+  },
+
+  // 模型服务商路由配置
+  getModelProviderRouting: (modelId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_MODEL_PROVIDER_ROUTING, { modelId });
+  },
+
+  saveModelProviderRouting: (modelId: string, providerOrder: string, allowFallbacks: boolean) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SAVE_MODEL_PROVIDER_ROUTING, { modelId, providerOrder, allowFallbacks });
   },
 
   renameTab: (tabId: string, title: string) => {

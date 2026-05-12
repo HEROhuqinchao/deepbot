@@ -815,6 +815,33 @@ function registerIpcHandlers() {
     }
   });
 
+  // 获取模型服务商路由配置
+  ipcMain.handle(IPC_CHANNELS.GET_MODEL_PROVIDER_ROUTING, async (_event, { modelId }) => {
+    try {
+      const store = SystemConfigStore.getInstance();
+      // 优先从数据库读取，没有则返回默认值
+      const routing = store.getModelProviderRouting(modelId) || store.getDefaultModelProviderRouting(modelId);
+      return { success: true, routing };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 保存模型服务商路由配置
+  ipcMain.handle(IPC_CHANNELS.SAVE_MODEL_PROVIDER_ROUTING, async (_event, { modelId, providerOrder, allowFallbacks }) => {
+    try {
+      const store = SystemConfigStore.getInstance();
+      if (providerOrder) {
+        store.saveModelProviderRouting(modelId, providerOrder, allowFallbacks);
+      } else {
+        store.deleteModelProviderRouting(modelId);
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 重命名 Tab
   ipcMain.handle(IPC_CHANNELS.RENAME_TAB, async (_event, { tabId, title }) => {
     try {

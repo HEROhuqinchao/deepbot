@@ -25,6 +25,7 @@ import { createTasksRouter } from './routes/tasks';
 import { createFilesRouter } from './routes/files';
 import { createSkillsRouter } from './routes/skills';
 import { createTokenUsageRouter } from './routes/token-usage';
+import { createModelProviderRoutingRouter } from './routes/model-provider-routing';
 import { TIMEOUTS } from '../main/config/timeouts';
 
 // 读取环境变量
@@ -95,6 +96,7 @@ async function main(): Promise<void> {
   app.use('/api/files', authMiddleware, createFilesRouter(gatewayAdapter));
   app.use('/api/skills', authMiddleware, createSkillsRouter(gatewayAdapter));
   app.use('/api/token-usage', authMiddleware, createTokenUsageRouter());
+  app.use('/api/model-provider-routing', authMiddleware, createModelProviderRoutingRouter());
   
   // 标记系统提示词需要重建
   app.post('/api/invalidate-system-prompts', authMiddleware, (req, res) => {
