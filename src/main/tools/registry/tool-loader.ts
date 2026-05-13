@@ -129,16 +129,6 @@ export class ToolLoader {
       // 统一使用 plugin 模式加载所有工具
       const pluginOpts = { workspaceDir: this.workspaceDir, sessionId: this.sessionId, configStore };
 
-      // 读取 Tab 级别生图工具配置
-      let tabImageToolConfig = null;
-      if (configStore) {
-        try {
-          const row = configStore.getDb().prepare('SELECT image_tool_config FROM agent_tabs WHERE id = ?').get(this.sessionId) as any;
-          tabImageToolConfig = row?.image_tool_config ? JSON.parse(row.image_tool_config) : null;
-        } catch { /* 静默处理 */ }
-      }
-      const pluginOptsWithImageConfig = { ...pluginOpts, tabImageToolConfig };
-
       // 文件工具（read, write, edit）
       tools.push(...await resolvePluginTools(fileToolPlugin.create(pluginOpts)));
       
@@ -167,9 +157,9 @@ export class ToolLoader {
       // 环境检查工具
       tools.push(...await resolvePluginTools(environmentCheckToolPlugin.create(pluginOpts)));
       
-      // 图片生成工具
+      // 图片生成工具（每次执行时实时读取 Tab 配置，不再通过闭包传递）
       if (configStore && isEnabled(TOOL_NAMES.IMAGE_GENERATION)) {
-        tools.push(...await resolvePluginTools(imageGenerationToolPlugin.create(pluginOptsWithImageConfig)));
+        tools.push(...await resolvePluginTools(imageGenerationToolPlugin.create(pluginOpts)));
       }
       
       // 网络搜索工具

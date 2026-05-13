@@ -193,7 +193,7 @@ function saveImage(imageData: string, mimeType: string, outputDir: string, outpu
 /**
  * 创建图片生成工具
  */
-export function createImageGenerationTool(configStore: SystemConfigStore, tabImageToolConfig?: { provider?: string; model?: string; apiUrl?: string; apiKey?: string } | null): AgentTool {
+export function createImageGenerationTool(configStore: SystemConfigStore, sessionId?: string): AgentTool {
   return {
     name: TOOL_NAMES.IMAGE_GENERATION,
     label: 'Image Generation',
@@ -219,6 +219,15 @@ export function createImageGenerationTool(configStore: SystemConfigStore, tabIma
           const err = new Error('图片生成操作被取消');
           err.name = 'AbortError';
           throw err;
+        }
+
+        // 🔥 每次执行时实时从数据库读取 Tab 配置，避免闭包缓存旧值
+        let tabImageToolConfig: { provider?: string; model?: string; apiUrl?: string; apiKey?: string } | null = null;
+        if (sessionId) {
+          try {
+            const row = configStore.getDb().prepare('SELECT image_tool_config FROM agent_tabs WHERE id = ?').get(sessionId) as any;
+            tabImageToolConfig = row?.image_tool_config ? JSON.parse(row.image_tool_config) : null;
+          } catch { /* 静默处理 */ }
         }
 
         // 获取工具配置
@@ -394,6 +403,6 @@ export const imageGenerationToolPlugin: ToolPlugin = {
   },
   create: (options: ToolCreateOptions) => {
     if (!options.configStore) throw new Error('imageGenerationToolPlugin 需要 configStore');
-    return createImageGenerationTool(options.configStore, options.tabImageToolConfig);
+    return createImageGenerationTool(options.configStore, options.sessionId);
   },
 };
