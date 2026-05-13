@@ -11,7 +11,7 @@
 export const PROVIDER_PRESETS = {
   deepbot: {
     name: 'DeepBot',
-    baseUrl: 'https://deepbot.plus/v1',
+    baseUrl: 'https://im-director.com/v1',
     defaultModelId: 'deepseek-v4-flash',
     defaultModelId2: 'deepseek-v4-flash',  // 快速模型
     apiType: 'openai-completions',
@@ -61,12 +61,12 @@ export const PROVIDER_PRESETS = {
 export const IMAGE_GENERATION_PROVIDER_PRESETS = {
   deepbot: {
     name: 'DeepBot（Nano banana 2）',
-    baseUrl: 'https://deepbot.plus/tool/gemini',
+    baseUrl: 'https://im-director.com/tool/gemini',
     defaultModelId: 'gemini-3.1-flash-image-preview',
   },
   'deepbot-gpt': {
     name: 'DeepBot（GPT Image 2）',
-    baseUrl: 'https://deepbot.plus/tool/gpt',
+    baseUrl: 'https://im-director.com/tool/gpt',
     defaultModelId: 'openai/gpt-image-2',
   },
   qwen: {
@@ -82,7 +82,7 @@ export const IMAGE_GENERATION_PROVIDER_PRESETS = {
 export const WEB_SEARCH_PROVIDER_PRESETS = {
   deepbot: {
     name: 'DeepBot',
-    baseUrl: 'https://deepbot.plus/tool/gemini',
+    baseUrl: 'https://im-director.com/tool/gemini',
     defaultModelId: 'gemini-3-flash-preview',
   },
   qwen: {

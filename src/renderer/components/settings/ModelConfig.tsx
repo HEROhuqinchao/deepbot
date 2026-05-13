@@ -426,37 +426,6 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
         </p>
       </div>
 
-      {/* 模型 ID 2（快速模型） */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {lang === 'zh' ? '模型 ID 2（快速模型，可选）' : 'Model ID 2 (Fast model, optional)'}
-        </label>
-        <input
-          type="text"
-          value={config.modelId2 || ''}
-          onChange={(e) => setConfig({ ...config, modelId2: e.target.value || undefined })}
-          placeholder={
-            config.providerType === 'qwen' 
-              ? 'qwen-plus' 
-              : config.providerType === 'deepseek' 
-                ? 'deepseek-chat' 
-                : config.providerType === 'gemini'
-                  ? 'gemini-3-flash-preview'
-                  : config.providerType === 'minimax'
-                    ? 'MiniMax-M2.5-highspeed'
-                    : 'fast-model-id'
-          }
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          {config.providerType === 'qwen' && (lang === 'zh' ? '推荐: qwen-plus（用于轻量级任务，如语义判断）' : 'Recommended: qwen-plus (for lightweight tasks like semantic analysis)')}
-          {config.providerType === 'deepseek' && (lang === 'zh' ? '推荐: deepseek-chat（与主模型相同）' : 'Recommended: deepseek-chat (same as primary model)')}
-          {config.providerType === 'gemini' && (lang === 'zh' ? '推荐: gemini-3-flash-preview（用于轻量级任务）' : 'Recommended: gemini-3-flash-preview (for lightweight tasks)')}
-          {config.providerType === 'minimax' && (lang === 'zh' ? '推荐: MiniMax-M2.5-highspeed（用于轻量级任务）' : 'Recommended: MiniMax-M2.5-highspeed (for lightweight tasks)')}
-          {config.providerType === 'custom' && (lang === 'zh' ? '输入快速模型 ID（用于轻量级任务）' : 'Enter fast model ID (for lightweight tasks)')}
-        </p>
-      </div>
-
       {/* API Key */}
       <div>
         <div className="flex items-center gap-2 mb-2">
@@ -504,7 +473,20 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
       </div>
 
       {/* 操作按钮 */}
-      <div className="flex justify-end pt-4 border-t">
+      <div className="flex justify-end gap-3 pt-4 border-t">
+        {isTabMode && (
+          <button
+            onClick={async () => {
+              await api.setTabModelConfig(tabId!, null);
+              showToast('success', lang === 'zh' ? '✅ 已还原为全局模型配置' : '✅ Restored to global model config');
+              onClose();
+            }}
+            className="skill-icon-button"
+            style={{ padding: '8px 16px', borderRadius: '6px' }}
+          >
+            {lang === 'zh' ? '还原默认' : 'Reset to Default'}
+          </button>
+        )}
         <button
           onClick={handleSave}
           disabled={isSaving}
