@@ -9,6 +9,14 @@ import { api } from '../api';
 import { t, getLanguage } from '../i18n';
 import { Tooltip } from './Tooltip';
 
+/** 复用的 SVG checkbox 图标 */
+const CheckboxIcon: React.FC<{ checked: boolean }> = ({ checked }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    {checked && <polyline points="9 11 12 14 22 4" />}
+  </svg>
+);
+
 interface Skill {
   name: string;        // slug
   displayName?: string;
@@ -53,6 +61,11 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
   const lang = getLanguage();
   const [activeTab, setActiveTab] = useState<'installed' | 'available'>('installed');
   const [searchQuery, setSearchQuery] = useState('');
+  const [installedSearchQuery, setInstalledSearchQuery] = useState('');
+  const [showEnabledOnly, setShowEnabledOnly] = useState(() => {
+    const cached = localStorage.getItem('skill-manager:showEnabledOnly');
+    return cached === null ? false : cached === 'true';
+  });
   const [installedSkills, setInstalledSkills] = useState<Skill[]>([]);
   const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,6 +102,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
     try {
       const result = await api.skillManager({
         action: 'list',
+        includeDisabled: true,
       });
       
       if (result.success) {
@@ -223,6 +237,27 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
       console.error('保存环境变量失败:', error);
     } finally {
       setEnvSaving(false);
+    }
+  };
+
+  // 切换 Skill 启用/禁用状态
+  const handleToggleEnabled = async (skillName: string, currentEnabled: boolean) => {
+    try {
+      const action = currentEnabled ? 'disable' : 'enable';
+      const result = await api.skillManager({ action, name: skillName });
+      
+      if (result.success) {
+        // 更新本地状态
+        setInstalledSkills(prev => 
+          prev.map(skill => 
+            skill.name === skillName 
+              ? { ...skill, enabled: !currentEnabled }
+              : skill
+          )
+        );
+      }
+    } catch (error) {
+      console.error(`切换 Skill 状态失败:`, error);
     }
   };
 
@@ -532,31 +567,90 @@ export const SkillManager: React.FC<SkillManagerProps> = ({ isOpen, onClose, act
               <div className="text-text-secondary">{t('skill.loading')}</div>
             </div>
           ) : activeTab === 'installed' ? (
-            installedSkills.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <Package size={48} className="text-text-tertiary mb-4" />
-                <p className="text-text-secondary">{t('skill.no_installed')}</p>
-                <p className="text-sm text-text-tertiary mt-2">{t('skill.no_installed_hint')}</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {installedSkills.map((skill, index) => (
-                  <SkillCard
-                    key={skill.name}
-                    skill={skill}
-                    index={index + 1}
-                    isInstalled={true}
-                    onInstall={() => {}}
-                    onUninstall={handleUninstall}
-                    onViewDetails={(name) => handleViewDetails(name, true)}
-                    onEnvEdit={handleOpenEnvEdit}
-                    onFix={handleFix}
-                    installingSkill={installingSkill}
-                    installProgress={installProgress}
+            <>
+              {/* 已安装 tab 的搜索框 */}
+              <div style={{ padding: '0 0 16px 0', borderBottom: '1px solid var(--border-medium)', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--settings-text-dim)'
+                    }}
+                    size={16}
                   />
-                ))}
+                  <input
+                    type="text"
+                    value={installedSearchQuery}
+                    onChange={(e) => setInstalledSearchQuery(e.target.value)}
+                    placeholder={lang === 'zh' ? '搜索已安装的 Skill...' : 'Search installed skills...'}
+                    className="settings-input"
+                    style={{ width: '100%', paddingLeft: '40px' }}
+                  />
+                </div>
+                <label
+                  className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs rounded transition-colors whitespace-nowrap cursor-pointer select-none"
+                  style={{
+                    color: showEnabledOnly ? 'var(--settings-accent)' : 'var(--settings-text-dim)',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showEnabledOnly}
+                    onChange={() => {
+                      const next = !showEnabledOnly;
+                      setShowEnabledOnly(next);
+                      localStorage.setItem('skill-manager:showEnabledOnly', String(next));
+                    }}
+                    className="sr-only"
+                  />
+                  <CheckboxIcon checked={showEnabledOnly} />
+                  <span>{lang === 'zh' ? '只显示启用' : 'Enabled only'}</span>
+                </label>
               </div>
-            )
+
+              {installedSkills.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <Package size={48} className="text-text-tertiary mb-4" />
+                  <p className="text-text-secondary">{t('skill.no_installed')}</p>
+                  <p className="text-sm text-text-tertiary mt-2">{t('skill.no_installed_hint')}</p>
+                </div>
+              ) : (() => {
+                const filtered = installedSkills.filter(skill =>
+                  (!showEnabledOnly || skill.enabled !== false) &&
+                  (!installedSearchQuery ||
+                    skill.name.toLowerCase().includes(installedSearchQuery.toLowerCase()) ||
+                    (skill.description || '').toLowerCase().includes(installedSearchQuery.toLowerCase()))
+                );
+                return filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <Search size={48} className="text-text-tertiary mb-4" />
+                    <p className="text-text-secondary">{lang === 'zh' ? '没有匹配的 Skill' : 'No matching skills'}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filtered.map((skill, index) => (
+                      <SkillCard
+                        key={skill.name}
+                        skill={skill}
+                        index={index + 1}
+                        isInstalled={true}
+                        onInstall={() => {}}
+                        onUninstall={handleUninstall}
+                        onViewDetails={(name) => handleViewDetails(name, true)}
+                        onEnvEdit={handleOpenEnvEdit}
+                        onToggleEnabled={handleToggleEnabled}
+                        onFix={handleFix}
+                        installingSkill={installingSkill}
+                        installProgress={installProgress}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
+            </>
           ) : (
             searchError ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-6">
@@ -739,6 +833,7 @@ interface SkillCardProps {
   onUninstall: (name: string) => void;
   onViewDetails: (name: string, isInstalled: boolean) => void;
   onEnvEdit?: (name: string) => void;
+  onToggleEnabled?: (name: string, currentEnabled: boolean) => void;
   onFix?: (skill: Skill) => void;
   installingSkill?: string | null;
   installProgress?: number;
@@ -752,6 +847,7 @@ const SkillCard: React.FC<SkillCardProps> = ({
   onUninstall,
   onViewDetails,
   onEnvEdit,
+  onToggleEnabled,
   onFix,
   installingSkill,
   installProgress = 0,
@@ -761,7 +857,7 @@ const SkillCard: React.FC<SkillCardProps> = ({
   const title = skill.displayName || skill.name;
   
   return (
-    <div className="bg-bg-secondary border border-border-medium rounded-lg p-4 hover:border-border-dark transition-colors">
+    <div className={`bg-bg-secondary border border-border-medium rounded-lg p-4 hover:border-border-dark transition-colors ${!skill.enabled ? 'opacity-60' : ''}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-0.5 mb-2">
@@ -773,6 +869,9 @@ const SkillCard: React.FC<SkillCardProps> = ({
             {/* 搜索结果显示 slug */}
             {!isInstalled && skill.displayName && (
               <span className="text-xs text-text-tertiary ml-1">({skill.name})</span>
+            )}
+            {isInstalled && skill.enabled === false && (
+              <span className="text-xs text-text-tertiary ml-2 px-2 py-0.5 bg-bg-tertiary rounded">{t('skill.disabled')}</span>
             )}
           </div>
           <p className="text-sm text-text-secondary mb-2">{skill.description}</p>
@@ -825,6 +924,22 @@ const SkillCard: React.FC<SkillCardProps> = ({
             <Settings size={14} />
             <span>{t('skill.env_vars')}</span>
           </button>
+        )}
+
+        {isInstalled && onToggleEnabled && (
+          <label
+            className="skill-card-action flex items-center gap-1 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors cursor-pointer select-none"
+            title={skill.enabled !== false ? t('skill.click_to_disable') : t('skill.click_to_enable')}
+          >
+            <input
+              type="checkbox"
+              checked={skill.enabled !== false}
+              onChange={() => onToggleEnabled(skill.name, skill.enabled !== false)}
+              className="sr-only"
+            />
+            <CheckboxIcon checked={skill.enabled !== false} />
+            <span>{skill.enabled !== false ? t('skill.enabled') : t('skill.disabled')}</span>
+          </label>
         )}
         
         {isInstalled ? (

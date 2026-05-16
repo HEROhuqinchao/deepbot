@@ -529,8 +529,11 @@ button.skill-icon-button.connector-stop-button:hover:not(:disabled) {
 
 /* Skill 卡片操作按钮（详情、环境变量、卸载、安装） */
 button.skill-card-action,
+label.skill-card-action,
 button.skill-card-action:hover,
-button.skill-card-action:hover:not(:disabled) {
+label.skill-card-action:hover,
+button.skill-card-action:hover:not(:disabled),
+label.skill-card-action:hover:not(:disabled) {
   background: transparent !important;
   border: none !important;
   border-color: transparent !important;
@@ -540,7 +543,8 @@ button.skill-card-action:hover:not(:disabled) {
   font-family: inherit !important;
 }
 
-button.skill-card-action:hover {
+button.skill-card-action:hover,
+label.skill-card-action:hover {
   opacity: 0.8 !important;
 }
 

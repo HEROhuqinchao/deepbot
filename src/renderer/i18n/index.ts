@@ -67,6 +67,10 @@ const zh: Dict = {
   'skill.reason_github': '无法访问 GitHub（可能需要代理）',
   'skill.reason_firewall': '防火墙阻止了连接',
   'skill.retry': '重试',
+  'skill.enabled': '已启用',
+  'skill.disabled': '已禁用',
+  'skill.click_to_enable': '点击启用',
+  'skill.click_to_disable': '点击禁用',
 
   // ScheduledTaskManager / ScheduledTaskConfig
   'task.title': '定时任务',
@@ -170,6 +174,10 @@ const en: Dict = {
   'skill.reason_github': 'Cannot access GitHub (proxy may be needed)',
   'skill.reason_firewall': 'Firewall blocking connection',
   'skill.retry': 'Retry',
+  'skill.enabled': 'Enabled',
+  'skill.disabled': 'Disabled',
+  'skill.click_to_enable': 'Click to enable',
+  'skill.click_to_disable': 'Click to disable',
 
   // ScheduledTaskManager / ScheduledTaskConfig
   'task.title': 'Scheduled Tasks',

@@ -539,8 +539,8 @@ export class MessageHandler {
             lastHeartbeatLog = now;
           }
           
-          // 🔥 心跳检测：空闲超过 90 秒，判定为挂死
-          const HEARTBEAT_TIMEOUT_MS = 90 * 1000;
+          // 🔥 心跳检测：空闲超过 300 秒，判定为挂死
+          const HEARTBEAT_TIMEOUT_MS = 300 * 1000;
           if (heartbeatIdleMs > HEARTBEAT_TIMEOUT_MS) {
             console.error(`💀 [心跳检测] AI 响应空闲 ${(heartbeatIdleMs / 1000).toFixed(0)} 秒，判定为挂死，强制停止`);
             this.stopGeneration();

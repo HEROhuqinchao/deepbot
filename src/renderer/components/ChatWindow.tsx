@@ -980,7 +980,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 } catch {
                   setSelectedSkills(new Set());
                 }
-                // 获取已安装 Skill 列表
+                // 获取已安装 Skill 列表（只获取已启用的）
                 try {
                   const result = await api.skillManager({ action: 'list' });
                   setAllSkills(result?.skills || []);
