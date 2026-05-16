@@ -216,6 +216,7 @@ export function QuickStart({ onNavigate }: QuickStartProps) {
                   • 前往<a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('tools'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>「工具配置」</a>，配置图片生成和网络搜索工具的 API 密钥<br/>
                   • <strong>图片生成</strong>：支持 DeepBot（Gemini）或 Qwen 供应商<br/>
                   • <strong>网络搜索</strong>：使用 Tavily Search API，前往 <a href="https://tavily.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--settings-accent)' }}>tavily.com</a> 免费注册获取 API Key（每月 1000 次免费）<br/>
+                  • <strong>图片/视频分析</strong>：DeepBot 供应商专属，配置好主模型即可直接使用，无需额外配置<br/>
                   <span style={{ fontSize: '12px', color: 'var(--settings-text-dim)', marginTop: '4px', display: 'inline-block' }}>
                     💡 如不使用内置工具，可在<a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('tools'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>「工具配置」</a>中关闭，自行安装 Skill 来实现相关功能，详见下方<a href="#recommended" onClick={(e) => { e.preventDefault(); scrollToSection('recommended'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>「推荐工具和 Skill」</a>
                   </span>
@@ -225,6 +226,7 @@ export function QuickStart({ onNavigate }: QuickStartProps) {
                   • Go to <a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('tools'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>Tool Settings</a> to configure API keys for image generation and web search<br/>
                   • <strong>Image Generation</strong>: Supports DeepBot (Gemini) or Qwen providers<br/>
                   • <strong>Web Search</strong>: Uses Tavily Search API — sign up free at <a href="https://tavily.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--settings-accent)' }}>tavily.com</a> (1,000 free searches/month)<br/>
+                  • <strong>Image/Video Analysis</strong>: DeepBot provider exclusive — works out of the box once the main model is configured<br/>
                   <span style={{ fontSize: '12px', color: 'var(--settings-text-dim)', marginTop: '4px', display: 'inline-block' }}>
                     💡 If you don't need built-in tools, disable them in <a href="#" onClick={(e) => { e.preventDefault(); onNavigate?.('tools'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>Tool Settings</a> and install Skills instead. See <a href="#recommended" onClick={(e) => { e.preventDefault(); scrollToSection('recommended'); }} style={{ color: 'var(--settings-accent)', cursor: 'pointer' }}>Recommended Tools & Skills</a> below
                   </span>
