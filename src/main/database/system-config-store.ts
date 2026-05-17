@@ -47,6 +47,8 @@ export class SystemConfigStore {
     { modelId: 'kimi-k2.5', providerOrder: 'deepinfra,modelrun', allowFallbacks: 0 },
     { modelId: 'glm-4.7', providerOrder: 'deepinfra,atlas-cloud,siliconflow', allowFallbacks: 0 },
     { modelId: 'glm-5.1', providerOrder: 'deepinfra,friendli,siliconflow,z-ai', allowFallbacks: 0 },
+    { modelId: 'qwen3-coder-next', providerOrder: 'parasail,ionstream', allowFallbacks: 0 },
+    { modelId: 'qwen3.6-35b-a3b', providerOrder: 'parasail', allowFallbacks: 0 },
   ];
 
   constructor(dbPath?: string) {
@@ -370,6 +372,15 @@ export class SystemConfigStore {
     } catch (error) {
       console.warn('[SystemConfigStore] ⚠️ connector_pairing 迁移检查失败:', error);
     }
+
+    // 迁移：模型 qwen3.6-plus → qwen3.6-35b-a3b
+    try {
+      const row = this.db.prepare('SELECT model_id FROM model_config WHERE id = 1').get() as any;
+      if (row && row.model_id === 'qwen3.6-plus') {
+        this.db.prepare('UPDATE model_config SET model_id = ?, model_name = ? WHERE id = 1').run('qwen3.6-35b-a3b', 'qwen3.6-35b-a3b');
+        console.log('[SystemConfigStore] ✅ 模型迁移：qwen3.6-plus → qwen3.6-35b-a3b');
+      }
+    } catch { /* 静默处理 */ }
   }
 
   // ========== 环境配置 ==========
