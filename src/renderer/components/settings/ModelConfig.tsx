@@ -13,7 +13,7 @@ import { ApiKeyHelpModal } from './ApiKeyHelpModal';
 import { getLanguage } from '../../i18n';
 
 interface ModelConfig {
-  providerType: 'deepbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom';
+  providerType: 'deepbot' | 'gemini' | 'custom';
   providerId: string;
   providerName: string;
   baseUrl: string;
@@ -75,6 +75,12 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
           providerType: actualResult.config.providerType || 'deepbot',
           apiType: actualResult.config.apiType || 'openai-completions',
         };
+
+        // 旧供应商（qwen/deepseek/minimax）自动映射为 custom
+        if (['qwen', 'deepseek', 'minimax'].includes(loadedConfig.providerType)) {
+          loadedConfig.providerType = 'custom';
+          loadedConfig.apiType = 'openai-completions';
+        }
         
         // Tab 模式：用 tab 的覆盖配置合并全局配置
         if (isTabMode && tabId) {
@@ -112,7 +118,7 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
   };
 
   // 处理提供商类型变化
-  const handleProviderTypeChange = (providerType: 'deepbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom') => {
+  const handleProviderTypeChange = (providerType: 'deepbot' | 'gemini' | 'custom') => {
     const preset = PROVIDER_PRESETS[providerType];
     
     setConfig({
@@ -122,10 +128,10 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
       providerName: preset.name,
       baseUrl: preset.baseUrl,
       modelId: preset.defaultModelId,
-      modelId2: preset.defaultModelId2 || undefined,  // 设置快速模型默认值
+      modelId2: preset.defaultModelId2 || undefined,
       modelName: preset.defaultModelId,
       apiType: preset.apiType,
-      contextWindow: undefined,  // 清空上下文窗口，让系统自动推断
+      contextWindow: undefined,
     });
   };
 
@@ -269,40 +275,19 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
         </label>
         <select
           value={config.providerType}
-          onChange={(e) => handleProviderTypeChange(e.target.value as 'deepbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom')}
+          onChange={(e) => handleProviderTypeChange(e.target.value as 'deepbot' | 'gemini' | 'custom')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="deepbot">{lang === 'zh' ? 'DeepBot（推荐）' : 'DeepBot (Recommended)'}</option>
-          <option value="qwen">Qwen</option>
-          <option value="deepseek">DeepSeek</option>
           <option value="gemini">Google Gemini</option>
-          <option value="minimax">MiniMax</option>
-          <option value="custom">{lang === 'zh' ? '自定义（OpenAI、Claude）' : 'Custom (OpenAI, Claude)'}</option>
+          <option value="custom">{lang === 'zh' ? '自定义（OpenAI 兼容）' : 'Custom (OpenAI Compatible)'}</option>
         </select>
         <p className="mt-1 text-xs text-gray-500">
           {lang === 'zh' ? '选择预设提供商或自定义配置' : 'Select a preset provider or customize'}
         </p>
       </div>
 
-      {/* API 类型（仅自定义模式显示） */}
-      {config.providerType === 'custom' && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {lang === 'zh' ? 'API 类型' : 'API Type'}
-          </label>
-          <select
-            value={config.apiType}
-            onChange={(e) => setConfig({ ...config, apiType: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="openai-completions">{lang === 'zh' ? 'OpenAI 兼容（OpenAI、OpenRouter、Claude、Qwen、DeepSeek 等）' : 'OpenAI Compatible (OpenAI, OpenRouter, Claude, Qwen, DeepSeek, etc.)'}</option>
-            <option value="google-generative-ai">{lang === 'zh' ? 'Google Generative AI（Gemini 原生格式）' : 'Google Generative AI (Gemini native format)'}</option>
-          </select>
-          <p className="mt-1 text-xs text-gray-500">
-            {lang === 'zh' ? '大多数提供商使用 OpenAI 兼容格式，Google Gemini 原生 API 选第二项' : 'Most providers use OpenAI-compatible format. Select the second option for Google Gemini native API'}
-          </p>
-        </div>
-      )}
+      {/* API 类型（自定义模式固定为 OpenAI 兼容） */}
 
       {/* API 地址 */}
       <div>
@@ -403,25 +388,15 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
             value={config.modelId}
             onChange={(e) => setConfig({ ...config, modelId: e.target.value, modelName: e.target.value, contextWindow: undefined })}
             placeholder={
-              config.providerType === 'qwen' 
-                ? 'qwen-max' 
-                : config.providerType === 'deepseek' 
-                  ? 'deepseek-chat' 
-                  : config.providerType === 'gemini'
-                    ? 'gemini-3-pro-preview'
-                    : config.providerType === 'minimax'
-                      ? 'MiniMax-M2.5'
-                      : 'model-id'
+              config.providerType === 'gemini'
+                ? 'gemini-3-pro-preview'
+                : 'model-id'
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         )}
         <p className="mt-1 text-xs text-gray-500">
           {config.providerType === 'deepbot' && (lang === 'zh' ? '推荐 DeepSeek V4 模型，从列表选择或输入自定义模型 ID' : 'DeepSeek V4 models recommended. Select from the list or enter a custom model ID')}
-          {config.providerType === 'qwen' && (lang === 'zh' ? '推荐: qwen-max（高质量）或 qwen-plus（平衡）' : 'Recommended: qwen-max (high quality) or qwen-plus (balanced)')}
-          {config.providerType === 'deepseek' && (lang === 'zh' ? '推荐: deepseek-chat' : 'Recommended: deepseek-chat')}
-          {config.providerType === 'gemini' && (lang === 'zh' ? '推荐: gemini-3-pro-preview（高质量）或 gemini-3-flash-preview（快速）' : 'Recommended: gemini-3-pro-preview (high quality) or gemini-3-flash-preview (fast)')}
-          {config.providerType === 'minimax' && (lang === 'zh' ? '推荐: MiniMax-M2.5（高质量）或 MiniMax-M2.5-highspeed（快速）' : 'Recommended: MiniMax-M2.5 (high quality) or MiniMax-M2.5-highspeed (fast)')}
           {config.providerType === 'custom' && (lang === 'zh' ? '输入主模型 ID' : 'Enter the primary model ID')}
         </p>
       </div>

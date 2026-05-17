@@ -33,7 +33,7 @@ export const PROVIDER_PRESETS = {
   gemini: {
     name: 'Google Gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    defaultModelId: 'gemini-3-pro-preview',
+    defaultModelId: 'gemini-3-flash-preview',
     defaultModelId2: 'gemini-3-flash-preview',  // 快速模型
     apiType: 'google-generative-ai',
   },
@@ -66,11 +66,6 @@ export const IMAGE_GENERATION_PROVIDER_PRESETS = {
     name: 'DeepBot（GPT Image 2）',
     baseUrl: 'https://im-director.com/tool/gpt',
     defaultModelId: 'openai/gpt-image-2',
-  },
-  qwen: {
-    name: 'Qwen Image',
-    baseUrl: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
-    defaultModelId: 'qwen-image-2.0-pro',
   },
 } as const;
 
