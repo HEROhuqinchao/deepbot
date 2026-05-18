@@ -1,10 +1,10 @@
 /**
  * 图片生成配额管理
  * 
- * API Key 格式：<actual-key>-<20位加密配额>
- * 每个数字用 3 字符编码（18 位）+ 2 位日期校验 = 20 位
+ * API Key 格式：<actual-key>-<23位加密配额>
+ * 结构：18位数据 + 2位日期校验 + 3位随机盐 = 23位
  * 包含：数量（0-9999，0=无限制）+ 到期天数（0-99，0=永不过期）
- * 日期校验：密钥生成后 3 天内首次配置有效，通过后缓存不再校验
+ * 每次生成密钥都不同（末尾随机盐），验证时 3 天窗口（天级）
  */
 
 import type { SystemConfigStore } from '../../database/system-config-store';
@@ -13,12 +13,12 @@ import type { SystemConfigStore } from '../../database/system-config-store';
 const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
 const CHARSET_LEN = CHARSET.length;
 const SEEDS = [
-  [7, 13, 29],   // 数字位 0
-  [3, 17, 37],   // 数字位 1
-  [9, 23, 41],   // 数字位 2
-  [2, 19, 43],   // 数字位 3
-  [5, 11, 31],   // 数字位 4
-  [8, 27, 47],   // 数字位 5
+  [7, 13, 29],
+  [3, 17, 37],
+  [9, 23, 41],
+  [2, 19, 43],
+  [5, 11, 31],
+  [8, 27, 47],
 ];
 
 /**
@@ -35,9 +35,9 @@ export interface ImageQuota {
 }
 
 /**
- * 获取指定日期的种子
+ * 获取天级日期种子（YYYYMMDD 各位数字之和）
  */
-function getDateSeed(date: Date): number {
+function getDaySeed(date: Date): number {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
@@ -50,18 +50,33 @@ function getDateSeed(date: Date): number {
 }
 
 /**
- * 用指定日期种子解密 20 位字符串
+ * 将盐转换为数字
  */
-function decodeWithSeed(encoded: string, dateSeed: number): { quantity: number; days: number } | null {
-  if (encoded.length !== 20) return null;
+function saltToNumber(salt: string): number {
+  let total = 0;
+  for (let i = 0; i < salt.length; i++) {
+    total += CHARSET.indexOf(salt[i]) * (i + 1);
+  }
+  return total;
+}
 
-  // 验证日期校验码（最后 2 位）
-  const check1 = (dateSeed * 7 + 13) % CHARSET_LEN;
-  const check2 = (dateSeed * 11 + 29) % CHARSET_LEN;
+/**
+ * 用指定天级种子解密 23 位字符串
+ */
+function decodeWithSeed(encoded: string, daySeed: number): { quantity: number; days: number } | null {
+  if (encoded.length !== 23) return null;
+
+  // 验证日期校验码（第 18-19 位）
+  const check1 = (daySeed * 7 + 13) % CHARSET_LEN;
+  const check2 = (daySeed * 11 + 29) % CHARSET_LEN;
   const idx18 = CHARSET.indexOf(encoded[18]);
   const idx19 = CHARSET.indexOf(encoded[19]);
   if (idx18 === -1 || idx19 === -1) return null;
   if (idx18 !== check1 || idx19 !== check2) return null;
+
+  // 提取盐（最后 3 位）
+  const salt = encoded.substring(20, 23);
+  const saltNum = saltToNumber(salt);
 
   // 解密前 18 位（每 3 字符 = 1 个数字）
   const digits: number[] = [];
@@ -73,7 +88,7 @@ function decodeWithSeed(encoded: string, dateSeed: number): { quantity: number; 
 
       let foundD: number | null = null;
       for (let d = 0; d <= 9; d++) {
-        if ((d * (j + 3) + SEEDS[i][j] + i * 7 + j * 11 + dateSeed) % CHARSET_LEN === charIndex) {
+        if ((d * (j + 3) + SEEDS[i][j] + i * 7 + j * 11 + daySeed + saltNum) % CHARSET_LEN === charIndex) {
           foundD = d;
           break;
         }
@@ -82,7 +97,6 @@ function decodeWithSeed(encoded: string, dateSeed: number): { quantity: number; 
       candidates.push(foundD);
     }
 
-    // 3 个字符必须解出同一个数字
     if (candidates[0] !== candidates[1] || candidates[1] !== candidates[2]) return null;
     digits.push(candidates[0]);
   }
@@ -99,7 +113,7 @@ function decodeQuota(encoded: string): { quantity: number; days: number } | null
   const now = new Date();
   for (let offset = 0; offset < 3; offset++) {
     const date = new Date(now.getTime() - offset * 24 * 60 * 60 * 1000);
-    const seed = getDateSeed(date);
+    const seed = getDaySeed(date);
     const result = decodeWithSeed(encoded, seed);
     if (result) return result;
   }
@@ -111,13 +125,13 @@ function decodeQuota(encoded: string): { quantity: number; days: number } | null
  * 首次解密成功后缓存，后续不再校验日期
  */
 export function parseApiKeyQuota(apiKey: string, configStore?: SystemConfigStore): { actualKey: string; totalAllowed: number; expiryDays: number } | null {
-  if (!apiKey || apiKey.length < 22) return null;
+  if (!apiKey || apiKey.length < 25) return null;
 
   const lastDash = apiKey.lastIndexOf('-');
   if (lastDash === -1 || lastDash === apiKey.length - 1) return null;
 
   const suffix = apiKey.substring(lastDash + 1);
-  if (suffix.length !== 20) return null;
+  if (suffix.length !== 23) return null;
 
   // 先检查缓存
   if (configStore) {
@@ -230,7 +244,6 @@ export async function syncImageQuotaToServer(configStore: SystemConfigStore): Pr
     const baseUrl = config.apiUrl.replace(/\/tool\/.*$/, '').replace(/\/v[12]\/?$/, '');
     const syncUrl = `${baseUrl}/quota/sync`;
 
-    // 提取 20 位密钥后缀
     const quotaKey = config.apiKey.substring(config.apiKey.lastIndexOf('-') + 1);
 
     const response = await fetch(syncUrl, {
@@ -259,7 +272,7 @@ export function checkImageQuota(configStore: SystemConfigStore): string | null {
   if (!config || !config.apiKey) return '图片生成工具未配置 API Key';
 
   const parsed = parseApiKeyQuota(config.apiKey, configStore);
-  if (!parsed) return '图片生成 API Key 无效或已过期（超过 3 天），请联系管理员重新获取';
+  if (!parsed) return '图片生成 API Key 无效，请检查是否正确';
 
   const quota = getImageQuotaStatus(configStore);
   if (!quota) return '无法获取配额状态';
