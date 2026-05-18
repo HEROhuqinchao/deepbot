@@ -32,7 +32,40 @@ function checkMarkitdownInstalled(): boolean {
     execSync('markitdown --help', { stdio: 'pipe', timeout: 5000 });
     return true;
   } catch {
-    return false;
+    // Windows fallback：尝试 python -m markitdown
+    try {
+      execSync('python -m markitdown --help', { stdio: 'pipe', timeout: 5000 });
+      return true;
+    } catch {
+      try {
+        execSync('python3 -m markitdown --help', { stdio: 'pipe', timeout: 5000 });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  }
+}
+
+/**
+ * 获取 markitdown 执行命令（自动检测可用方式）
+ */
+function getMarkitdownCommand(): string {
+  try {
+    execSync('markitdown --help', { stdio: 'pipe', timeout: 5000 });
+    return 'markitdown';
+  } catch {
+    try {
+      execSync('python -m markitdown --help', { stdio: 'pipe', timeout: 5000 });
+      return 'python -m markitdown';
+    } catch {
+      try {
+        execSync('python3 -m markitdown --help', { stdio: 'pipe', timeout: 5000 });
+        return 'python3 -m markitdown';
+      } catch {
+        return 'markitdown';
+      }
+    }
   }
 }
 
@@ -40,11 +73,15 @@ function checkMarkitdownInstalled(): boolean {
  * 使用 markitdown 转换文档
  */
 function convertDocument(filePath: string): string {
+  const cmd = getMarkitdownCommand();
   try {
-    const result = execSync(`markitdown "${filePath}"`, {
+    // Windows 下设置 UTF-8 编码避免中文乱码
+    const prefix = process.platform === 'win32' ? 'chcp 65001 >nul && ' : '';
+    const result = execSync(`${prefix}${cmd} "${filePath}"`, {
       encoding: 'utf-8',
       timeout: 60000,
-      maxBuffer: 10 * 1024 * 1024, // 10MB
+      maxBuffer: 10 * 1024 * 1024,
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
     });
     return result;
   } catch (error: any) {

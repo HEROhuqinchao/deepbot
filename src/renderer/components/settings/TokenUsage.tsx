@@ -210,12 +210,9 @@ export function TokenUsage() {
             <div>
               <div style={{ fontSize: '11px', color: 'var(--settings-text-dim)' }}>{lang === 'zh' ? '有效期' : 'Validity'}</div>
               <div style={{ fontSize: '15px', fontWeight: 600, color: imageQuota.expired ? '#ef4444' : 'var(--settings-text)' }}>
-                {imageQuota.expiryDays === 0
+                {!imageQuota.expiryDate
                   ? (lang === 'zh' ? '永久' : 'Permanent')
-                  : (() => {
-                      const expiryDate = new Date(imageQuota.startDate + imageQuota.expiryDays * 24 * 60 * 60 * 1000);
-                      return formatDate(expiryDate) + (imageQuota.expired ? (lang === 'zh' ? '（已过期）' : ' (Expired)') : '');
-                    })()
+                  : imageQuota.expiryDate + (imageQuota.expired ? (lang === 'zh' ? '（已过期）' : ' (Expired)') : '')
                 }
               </div>
             </div>

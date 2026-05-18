@@ -1,9 +1,9 @@
 /**
  * 图片生成配额管理
  * 
- * API Key 格式：<actual-key>-<23位加密配额>
- * 结构：18位数据 + 2位日期校验 + 3位随机盐 = 23位
- * 包含：数量（0-9999，0=无限制）+ 到期天数（0-99，0=永不过期）
+ * API Key 格式：<actual-key>-<35位加密配额>
+ * 结构：30位数据（10个数字×3字符）+ 2位日期校验 + 3位随机盐 = 35位
+ * 包含：数量（0-9999，0=无限制）+ 到期日期（YYMMDD，000000=永不过期）
  * 每次生成密钥都不同（末尾随机盐），验证时 3 天窗口（天级）
  */
 
@@ -19,6 +19,10 @@ const SEEDS = [
   [2, 19, 43],
   [5, 11, 31],
   [8, 27, 47],
+  [4, 14, 33],
+  [6, 21, 39],
+  [1, 16, 44],
+  [10, 25, 46],
 ];
 
 /**
@@ -26,16 +30,15 @@ const SEEDS = [
  */
 export interface ImageQuota {
   totalAllowed: number;
-  expiryDays: number;
+  expiryDate: string;      // YYYY-MM-DD 格式，空字符串表示永不过期
   used: number;
-  startDate: number;
   expired: boolean;
   exhausted: boolean;
   unlimited: boolean;
 }
 
 /**
- * 获取天级日期种子（YYYYMMDD 各位数字之和）
+ * 获取天级日期种子
  */
 function getDaySeed(date: Date): number {
   const y = date.getFullYear();
@@ -61,26 +64,26 @@ function saltToNumber(salt: string): number {
 }
 
 /**
- * 用指定天级种子解密 23 位字符串
+ * 用指定天级种子解密 35 位字符串
  */
-function decodeWithSeed(encoded: string, daySeed: number): { quantity: number; days: number } | null {
-  if (encoded.length !== 23) return null;
+function decodeWithSeed(encoded: string, daySeed: number): { quantity: number; expiryYear: number; expiryMonth: number; expiryDay: number } | null {
+  if (encoded.length !== 35) return null;
 
-  // 验证日期校验码（第 18-19 位）
+  // 验证日期校验码（第 30-31 位）
   const check1 = (daySeed * 7 + 13) % CHARSET_LEN;
   const check2 = (daySeed * 11 + 29) % CHARSET_LEN;
-  const idx18 = CHARSET.indexOf(encoded[18]);
-  const idx19 = CHARSET.indexOf(encoded[19]);
-  if (idx18 === -1 || idx19 === -1) return null;
-  if (idx18 !== check1 || idx19 !== check2) return null;
+  const idx30 = CHARSET.indexOf(encoded[30]);
+  const idx31 = CHARSET.indexOf(encoded[31]);
+  if (idx30 === -1 || idx31 === -1) return null;
+  if (idx30 !== check1 || idx31 !== check2) return null;
 
   // 提取盐（最后 3 位）
-  const salt = encoded.substring(20, 23);
+  const salt = encoded.substring(32, 35);
   const saltNum = saltToNumber(salt);
 
-  // 解密前 18 位（每 3 字符 = 1 个数字）
+  // 解密前 30 位（每 3 字符 = 1 个数字，共 10 个数字）
   const digits: number[] = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 10; i++) {
     const candidates: number[] = [];
     for (let j = 0; j < 3; j++) {
       const charIndex = CHARSET.indexOf(encoded[i * 3 + j]);
@@ -102,14 +105,17 @@ function decodeWithSeed(encoded: string, daySeed: number): { quantity: number; d
   }
 
   const quantity = digits[0] * 1000 + digits[1] * 100 + digits[2] * 10 + digits[3];
-  const days = digits[4] * 10 + digits[5];
-  return { quantity, days };
+  const expiryYear = digits[4] * 10 + digits[5];
+  const expiryMonth = digits[6] * 10 + digits[7];
+  const expiryDay = digits[8] * 10 + digits[9];
+
+  return { quantity, expiryYear, expiryMonth, expiryDay };
 }
 
 /**
  * 解密配额字符串（尝试 3 天窗口）
  */
-function decodeQuota(encoded: string): { quantity: number; days: number } | null {
+function decodeQuota(encoded: string): { quantity: number; expiryYear: number; expiryMonth: number; expiryDay: number } | null {
   const now = new Date();
   for (let offset = 0; offset < 3; offset++) {
     const date = new Date(now.getTime() - offset * 24 * 60 * 60 * 1000);
@@ -124,14 +130,14 @@ function decodeQuota(encoded: string): { quantity: number; days: number } | null
  * 从 API Key 中解析配额后缀
  * 首次解密成功后缓存，后续不再校验日期
  */
-export function parseApiKeyQuota(apiKey: string, configStore?: SystemConfigStore): { actualKey: string; totalAllowed: number; expiryDays: number } | null {
-  if (!apiKey || apiKey.length < 25) return null;
+export function parseApiKeyQuota(apiKey: string, configStore?: SystemConfigStore): { actualKey: string; totalAllowed: number; expiryDate: string } | null {
+  if (!apiKey || apiKey.length < 37) return null;
 
   const lastDash = apiKey.lastIndexOf('-');
   if (lastDash === -1 || lastDash === apiKey.length - 1) return null;
 
   const suffix = apiKey.substring(lastDash + 1);
-  if (suffix.length !== 23) return null;
+  if (suffix.length !== 35) return null;
 
   // 先检查缓存
   if (configStore) {
@@ -140,11 +146,11 @@ export function parseApiKeyQuota(apiKey: string, configStore?: SystemConfigStore
     if (cached === suffix && cachedData) {
       try {
         const parsed = JSON.parse(cachedData);
-        if (parsed.quantity !== undefined && parsed.days !== undefined) {
+        if (parsed.quantity !== undefined && parsed.expiryDate !== undefined) {
           return {
             actualKey: apiKey.substring(0, lastDash),
             totalAllowed: parsed.quantity,
-            expiryDays: parsed.days,
+            expiryDate: parsed.expiryDate,
           };
         }
       } catch { /* 缓存损坏，重新解密 */ }
@@ -155,18 +161,24 @@ export function parseApiKeyQuota(apiKey: string, configStore?: SystemConfigStore
   const decoded = decodeQuota(suffix);
   if (!decoded) return null;
   if (decoded.quantity < 0 || decoded.quantity > 9999) return null;
-  if (decoded.days < 0 || decoded.days > 99) return null;
+
+  // 构建到期日期字符串
+  let expiryDate = '';
+  if (decoded.expiryYear !== 0 || decoded.expiryMonth !== 0 || decoded.expiryDay !== 0) {
+    const fullYear = 2000 + decoded.expiryYear;
+    expiryDate = `${fullYear}-${String(decoded.expiryMonth).padStart(2, '0')}-${String(decoded.expiryDay).padStart(2, '0')}`;
+  }
 
   // 缓存结果
   if (configStore) {
     configStore.setAppSetting('image_quota_cached_suffix', suffix);
-    configStore.setAppSetting('image_quota_cached_data', JSON.stringify(decoded));
+    configStore.setAppSetting('image_quota_cached_data', JSON.stringify({ quantity: decoded.quantity, expiryDate }));
   }
 
   return {
     actualKey: apiKey.substring(0, lastDash),
     totalAllowed: decoded.quantity,
-    expiryDays: decoded.days,
+    expiryDate,
   };
 }
 
@@ -183,35 +195,32 @@ export function getImageQuotaStatus(configStore: SystemConfigStore): ImageQuota 
   const unlimited = parsed.totalAllowed === 0;
 
   const usedStr = configStore.getAppSetting('image_quota_used') || '0';
-  const startStr = configStore.getAppSetting('image_quota_start') || '0';
   const quotaKeyStr = configStore.getAppSetting('image_quota_key') || '';
 
   let used = parseInt(usedStr, 10) || 0;
-  let startDate = parseInt(startStr, 10) || 0;
 
-  // 配额信息变了，重置计数
-  const currentQuotaKey = `${parsed.totalAllowed}-${parsed.expiryDays}`;
-  if (quotaKeyStr !== currentQuotaKey) {
+  // 用完整后缀作为 key，换新密钥时重置
+  const suffix = config.apiKey.substring(config.apiKey.lastIndexOf('-') + 1);
+  if (quotaKeyStr !== suffix) {
     used = 0;
-    startDate = Date.now();
     configStore.setAppSetting('image_quota_used', '0');
-    configStore.setAppSetting('image_quota_start', String(startDate));
-    configStore.setAppSetting('image_quota_key', currentQuotaKey);
+    configStore.setAppSetting('image_quota_key', suffix);
   }
 
+  // 检查是否过期
   let expired = false;
-  if (parsed.expiryDays > 0 && startDate > 0) {
-    const expiryTime = startDate + parsed.expiryDays * 24 * 60 * 60 * 1000;
-    expired = Date.now() > expiryTime;
+  if (parsed.expiryDate) {
+    const expiry = new Date(parsed.expiryDate + 'T23:59:59');
+    expired = Date.now() > expiry.getTime();
   }
 
+  // 检查是否用完（0=无限制）
   const exhausted = !unlimited && used >= parsed.totalAllowed;
 
   return {
     totalAllowed: parsed.totalAllowed,
-    expiryDays: parsed.expiryDays,
+    expiryDate: parsed.expiryDate,
     used,
-    startDate,
     expired,
     exhausted,
     unlimited,
@@ -278,7 +287,7 @@ export function checkImageQuota(configStore: SystemConfigStore): string | null {
   if (!quota) return '无法获取配额状态';
 
   if (quota.expired) {
-    return `图片生成配额已过期（有效期 ${quota.expiryDays} 天）。请联系管理员续期。`;
+    return `图片生成配额已过期（到期日期 ${quota.expiryDate}）。请联系管理员续期。`;
   }
 
   if (quota.exhausted) {
