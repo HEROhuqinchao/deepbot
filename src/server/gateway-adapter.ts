@@ -703,6 +703,23 @@ export class GatewayAdapter extends EventEmitter {
   async stopGeneration(sessionId?: string): Promise<void> {
     await this.gateway.handleStopGeneration(sessionId);
   }
+
+  /**
+   * 设置 Tab 的 Fast 模式
+   */
+  setTabFastMode(tabId: string, enabled: boolean): void {
+    this.gateway.setTabFastMode(tabId, enabled);
+    
+    // 通过 WebSocket 通知前端
+    this.emit('tab_fast_mode_changed', { tabId, fastMode: enabled });
+  }
+
+  /**
+   * 获取 Tab 是否为 Fast 模式
+   */
+  isTabFastMode(tabId: string): boolean {
+    return this.gateway.isTabFastMode(tabId);
+  }
   
   /**
    * 文件上传基础方法（私有）

@@ -64,6 +64,16 @@
   border-bottom: 2px solid var(--terminal-prompt-user);
 }
 
+/* Fast 模式 Tab */
+.agent-tab.fast-mode {
+  border-bottom: 2px solid #f59e0b;
+}
+
+.agent-tab.fast-mode.active {
+  color: #f59e0b;
+  border-bottom: 2px solid #f59e0b;
+}
+
 /* 锁定状态的 Tab（定时任务专属） */
 .agent-tab.locked {
   background: var(--terminal-header-bg);

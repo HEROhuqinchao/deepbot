@@ -425,6 +425,31 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
 
   router.get('/:tabId/reply-mode', getTabReplyMode);
   router.post('/:tabId/reply-mode', setTabReplyMode);
+
+  // Fast 模式
+  const getTabFastMode: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const fastMode = gatewayAdapter.isTabFastMode(tabId as string);
+      res.json({ success: true, fastMode });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabFastMode: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { fastMode } = req.body;
+      gatewayAdapter.setTabFastMode(tabId as string, fastMode === true);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/fast-mode', getTabFastMode);
+  router.post('/:tabId/fast-mode', setTabFastMode);
   
   return router;
 }

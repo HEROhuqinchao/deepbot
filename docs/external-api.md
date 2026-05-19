@@ -27,13 +27,15 @@ POST /api/external/message
 {
   "tab": "Agent1",
   "content": "你好，请帮我查一下天气",
-  "timeout": 300000
+  "timeout": 300000,
+  "fast": false
 }
 ```
 
 - `tab`（必填）：目标 Tab 名称。匹配规则：去除所有空格后比较，`"Agent1"` 能匹配到名为 `"Agent 1"` 的 Tab。**若不存在则自动创建同名 Tab**。
 - `content`（必填）：消息文本。
 - `timeout`（可选）：等待超时，单位毫秒，默认 300000（5 分钟）。
+- `fast`（可选）：布尔值。传 `true` 时 Tab 进入 Fast 模式（不组装 AGENT.md/TOOLS.md/Skills，只保留 memory + 工作提示词，减少 token 消耗）。传 `false` 时恢复正常模式。不传则保持当前模式不变。
 
 ### 成功响应
 
@@ -79,13 +81,15 @@ POST /api/external/command
 {
   "tab": "Agent1",
   "command": "检查磁盘空间并生成报告",
-  "timeout": 300000
+  "timeout": 300000,
+  "fast": false
 }
 ```
 
 - `tab`（必填）：目标 Tab 名称，匹配规则同上。
 - `command`（必填）：指令文本。
 - `timeout`（可选）：等待超时，单位毫秒，默认 300000（5 分钟）。
+- `fast`（可选）：同信息接口，控制 Tab 的 Fast 模式。不传则保持当前模式不变。
 
 ### 成功响应
 
@@ -214,3 +218,4 @@ if (data.success) {
 3. **信息接口自动创建 Tab**。若指定的 Tab 不存在，信息接口会自动创建同名 Tab；指令接口不会创建，返回 404。
 4. **接口是同步阻塞的**。一次请求对应一次完整的 AI 回复，不需要额外建立 WebSocket 连接。
 5. **同一 Tab 的并发请求会排队处理**，不会并行执行。
+6. **Fast 模式是 Tab 级别的持久状态**。传 `fast: true` 后该 Tab 持续处于 Fast 模式（前端 Tab 颜色会变化），直到收到 `fast: false` 的请求才恢复正常模式。不传 `fast` 参数不会改变当前模式。Fast 模式下不加载工具描述和 Agent 指令，token 消耗大幅降低，适合简单问答场景。

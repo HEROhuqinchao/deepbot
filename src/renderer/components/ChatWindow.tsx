@@ -14,7 +14,7 @@ import { showToast } from '../utils/toast';
 import { getLanguage } from '../i18n';
 import { ModelConfig } from './settings/ModelConfig';
 import { IMAGE_GENERATION_PROVIDER_PRESETS } from '../../shared/config/default-configs';
-import { X, Pencil, Settings, FileText, Shield, FolderOpen, Image as ImageIcon } from 'lucide-react';
+import { X, Pencil, Settings, FileText, Shield, FolderOpen, Image as ImageIcon, Zap } from 'lucide-react';
 
 // 从 Tab 标题中提取智能客服名称：SK-{客服名}-{用户} → 客服名
 const getSmartKfName = (title: string): string => {
@@ -94,6 +94,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   const [showImageToolDialog, setShowImageToolDialog] = useState<string | null>(null); // tabId
   const [imageToolConfig, setImageToolConfig] = useState<{ provider?: string; model: string; apiUrl: string; apiKey: string } | null>(null);
   const imageToolGroupRef = useRef<string[] | null>(null);
+  const [showFastModeDialog, setShowFastModeDialog] = useState<string | null>(null); // tabId
+  const [fastModeEnabled, setFastModeEnabled] = useState(false);
+  const [tabFastModes, setTabFastModes] = useState<Record<string, boolean>>({}); // tabId -> fastMode
   
   // 智能客服分组相关
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null); // 当前展开的分组名
@@ -364,6 +367,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     const cleanup = api.onTabMessagesCleared(handleMessagesCleared);
     return cleanup;
   }, [activeTabId]);
+
+  // 监听 Tab Fast 模式变化
+  useEffect(() => {
+    const cleanup = api.onTabFastModeChanged((data: { tabId: string; fastMode: boolean }) => {
+      setTabFastModes(prev => ({ ...prev, [data.tabId]: data.fastMode }));
+    });
+    return cleanup;
+  }, []);
 
   // 🔥 检测用户手动滚动
   useEffect(() => {
@@ -644,7 +655,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             {normalTabs.map((tab) => (
               <div
                 key={tab.id}
-                className={`agent-tab ${tab.id === activeTabId ? 'active' : ''}`}
+                className={`agent-tab ${tab.id === activeTabId ? 'active' : ''} ${tabFastModes[tab.id] ? 'fast-mode' : ''}`}
                 onClick={() => onTabClick(tab.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -652,6 +663,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                   setContextMenu({ x: e.clientX, y: e.clientY, tabId: tab.id });
                 }}
               >
+                {tabFastModes[tab.id] && <Zap size={10} style={{ marginRight: '3px', color: 'var(--terminal-accent)' }} />}
                 <span className="agent-tab-title">{tab.title}</span>
                 {tab.id !== 'default' && (
                   <button
@@ -948,6 +960,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
           >
             <ImageIcon size={14} style={{ marginRight: '6px' }} />
             {lang === 'zh' ? '生图工具' : 'Image Tool'}
+          </div>
+          {/* FAST 模式 */}
+          <div
+            className="tab-context-menu-item"
+            onClick={async () => {
+              const tabId = contextMenu.tabId;
+              setContextMenu(null);
+              // 加载当前 fast 模式状态
+              try {
+                const result = await api.getTabFastMode(tabId);
+                setFastModeEnabled(result?.fastMode === true);
+              } catch {
+                setFastModeEnabled(false);
+              }
+              setShowFastModeDialog(tabId);
+            }}
+          >
+            <Zap size={14} style={{ marginRight: '6px' }} />
+            {lang === 'zh' ? 'FAST 模式' : 'FAST Mode'}
           </div>
           {/* Skill 白名单（仅智能客服分组显示） */}
           {contextMenu.isGroup && tabs?.find(t => t.id === contextMenu.tabId)?.connectorId === 'smart-kf' && (
@@ -1570,6 +1601,52 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                 >
                   {lang === 'zh' ? '保存配置' : 'Save Configuration'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FAST 模式弹窗 */}
+      {showFastModeDialog && (
+        <div className="settings-overlay" onClick={() => setShowFastModeDialog(null)}>
+          <div
+            className="settings-container tab-model-picker-container"
+            style={{ width: '420px', height: 'auto', maxHeight: '300px', display: 'flex', flexDirection: 'column' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">
+                {lang === 'zh' ? '⚡ FAST 模式' : '⚡ FAST Mode'}
+              </h2>
+              <button className="settings-close-button" onClick={() => setShowFastModeDialog(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="settings-panel" style={{ padding: '16px 24px' }}>
+              <div className="settings-alert settings-alert-success" style={{ marginBottom: '16px' }}>
+                <p className="text-sm text-green-800">
+                  {lang === 'zh'
+                    ? '开启后不加载工具描述和 Agent 指令，大幅减少 Token 消耗，适合简单问答场景。'
+                    : 'When enabled, tool descriptions and agent instructions are skipped, significantly reducing token usage. Suitable for simple Q&A.'}
+                </p>
+              </div>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 0' }}
+                onClick={async () => {
+                  const newValue = !fastModeEnabled;
+                  setFastModeEnabled(newValue);
+                  setTabFastModes(prev => ({ ...prev, [showFastModeDialog!]: newValue }));
+                  await api.setTabFastMode(showFastModeDialog!, newValue);
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: fastModeEnabled ? 'var(--terminal-accent)' : 'var(--terminal-text-dim)' }}>
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  {fastModeEnabled && <polyline points="9 11 12 14 22 4" />}
+                </svg>
+                <span style={{ fontSize: '14px', color: 'var(--terminal-text)' }}>
+                  {lang === 'zh' ? '启用 FAST 模式' : 'Enable FAST Mode'}
+                </span>
               </div>
             </div>
           </div>

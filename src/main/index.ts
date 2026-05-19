@@ -984,6 +984,28 @@ function registerIpcHandlers() {
     }
   });
 
+  // 获取 Tab Fast 模式
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_FAST_MODE, async (_event, { tabId }) => {
+    try {
+      const fastMode = gateway ? gateway.isTabFastMode(tabId) : false;
+      return { success: true, fastMode };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 设置 Tab Fast 模式
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_FAST_MODE, async (_event, { tabId, fastMode }) => {
+    try {
+      if (gateway) {
+        gateway.setTabFastMode(tabId, fastMode === true);
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 设置 Tab Skill 白名单
   ipcMain.handle(IPC_CHANNELS.SET_TAB_SKILL_WHITELIST, async (_event, { tabId, whitelist }) => {
     try {

@@ -385,6 +385,16 @@ export const api = {
     return webClient.post(`/api/tabs/${tabId}/work-prompt`, { workPrompt });
   },
 
+  async getTabFastMode(tabId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getTabFastMode(tabId);
+    return webClient.get(`/api/tabs/${tabId}/fast-mode`);
+  },
+
+  async setTabFastMode(tabId: string, fastMode: boolean): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.setTabFastMode(tabId, fastMode);
+    return webClient.post(`/api/tabs/${tabId}/fast-mode`, { fastMode });
+  },
+
   async getTabSkillWhitelist(tabId: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.getTabSkillWhitelist(tabId);
     return webClient.get(`/api/tabs/${tabId}/skill-whitelist`);
@@ -560,6 +570,11 @@ export const api = {
   onTabUpdated(callback: (data: { tabId: string; title: string }) => void): () => void {
     if (isElectron()) return (window as any).deepbot.onTabUpdated(callback);
     return this._registerWebEvent('tab:updated', callback);
+  },
+
+  onTabFastModeChanged(callback: (data: { tabId: string; fastMode: boolean }) => void): () => void {
+    if (isElectron()) return (window as any).deepbot.onTabFastModeChanged(callback);
+    return this._registerWebEvent('tab:fast-mode-changed', callback);
   },
 
   onTabMessagesCleared(callback: (data: { tabId: string }) => void): () => void {

@@ -161,14 +161,18 @@ export function createExternalRouter(gatewayAdapter: GatewayAdapter): Router {
    *   X-Secret: JWT_SECRET 的值
    * 
    * 请求体：
-   *   { tab: "Tab名称", content: "消息内容", timeout?: 超时毫秒数 }
+   *   { tab: "Tab名称", content: "消息内容", timeout?: 超时毫秒数, fast?: boolean }
    * 
    * 响应：
    *   { success: true, reply: "AI回复内容", messageId, totalDuration, modelId }
+   * 
+   * fast 参数说明：
+   *   传入 fast: true 时，Tab 进入 Fast 模式（不组装 AGENT.md/TOOLS.md/Skills，只保留 memory + 工作提示词）
+   *   传入 fast: false 或不传时，Tab 恢复正常模式
    */
   const sendMessage: RequestHandler = async (req, res) => {
     try {
-      const { tab: tabName, content, timeout } = req.body;
+      const { tab: tabName, content, timeout, fast } = req.body;
       
       // 参数校验
       if (!tabName) {
@@ -187,6 +191,11 @@ export function createExternalRouter(gatewayAdapter: GatewayAdapter): Router {
         const newTab = await gatewayAdapter.createTab(tabName);
         tab = { id: newTab.id, title: newTab.title };
         created = true;
+      }
+      
+      // 设置 Fast 模式（仅在明确传入 fast 参数时才改变模式）
+      if (fast !== undefined) {
+        gatewayAdapter.setTabFastMode(tab.id, fast === true);
       }
       
       // 确定超时时间
@@ -228,17 +237,18 @@ export function createExternalRouter(gatewayAdapter: GatewayAdapter): Router {
    *   X-Secret: JWT_SECRET 的值
    * 
    * 请求体：
-   *   { tab: "Tab名称", command: "指令内容", timeout?: 超时毫秒数 }
+   *   { tab: "Tab名称", command: "指令内容", timeout?: 超时毫秒数, fast?: boolean }
    * 
    * 响应：
    *   { success: true, result: "Agent执行结果", messageId, totalDuration, modelId }
    * 
    * 说明：
    *   指令以 [SYSTEM] 前缀发送，Agent 会将其视为系统指令执行
+   *   fast 参数：同信息接口，控制 Tab 的 Fast 模式
    */
   const sendCommand: RequestHandler = async (req, res) => {
     try {
-      const { tab: tabName, command, timeout } = req.body;
+      const { tab: tabName, command, timeout, fast } = req.body;
       
       // 参数校验
       if (!tabName) {
@@ -255,6 +265,11 @@ export function createExternalRouter(gatewayAdapter: GatewayAdapter): Router {
       if (!tab) {
         res.status(404).json({ success: false, error: `未找到名为 "${tabName}" 的 Tab` });
         return;
+      }
+      
+      // 设置 Fast 模式（仅在明确传入 fast 参数时才改变模式）
+      if (fast !== undefined) {
+        gatewayAdapter.setTabFastMode(tab.id, fast === true);
       }
       
       // 确定超时时间

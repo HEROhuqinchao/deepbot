@@ -98,6 +98,9 @@ const IPC_CHANNELS = {
   RENAME_TAB: 'tab:rename',
   GET_TAB_WORK_PROMPT: 'tab:get-work-prompt',
   SET_TAB_WORK_PROMPT: 'tab:set-work-prompt',
+  GET_TAB_FAST_MODE: 'tab:get-fast-mode',
+  SET_TAB_FAST_MODE: 'tab:set-fast-mode',
+  TAB_FAST_MODE_CHANGED: 'tab:fast-mode-changed',
   GET_TAB_SKILL_WHITELIST: 'tab:get-skill-whitelist',
   SET_TAB_SKILL_WHITELIST: 'tab:set-skill-whitelist',
   GET_TAB_WORKSPACE_DIRS: 'tab:get-workspace-dirs',
@@ -334,6 +337,15 @@ contextBridge.exposeInMainWorld('deepbot', {
       ipcRenderer.removeListener(IPC_CHANNELS.TAB_UPDATED, listener);
     };
   },
+
+  // 监听 Tab Fast 模式变化
+  onTabFastModeChanged: (callback: (data: { tabId: string; fastMode: boolean }) => void) => {
+    const listener = (_event: any, data: any) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.TAB_FAST_MODE_CHANGED, listener);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.TAB_FAST_MODE_CHANGED, listener);
+    };
+  },
   
   // 🔥 监听 Tab 历史消息加载
   onTabHistoryLoaded: (callback: (data: { tabId: string; messages: any[] }) => void) => {
@@ -504,6 +516,14 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   setTabWorkPrompt: (tabId: string, workPrompt: string | null) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_WORK_PROMPT, { tabId, workPrompt });
+  },
+
+  getTabFastMode: (tabId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_FAST_MODE, { tabId });
+  },
+
+  setTabFastMode: (tabId: string, fastMode: boolean) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_FAST_MODE, { tabId, fastMode });
   },
 
   getTabSkillWhitelist: (tabId: string) => {
