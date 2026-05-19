@@ -26,16 +26,27 @@ POST /api/external/message
 ```json
 {
   "tab": "Agent1",
-  "content": "你好，请帮我查一下天气",
+  "content": "请分析这张图片",
   "timeout": 300000,
-  "fast": false
+  "fast": false,
+  "attachments": [
+    {
+      "name": "photo.jpg",
+      "data": "base64编码的文件内容...",
+      "type": "image/jpeg"
+    }
+  ]
 }
 ```
 
 - `tab`（必填）：目标 Tab 名称。匹配规则：去除所有空格后比较，`"Agent1"` 能匹配到名为 `"Agent 1"` 的 Tab。**若不存在则自动创建同名 Tab**。
-- `content`（必填）：消息文本。
+- `content`（条件必填）：消息文本。`content` 和 `attachments` 至少提供一个。
 - `timeout`（可选）：等待超时，单位毫秒，默认 300000（5 分钟）。
 - `fast`（可选）：布尔值。传 `true` 时 Tab 进入 Fast 模式（不组装 AGENT.md/TOOLS.md/Skills，只保留 memory + 工作提示词，减少 token 消耗）。传 `false` 时恢复正常模式。不传则保持当前模式不变。
+- `attachments`（可选）：附件数组，支持图片和文件。每个附件包含：
+  - `name`（必填）：文件名，如 `"report.pdf"`
+  - `data`（必填）：文件内容的 base64 编码（不含 `data:xxx;base64,` 前缀）
+  - `type`（可选）：MIME 类型，如 `"image/png"`。不传会根据文件扩展名自动推断
 
 ### 成功响应
 

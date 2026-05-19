@@ -20,6 +20,79 @@ const JWT_SECRET = process.env.JWT_SECRET || 'deepbot-default-secret-change-in-p
 const EXTERNAL_API_TIMEOUT = parseInt(process.env.EXTERNAL_API_TIMEOUT || '') || 5 * 60 * 1000;
 
 /**
+ * 附件类型定义
+ */
+interface Attachment {
+  name: string;       // 文件名（如 "photo.jpg"）
+  data: string;       // base64 编码的文件内容（不含 data:xxx;base64, 前缀）
+  type?: string;      // MIME 类型（如 "image/png"），可选，会自动推断
+}
+
+/**
+ * 处理附件上传：保存到临时目录，返回路径列表
+ */
+async function processAttachments(
+  gatewayAdapter: GatewayAdapter,
+  attachments: Attachment[]
+): Promise<{ images: string[]; files: string[] }> {
+  const images: string[] = [];
+  const files: string[] = [];
+  
+  for (const attachment of attachments) {
+    const { name, data, type } = attachment;
+    
+    // 推断 MIME 类型
+    const mimeType = type || guessMimeType(name);
+    const isImage = mimeType.startsWith('image/');
+    
+    // 构建 dataUrl
+    const dataUrl = `data:${mimeType};base64,${data}`;
+    const fileSize = Buffer.from(data, 'base64').length;
+    
+    if (isImage) {
+      const result = await gatewayAdapter.uploadImage(name, dataUrl, fileSize);
+      if (result.success && result.image) {
+        images.push(result.image.path);
+      }
+    } else {
+      const result = await gatewayAdapter.uploadFile(name, dataUrl, fileSize, mimeType);
+      if (result.success && result.file) {
+        files.push(result.file.path);
+      }
+    }
+  }
+  
+  return { images, files };
+}
+
+/**
+ * 根据文件名推断 MIME 类型
+ */
+function guessMimeType(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  const mimeMap: Record<string, string> = {
+    // 图片
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+    gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp',
+    // 文档
+    pdf: 'application/pdf', doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    // 文本
+    txt: 'text/plain', csv: 'text/csv', json: 'application/json',
+    md: 'text/markdown', html: 'text/html', xml: 'application/xml',
+    // 压缩
+    zip: 'application/zip', gz: 'application/gzip', tar: 'application/x-tar',
+    // 音视频
+    mp3: 'audio/mpeg', mp4: 'video/mp4', wav: 'audio/wav',
+  };
+  return mimeMap[ext] || 'application/octet-stream';
+}
+
+/**
  * 外部接口认证中间件
  * 验证请求头 X-Secret 是否等于 JWT_SECRET
  */
@@ -161,7 +234,10 @@ export function createExternalRouter(gatewayAdapter: GatewayAdapter): Router {
    *   X-Secret: JWT_SECRET 的值
    * 
    * 请求体：
-   *   { tab: "Tab名称", content: "消息内容", timeout?: 超时毫秒数, fast?: boolean }
+   *   { tab: "Tab名称", content: "消息内容", timeout?: 超时毫秒数, fast?: boolean, attachments?: Attachment[] }
+   * 
+   * attachments 格式：
+   *   [{ name: "photo.jpg", data: "base64内容", type?: "image/jpeg" }]
    * 
    * 响应：
    *   { success: true, reply: "AI回复内容", messageId, totalDuration, modelId }
@@ -172,15 +248,15 @@ export function createExternalRouter(gatewayAdapter: GatewayAdapter): Router {
    */
   const sendMessage: RequestHandler = async (req, res) => {
     try {
-      const { tab: tabName, content, timeout, fast } = req.body;
+      const { tab: tabName, content, timeout, fast, attachments } = req.body;
       
       // 参数校验
       if (!tabName) {
         res.status(400).json({ success: false, error: '缺少 tab 参数' });
         return;
       }
-      if (!content) {
-        res.status(400).json({ success: false, error: '缺少 content 参数' });
+      if (!content && (!attachments || attachments.length === 0)) {
+        res.status(400).json({ success: false, error: '缺少 content 或 attachments 参数' });
         return;
       }
       
@@ -198,15 +274,31 @@ export function createExternalRouter(gatewayAdapter: GatewayAdapter): Router {
         gatewayAdapter.setTabFastMode(tab.id, fast === true);
       }
       
+      // 处理附件上传
+      let messageContent = content || '';
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        const { images, files } = await processAttachments(gatewayAdapter, attachments);
+        
+        // 将文件路径拼接到消息内容前面（与前端逻辑一致）
+        if (images.length > 0) {
+          const imagePaths = images.map((p, i) => `[参考图${i + 1}]: ${p}`).join('\n');
+          messageContent = `${imagePaths}\n\n${messageContent}`;
+        }
+        if (files.length > 0) {
+          const filePaths = files.map((p, i) => `[参考文件${i + 1}]: ${p}`).join('\n');
+          messageContent = `${filePaths}\n\n${messageContent}`;
+        }
+      }
+      
       // 确定超时时间
       const requestTimeout = timeout || EXTERNAL_API_TIMEOUT;
       
       // 先注册监听器，再发送消息（避免竞态条件）
       const { promise: responsePromise, cancel } = waitForResponse(gatewayAdapter, tab.id, requestTimeout);
       
-      // 发送消息
+      // 发送消息（使用处理过附件的完整内容）
       try {
-        await gatewayAdapter.handleSendMessage(tab.id, content);
+        await gatewayAdapter.handleSendMessage(tab.id, messageContent);
       } catch (sendError) {
         cancel();
         throw sendError;
