@@ -156,9 +156,29 @@ export class AgentInitializer {
         }
       }
 
+      // 🔥 write/edit 工具内容安全检查：禁止写入包含敏感文件名的脚本（防止通过脚本间接读取数据库）
+      if ((toolName === 'write' || toolName === 'edit') && args.content) {
+        const content = (args.content as string).toLowerCase();
+        const SENSITIVE_DB_FILES = ['system-config.db', 'scheduled-tasks.db'];
+        for (const sensitiveFile of SENSITIVE_DB_FILES) {
+          if (content.includes(sensitiveFile)) {
+            return { block: true, reason: `安全限制：禁止写入包含敏感文件名 ${sensitiveFile} 的内容` };
+          }
+        }
+      }
+
       // bash 命令中的路径检查（移植自 checkCommandPathSecurity，统一使用 isPathInDirs）
       if (toolName === 'bash' && args.command) {
         const command = args.command as string;
+        
+        // 🔥 敏感文件名检测：无论路径如何拼接，只要命令中出现敏感文件名就拦截
+        const SENSITIVE_FILES = ['system-config.db', 'system-config.db-wal', 'system-config.db-shm', 'scheduled-tasks.db'];
+        const commandLower = command.toLowerCase();
+        for (const sensitiveFile of SENSITIVE_FILES) {
+          if (commandLower.includes(sensitiveFile)) {
+            return { block: true, reason: `安全限制：禁止访问敏感系统文件 ${sensitiveFile}` };
+          }
+        }
         
         // 剥离引号内的字符串内容，避免误匹配数据中的路径
         const sanitizedCommand = command

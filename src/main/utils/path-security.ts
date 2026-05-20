@@ -62,6 +62,29 @@ export function getAllowedDirectories(): string[] {
 }
 
 /**
+ * 敏感文件黑名单（即使在允许的目录内也禁止访问）
+ * 包含 API Key、密钥等敏感信息的文件
+ */
+const SENSITIVE_FILE_PATTERNS = [
+  'system-config.db',        // 系统配置数据库（含 API Key 明文）
+  'system-config.db-wal',    // SQLite WAL 日志
+  'system-config.db-shm',    // SQLite 共享内存
+  'scheduled-tasks.db',      // 定时任务数据库
+  '.env',                    // 环境变量文件
+];
+
+/**
+ * 检查文件是否为敏感文件（禁止 Agent 访问）
+ */
+function isSensitiveFile(filePath: string): boolean {
+  const expandedPath = expandHomePath(filePath);
+  const resolvedPath = path.resolve(expandedPath);
+  const basename = path.basename(resolvedPath);
+  
+  return SENSITIVE_FILE_PATTERNS.includes(basename);
+}
+
+/**
  * 检查文件路径是否在允许的范围内
  * 
  * 允许访问以下目录及其子目录：
@@ -69,6 +92,8 @@ export function getAllowedDirectories(): string[] {
  * - Python 脚本目录 (scriptDir)
  * - Skill 目录 (skillDirs)
  * - 图片生成目录 (imageDir)
+ * 
+ * 禁止访问敏感文件（即使在允许的目录内）
  * 
  * @param filePath - 文件路径（支持 ~ 开头）
  * @returns 是否允许访问
@@ -80,6 +105,11 @@ export function isPathAllowed(filePath: string): boolean {
   // 解析为绝对路径并规范化
   const resolvedPath = path.resolve(expandedPath);
   const normalizedPath = path.normalize(resolvedPath);
+  
+  // 🔥 敏感文件检查：即使在允许的目录内也禁止访问
+  if (isSensitiveFile(filePath)) {
+    return false;
+  }
   
   // Docker 模式：强制限制在 /data/ 目录下
   if (isDockerMode()) {
