@@ -356,6 +356,15 @@ export class WebSocketManager {
         sessionId: event.sessionId
       });
     });
+
+    // 监听 Tab Fast 模式变化（广播给所有客户端）
+    this.gatewayAdapter.on('tab_fast_mode_changed', (event: any) => {
+      this.broadcastToAll({
+        type: 'tab:fast-mode-changed',
+        tabId: event.tabId,
+        fastMode: event.fastMode,
+      });
+    });
   }
   
   /**

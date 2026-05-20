@@ -57,11 +57,15 @@ export interface ImageGenerationToolConfig {
 }
 
 /**
- * 工具配置 - Web Search 工具
+ * 工具配置 - Web Search 工具（使用 Tavily Search API）
  */
 export interface WebSearchToolConfig {
-  provider: string;        // 提供商 ID ('qwen' | 'gemini')
-  model: string;           // 模型名称
-  apiUrl: string;          // API 地址
-  apiKey: string;          // API Key
+  apiKey: string;          // Tavily API Key
+}
+
+/**
+ * 工具配置 - 多媒体分析工具（复用主模型 API Key，仅 DeepBot 供应商可用）
+ */
+export interface MediaAnalysisToolConfig {
+  model: string;           // 分析模型名称
 }

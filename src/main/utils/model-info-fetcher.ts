@@ -41,8 +41,11 @@ export function getContextWindowFromModelId(modelId: string): number {
   }
 
   // Qwen (通义千问) 系列
-  if (lowerModelId.includes('qwen3.5-plus') || lowerModelId.includes('qwen3.5-flash') || lowerModelId.includes('qwen-long')) {
+  if (lowerModelId.includes('qwen3.5-plus') || lowerModelId.includes('qwen-long')) {
     return 1000000;
+  }
+  if (lowerModelId.includes('qwen3.5-flash')) {
+    return 500000;
   }
   if (lowerModelId.includes('qwen3.6-plus')) {
     return 256000;
@@ -88,6 +91,11 @@ export function getContextWindowFromModelId(modelId: string): number {
   // StepFun 阶跃星辰系列
   if (lowerModelId.includes('step')) {
     return 262000;
+  }
+
+  // 海艺 HY 系列
+  if (lowerModelId.includes('hy3')) {
+    return 500000;
   }
 
   // 默认值（未知模型）

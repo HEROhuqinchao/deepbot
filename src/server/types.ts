@@ -66,4 +66,5 @@ export type ServerMessage =
   | { type: 'pending-count:update'; pendingCount: number }
   | { type: 'wechat:qr-code'; url: string; connectorId?: string }
   | { type: 'session:kicked'; reason: string }
-  | { type: 'loading-status'; status: string; sessionId?: string };
+  | { type: 'loading-status'; status: string; sessionId?: string }
+  | { type: 'tab:fast-mode-changed'; tabId: string; fastMode: boolean };

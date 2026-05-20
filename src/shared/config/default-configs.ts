@@ -11,7 +11,7 @@
 export const PROVIDER_PRESETS = {
   deepbot: {
     name: 'DeepBot',
-    baseUrl: 'https://www.im-director.com/api/llm-v1',
+    baseUrl: 'https://im-director.com/v1',
     defaultModelId: 'deepseek-v4-flash',
     defaultModelId2: 'deepseek-v4-flash',  // 快速模型
     apiType: 'openai-completions',
@@ -33,7 +33,7 @@ export const PROVIDER_PRESETS = {
   gemini: {
     name: 'Google Gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    defaultModelId: 'gemini-3-pro-preview',
+    defaultModelId: 'gemini-3-flash-preview',
     defaultModelId2: 'gemini-3-flash-preview',  // 快速模型
     apiType: 'google-generative-ai',
   },
@@ -53,44 +53,28 @@ export const PROVIDER_PRESETS = {
   },
 } as const;
 
-
-
 /**
  * 图片生成提供商预设配置
  */
 export const IMAGE_GENERATION_PROVIDER_PRESETS = {
   deepbot: {
     name: 'DeepBot（Nano banana 2）',
-    baseUrl: 'https://www.im-director.com/api/gemini-v1',
+    baseUrl: 'https://im-director.com/tool/gemini',
     defaultModelId: 'gemini-3.1-flash-image-preview',
   },
   'deepbot-gpt': {
     name: 'DeepBot（GPT Image 2）',
-    baseUrl: 'https://www.im-director.com/api/gpt-v1',
+    baseUrl: 'https://im-director.com/tool/gpt',
     defaultModelId: 'openai/gpt-image-2',
-  },
-  qwen: {
-    name: 'Qwen Image',
-    baseUrl: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
-    defaultModelId: 'qwen-image-2.0-pro',
   },
 } as const;
 
 /**
- * Web 搜索提供商预设配置
+ * 默认 Web 搜索工具配置（Tavily Search API）
  */
-export const WEB_SEARCH_PROVIDER_PRESETS = {
-  deepbot: {
-    name: 'DeepBot',
-    baseUrl: 'https://www.im-director.com/api/gemini-v1',
-    defaultModelId: 'gemini-3-flash-preview',
-  },
-  qwen: {
-    name: 'Qwen',
-    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    defaultModelId: 'qwen3.6-plus',
-  },
-} as const;
+export const DEFAULT_WEB_SEARCH_CONFIG = {
+  apiKey: '',
+};
 
 /**
  * 默认模型配置
@@ -113,15 +97,5 @@ export const DEFAULT_IMAGE_GENERATION_CONFIG = {
   provider: 'deepbot' as const,
   model: IMAGE_GENERATION_PROVIDER_PRESETS.deepbot.defaultModelId,
   apiUrl: IMAGE_GENERATION_PROVIDER_PRESETS.deepbot.baseUrl,
-  apiKey: '',
-};
-
-/**
- * 默认 Web 搜索工具配置
- */
-export const DEFAULT_WEB_SEARCH_CONFIG = {
-  provider: 'deepbot' as const,
-  model: WEB_SEARCH_PROVIDER_PRESETS.deepbot.defaultModelId,
-  apiUrl: WEB_SEARCH_PROVIDER_PRESETS.deepbot.baseUrl,
   apiKey: '',
 };

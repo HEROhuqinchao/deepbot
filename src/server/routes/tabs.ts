@@ -353,6 +353,48 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
   router.get('/:tabId/workspace-dirs', getTabWorkspaceDirs);
   router.post('/:tabId/workspace-dirs', setTabWorkspaceDirs);
 
+  // Tab 生图工具配置
+  const getTabImageToolConfig: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const row = store.getDb().prepare('SELECT image_tool_config FROM agent_tabs WHERE id = ?').get(tabId) as any;
+      const config = row?.image_tool_config ? JSON.parse(row.image_tool_config) : null;
+      res.json({ success: true, config });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabImageToolConfig: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { config } = req.body;
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+
+      // 验证 API Key 配额后缀
+      if (config && config.apiKey) {
+        const { parseApiKeyQuota } = await import('../../main/tools/providers/image-quota');
+        const parsed = parseApiKeyQuota(config.apiKey, store);
+        if (!parsed) {
+          res.json({ success: false, error: 'API Key 无效，请检查是否正确' });
+          return;
+        }
+      }
+
+      const configJson = config ? JSON.stringify(config) : null;
+      store.getDb().prepare('UPDATE agent_tabs SET image_tool_config = ? WHERE id = ?').run(configJson, tabId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/image-tool-config', getTabImageToolConfig);
+  router.post('/:tabId/image-tool-config', setTabImageToolConfig);
+
   // 回复模式
   const getTabReplyMode: RequestHandler = async (req, res) => {
     try {
@@ -383,6 +425,31 @@ export function createTabsRouter(gatewayAdapter: GatewayAdapter): Router {
 
   router.get('/:tabId/reply-mode', getTabReplyMode);
   router.post('/:tabId/reply-mode', setTabReplyMode);
+
+  // Fast 模式
+  const getTabFastMode: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const fastMode = gatewayAdapter.isTabFastMode(tabId as string);
+      res.json({ success: true, fastMode });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  const setTabFastMode: RequestHandler = async (req, res) => {
+    try {
+      const { tabId } = req.params;
+      const { fastMode } = req.body;
+      gatewayAdapter.setTabFastMode(tabId as string, fastMode === true);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  router.get('/:tabId/fast-mode', getTabFastMode);
+  router.post('/:tabId/fast-mode', setTabFastMode);
   
   return router;
 }

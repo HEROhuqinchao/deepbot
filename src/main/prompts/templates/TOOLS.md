@@ -252,16 +252,18 @@ google-chrome --remote-debugging-port=9222
 3. 默认不指定 `aspectRatio` 和 `resolution`，除非用户明确要求
 4. 只显示生成的新图，不要显示参考图
 
-### 参考图与图片分析
-- **解析图片**（用户说"解析"、"分析"、"描述"、"识别文字"） → `action: "analyze"` + `imagePath`（必填）
-- **参考图生成**（其他所有情况） → `action: "generate"` + `referenceImages` + 用户原始提示词
+### 参考图生成
+- 用户提供参考图时 → `referenceImages` + 用户原始提示词
 - ❌ 不要先解析参考图再生成，直接传递 `referenceImages`
-- ⚠️ `action: "analyze"` 必须提供 `imagePath`，否则报错
 
 ### 保存路径
 - 用户指定路径 → 使用 `outputPath` 参数，一步到位
 - 用户未指定 → 不要添加 `outputPath`，使用默认目录
 - ❌ 禁止先生成再用 `exec` 移动文件
+
+### 图片分析
+- 用户说"解析"、"分析"、"描述"、"识别文字"等 → 使用 `media_analysis` 工具（如果可用）
+- ❌ 不要使用图片生成工具进行图片分析
 
 ### 示例
 
@@ -269,18 +271,87 @@ google-chrome --remote-debugging-port=9222
 // 基础生成
 { "prompt": "一只可爱的橙色小猫坐在窗台上" }
 
-// 解析图片
-{ "action": "analyze", "imagePath": "~/.deepbot/temp/uploads/abc123.jpg" }
-
-// 带自定义提示词的图片分析
-{ "action": "analyze", "imagePath": "~/.deepbot/temp/uploads/abc123.jpg", "analysisPrompt": "请识别图片中的所有文字内容" }
-
 // 基于参考图生成
-{ "action": "generate", "prompt": "去掉图上的人，生成坐轮椅的人", "referenceImages": ["~/.deepbot/temp/uploads/abc123.jpg"] }
+{ "prompt": "去掉图上的人，生成坐轮椅的人", "referenceImages": ["~/.deepbot/temp/uploads/abc123.jpg"] }
 
 // 指定保存路径
 { "prompt": "一只可爱的小猫", "outputPath": "~/path/to/cat.jpg" }
 ```
+
+---
+
+## Media Analysis（多媒体分析）
+
+> ⚠️ 此工具可被禁用。仅当 `## Tools` 中存在 `media_analysis` 工具时，才按以下指导使用；如果工具列表中没有此工具，视为不存在。
+
+### 核心原则
+1. 仅在主模型为 DeepBot 供应商时可用，复用主模型的 API Key
+2. 支持图片和视频文件的内容分析
+3. 视频分析通过抽帧方式进行，fps 参数控制抽帧率
+
+### 使用场景
+- ✅ 分析图片内容（描述、文字识别、场景理解）
+- ✅ 分析视频内容（动作描述、场景变化、字幕提取）
+- ✅ 支持格式：图片(jpg/png/gif/webp/bmp/tiff)、视频(mp4/mov/avi/mkv/webm)
+- ❌ 不要用于图片生成（使用 `image_generation`）
+- ❌ 主模型非 DeepBot 供应商时不可用
+
+### 参数说明
+- `filePath`（必填）：图片或视频文件路径
+- `prompt`（可选）：分析提示词，默认"请详细描述这个文件的内容"
+- `fps`（可选）：视频抽帧率，1-10，默认 2（每秒取 2 帧）
+
+### 示例
+
+```json
+// 分析图片
+{ "filePath": "~/Desktop/photo.jpg" }
+
+// 带提示词分析图片
+{ "filePath": "~/Desktop/screenshot.png", "prompt": "请识别图片中的所有文字" }
+
+// 分析视频
+{ "filePath": "~/Desktop/video.mp4", "prompt": "视频的主要内容是什么？" }
+
+// 视频高帧率分析（更精细）
+{ "filePath": "~/Desktop/demo.mp4", "prompt": "详细描述视频中的操作步骤", "fps": 5 }
+```
+
+---
+
+## Doc Analysis（文档分析）
+
+> ⚠️ 此工具可被禁用。仅当 `## Tools` 中存在 `doc_analysis` 工具时，才按以下指导使用；如果工具列表中没有此工具，视为不存在。
+
+### 核心原则
+1. 使用 markitdown 将文档转换为 Markdown 格式进行读取
+2. 支持 PDF、Word、Excel、PowerPoint、HTML、CSV、JSON、XML、图片（OCR）等格式
+3. 需要用户安装 markitdown（`pip install markitdown`）
+
+### 使用场景
+- ✅ 读取 PDF、Word、Excel、PPT 等办公文档内容
+- ✅ 提取文档中的文字、表格、结构化数据
+- ✅ 分析文档内容并回答问题
+- ❌ 不要用于纯文本文件（直接使用 `file_read`）
+- ❌ 不要用于图片/视频内容理解（使用 `media_analysis`）
+
+### 示例
+
+```json
+// 读取 PDF 文档
+{ "filePath": "~/Documents/report.pdf" }
+
+// 读取 Word 文档
+{ "filePath": "~/Desktop/proposal.docx" }
+
+// 读取 Excel 表格
+{ "filePath": "~/Downloads/data.xlsx" }
+```
+
+### 注意事项
+- 如果报错"未安装 markitdown"，需要先执行 `pip install markitdown -i https://mirrors.aliyun.com/pypi/simple`
+- 如果阿里云镜像连接不上，可切换其他国内镜像安装加速（如腾讯：`-i https://mirrors.cloud.tencent.com/pypi/simple`）
+- 文档内容过长时会自动截断（最多 50000 字符）
 
 ---
 
@@ -289,22 +360,37 @@ google-chrome --remote-debugging-port=9222
 > ⚠️ 此工具可被禁用。仅当 `## Tools` 中存在 `web_search` 工具时，才按以下指导使用；如果工具列表中没有此工具，视为不存在。
 
 ### 核心原则
-1. 用于获取最新的网络信息
+1. 使用 Tavily Search API 获取实时网络信息
 2. 查询词要清晰具体
-3. 返回结果包含综合答案和参考来源
+3. 返回结果包含综合摘要和参考来源链接
 
 ### 使用场景
 - ✅ 获取最新信息（新闻、天气、股票、汇率）
-- ✅ 查找最新技术文档
+- ✅ 查找最新技术文档和资讯
 - ❌ 不要用于已知的静态信息
 - ❌ 不要用于需要深度浏览的任务（使用 `browser`）
+
+### 参数说明
+- `query`（必填）：搜索查询词
+- `maxResults`（可选）：返回结果数量，1-20，默认 10
+- `searchDepth`（可选）：`basic`（默认）或 `advanced`（更深入，耗时更长）
+- `topic`（可选）：`general`（默认）或 `news`（新闻专项）
+- `timeRange`（可选）：`day`、`week`、`month`、`year`
+- `includeDomains`（可选）：只搜索指定域名，如 `["docs.python.org"]`
+- `excludeDomains`（可选）：排除指定域名
 
 ### 示例
 
 ```json
 { "query": "北京今天天气" }
 { "query": "美元兑人民币汇率" }
+{ "query": "Python asyncio 最新文档", "includeDomains": ["docs.python.org"] }
+{ "query": "AI 行业最新动态", "topic": "news", "timeRange": "week" }
 ```
+
+### 配置说明
+需要在「系统设置 → 工具配置 → Web Search」中填写 Tavily API Key。
+免费注册地址：https://tavily.com（每月 1000 次免费搜索）
 
 ---
 
@@ -445,8 +531,6 @@ cp ~/path/to/"my file.txt" ~/another/path/
 
 ### 工具列表
 - `api_get_config` - 获取系统配置
-- `api_set_image_generation_config` - 设置图片生成工具配置
-- `api_set_web_search_config` - 设置 Web 搜索工具配置
 - `api_get_session_file_path` - 获取当前 Tab 的 Session 文件路径
 - `api_get_name` - 获取智能体名字和用户称呼（当前 Tab 有独立名字时返回 Tab 的名字）
 - `api_set_name` - 设置智能体名字或用户称呼
@@ -468,12 +552,6 @@ cp ~/path/to/"my file.txt" ~/another/path/
 
 // 查询工作目录配置
 { "tool": "api_get_config", "configType": "workspace" }
-
-// 更新图片生成工具配置
-{ "tool": "api_set_image_generation_config", "model": "qwen-image-2.0-pro", "apiKey": "sk-xxx" }
-
-// 更新 Web 搜索工具配置
-{ "tool": "api_set_web_search_config", "provider": "qwen", "model": "qwen-max", "apiKey": "sk-xxx" }
 
 // 获取当前 Tab 的 Session 文件路径
 { "tool": "api_get_session_file_path" }

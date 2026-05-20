@@ -32,6 +32,7 @@ export class Gateway {
   private agentRuntimes: Map<string, AgentRuntime> = new Map(); // 每个 Tab 一个 Runtime
   private runtimeLastActive: Map<string, number> = new Map(); // Runtime 最后活跃时间
   private runtimeGcTimer: ReturnType<typeof setInterval> | null = null; // Runtime 空闲回收定时器
+  private tabFastModes: Map<string, boolean> = new Map(); // Tab Fast 模式状态（独立于 Runtime）
   private readonly RUNTIME_IDLE_TIMEOUT = 30 * 60 * 1000; // Runtime 空闲超时（30 分钟）
   private readonly RUNTIME_GC_INTERVAL = 60 * 1000; // GC 扫描间隔（60秒）
   private defaultSessionId: string = 'default'; // 默认会话 ID
@@ -542,6 +543,11 @@ export class Gateway {
       
       runtime = new AgentRuntime(workspaceDir, sessionId, modelConfigOverride);
       
+      // 同步 Fast 模式状态到新创建的 Runtime
+      if (this.tabFastModes.get(sessionId)) {
+        runtime.setFastMode(true);
+      }
+      
       this.agentRuntimes.set(sessionId, runtime);
     }
     
@@ -949,6 +955,38 @@ export class Gateway {
   getAgentRuntime(sessionId?: string): AgentRuntime | null {
     const currentSessionId = sessionId || this.defaultSessionId;
     return this.agentRuntimes.get(currentSessionId) || null;
+  }
+
+  /**
+   * 设置 Tab 的 Fast 模式
+   * 
+   * @param sessionId 会话 ID
+   * @param enabled 是否启用 Fast 模式
+   */
+  setTabFastMode(sessionId: string, enabled: boolean): void {
+    // 持久化到 Map（独立于 Runtime 生命周期）
+    this.tabFastModes.set(sessionId, enabled);
+    
+    // 如果 Runtime 已存在，同步设置
+    const runtime = this.agentRuntimes.get(sessionId);
+    if (runtime) {
+      runtime.setFastMode(enabled);
+    }
+    
+    // 通知前端 Tab 模式变化
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('tab:fast-mode-changed', {
+        tabId: sessionId,
+        fastMode: enabled,
+      });
+    }
+  }
+
+  /**
+   * 获取 Tab 是否为 Fast 模式
+   */
+  isTabFastMode(sessionId: string): boolean {
+    return this.tabFastModes.get(sessionId) || false;
   }
 
   /**

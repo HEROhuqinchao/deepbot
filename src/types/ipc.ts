@@ -46,6 +46,8 @@ export const IPC_CHANNELS = {
   GET_MODEL_CONFIG: 'model-config:get',
   SAVE_MODEL_CONFIG: 'model-config:save',
   TEST_MODEL_CONFIG: 'model-config:test',
+  GET_MODEL_PROVIDER_ROUTING: 'model-config:get-provider-routing',
+  SAVE_MODEL_PROVIDER_ROUTING: 'model-config:save-provider-routing',
   
   // 图片读取
   READ_IMAGE: 'image:read',
@@ -70,6 +72,8 @@ export const IPC_CHANNELS = {
   SAVE_IMAGE_GENERATION_TOOL_CONFIG: 'tool-config:image-generation:save',
   GET_WEB_SEARCH_TOOL_CONFIG: 'tool-config:web-search:get',
   SAVE_WEB_SEARCH_TOOL_CONFIG: 'tool-config:web-search:save',
+  GET_MEDIA_ANALYSIS_TOOL_CONFIG: 'tool-config:media-analysis:get',
+  SAVE_MEDIA_ANALYSIS_TOOL_CONFIG: 'tool-config:media-analysis:save',
   
   // 工具禁用管理
   GET_DISABLED_TOOLS: 'tool-config:disabled:get',
@@ -128,16 +132,28 @@ export const IPC_CHANNELS = {
   GET_TAB_REPLY_MODE: 'tab:get-reply-mode',
   SET_TAB_REPLY_MODE: 'tab:set-reply-mode',
   
+  // Token 用量统计
+  GET_TOKEN_USAGE: 'token-usage:get',
+  GET_IMAGE_USAGE: 'image-usage:get',
+  GET_IMAGE_QUOTA_STATUS: 'image-quota:get-status',
+  
   // Tab 模型配置
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',
   GET_TAB_MODEL_CONFIG: 'tab:get-model-config',
   RENAME_TAB: 'tab:rename',
   GET_TAB_WORK_PROMPT: 'tab:get-work-prompt',
   SET_TAB_WORK_PROMPT: 'tab:set-work-prompt',
+  GET_TAB_FAST_MODE: 'tab:get-fast-mode',
+  SET_TAB_FAST_MODE: 'tab:set-fast-mode',
+  TAB_FAST_MODE_CHANGED: 'tab:fast-mode-changed',
   GET_TAB_SKILL_WHITELIST: 'tab:get-skill-whitelist',
   SET_TAB_SKILL_WHITELIST: 'tab:set-skill-whitelist',
   GET_TAB_WORKSPACE_DIRS: 'tab:get-workspace-dirs',
   SET_TAB_WORKSPACE_DIRS: 'tab:set-workspace-dirs',
+  
+  // Tab 生图工具配置
+  GET_TAB_IMAGE_TOOL_CONFIG: 'tab:get-image-tool-config',
+  SAVE_TAB_IMAGE_TOOL_CONFIG: 'tab:save-image-tool-config',
   
   // 应用信息
 } as const;

@@ -815,6 +815,33 @@ function registerIpcHandlers() {
     }
   });
 
+  // 获取模型服务商路由配置
+  ipcMain.handle(IPC_CHANNELS.GET_MODEL_PROVIDER_ROUTING, async (_event, { modelId }) => {
+    try {
+      const store = SystemConfigStore.getInstance();
+      // 优先从数据库读取，没有则返回默认值
+      const routing = store.getModelProviderRouting(modelId) || store.getDefaultModelProviderRouting(modelId);
+      return { success: true, routing };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 保存模型服务商路由配置
+  ipcMain.handle(IPC_CHANNELS.SAVE_MODEL_PROVIDER_ROUTING, async (_event, { modelId, providerOrder, allowFallbacks }) => {
+    try {
+      const store = SystemConfigStore.getInstance();
+      if (providerOrder) {
+        store.saveModelProviderRouting(modelId, providerOrder, allowFallbacks);
+      } else {
+        store.deleteModelProviderRouting(modelId);
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 重命名 Tab
   ipcMain.handle(IPC_CHANNELS.RENAME_TAB, async (_event, { tabId, title }) => {
     try {
@@ -957,6 +984,28 @@ function registerIpcHandlers() {
     }
   });
 
+  // 获取 Tab Fast 模式
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_FAST_MODE, async (_event, { tabId }) => {
+    try {
+      const fastMode = gateway ? gateway.isTabFastMode(tabId) : false;
+      return { success: true, fastMode };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 设置 Tab Fast 模式
+  ipcMain.handle(IPC_CHANNELS.SET_TAB_FAST_MODE, async (_event, { tabId, fastMode }) => {
+    try {
+      if (gateway) {
+        gateway.setTabFastMode(tabId, fastMode === true);
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 设置 Tab Skill 白名单
   ipcMain.handle(IPC_CHANNELS.SET_TAB_SKILL_WHITELIST, async (_event, { tabId, whitelist }) => {
     try {
@@ -1033,6 +1082,42 @@ function registerIpcHandlers() {
       return { success: true, replyMode: config?.replyMode || 'agent' };
     } catch (error) {
       return { success: false, error: getErrorMessage(error), replyMode: 'agent' };
+    }
+  });
+
+  // 获取 Tab 生图工具配置
+  ipcMain.handle(IPC_CHANNELS.GET_TAB_IMAGE_TOOL_CONFIG, async (_event, { tabId }) => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const row = store.getDb().prepare('SELECT image_tool_config FROM agent_tabs WHERE id = ?').get(tabId) as any;
+      const config = row?.image_tool_config ? JSON.parse(row.image_tool_config) : null;
+      return { success: true, config };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 保存 Tab 生图工具配置
+  ipcMain.handle(IPC_CHANNELS.SAVE_TAB_IMAGE_TOOL_CONFIG, async (_event, { tabId, config }) => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+
+      // 验证 API Key 配额后缀
+      if (config && config.apiKey) {
+        const { parseApiKeyQuota } = await import('./tools/providers/image-quota');
+        const parsed = parseApiKeyQuota(config.apiKey, store);
+        if (!parsed) {
+          return { success: false, error: 'API Key 无效，请检查是否正确' };
+        }
+      }
+
+      const configJson = config ? JSON.stringify(config) : null;
+      store.getDb().prepare('UPDATE agent_tabs SET image_tool_config = ? WHERE id = ?').run(configJson, tabId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
     }
   });
 
@@ -1228,13 +1313,24 @@ function registerIpcHandlers() {
   ipcMain.handle(IPC_CHANNELS.SAVE_IMAGE_GENERATION_TOOL_CONFIG, async (_event, config) => {
     try {
       console.log('[IPC] 保存图片生成工具配置:', config);
+
+      // 验证 API Key 配额后缀
+      const { parseApiKeyQuota } = await import('./tools/providers/image-quota');
       const { SystemConfigStore } = await import('./database/system-config-store');
       const store = SystemConfigStore.getInstance();
+
+      if (config.apiKey) {
+        const parsed = parseApiKeyQuota(config.apiKey, store);
+        if (!parsed) {
+          return { success: false, error: 'API Key 无效，请检查是否正确' };
+        }
+      }
+
       store.saveImageGenerationToolConfig(config);
       return { success: true };
     } catch (error) {
       console.error('[IPC] 保存图片生成工具配置失败:', error);
-      throw error;
+      return { success: false, error: getErrorMessage(error) };
     }
   });
 
@@ -1262,6 +1358,30 @@ function registerIpcHandlers() {
       return { success: true };
     } catch (error) {
       console.error('[IPC] 保存 Web Search 工具配置失败:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 获取多媒体分析工具配置
+  ipcMain.handle(IPC_CHANNELS.GET_MEDIA_ANALYSIS_TOOL_CONFIG, async () => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      const config = store.getMediaAnalysisToolConfig();
+      return { success: true, config };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
+  // 保存多媒体分析工具配置
+  ipcMain.handle(IPC_CHANNELS.SAVE_MEDIA_ANALYSIS_TOOL_CONFIG, async (_event, { config }) => {
+    try {
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const store = SystemConfigStore.getInstance();
+      store.saveMediaAnalysisToolConfig(config);
+      return { success: true };
+    } catch (error) {
       return { success: false, error: getErrorMessage(error) };
     }
   });
@@ -1508,6 +1628,46 @@ function registerIpcHandlers() {
       return { success: true, value: configStore.getAppSetting(key) };
     } catch (error) {
       return { success: false, value: null };
+    }
+  });
+
+  // Token 用量统计
+  ipcMain.handle(IPC_CHANNELS.GET_TOKEN_USAGE, async (_event, { startDate, endDate }) => {
+    try {
+      const { getTokenUsage } = await import('./database/token-usage');
+      const configStore = SystemConfigStore.getInstance();
+      const db = configStore.getDb();
+      const records = getTokenUsage(db, startDate, endDate);
+      return { success: true, records };
+    } catch (error) {
+      console.error('[IPC] 获取 Token 用量失败:', getErrorMessage(error));
+      return { success: false, error: getErrorMessage(error), records: [] };
+    }
+  });
+
+  // 图片用量统计
+  ipcMain.handle(IPC_CHANNELS.GET_IMAGE_USAGE, async (_event, { startDate, endDate }) => {
+    try {
+      const { getImageUsage } = await import('./database/image-usage');
+      const configStore = SystemConfigStore.getInstance();
+      const db = configStore.getDb();
+      const records = getImageUsage(db, startDate, endDate);
+      return { success: true, records };
+    } catch (error) {
+      console.error('[IPC] 获取图片用量失败:', getErrorMessage(error));
+      return { success: false, error: getErrorMessage(error), records: [] };
+    }
+  });
+
+  // 获取图片生成配额状态
+  ipcMain.handle(IPC_CHANNELS.GET_IMAGE_QUOTA_STATUS, async () => {
+    try {
+      const { getImageQuotaStatus } = await import('./tools/providers/image-quota');
+      const configStore = SystemConfigStore.getInstance();
+      const quota = getImageQuotaStatus(configStore);
+      return { success: true, quota };
+    } catch (error) {
+      return { success: false, quota: null };
     }
   });
   

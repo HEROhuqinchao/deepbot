@@ -31,6 +31,9 @@ export class AgentRuntime {
   private initPromise: Promise<void> | null = null;
   private systemPromptInitializing: boolean = false; // 防止重复初始化系统提示词
   
+  // Fast 模式：跳过 AGENT.md、TOOLS.md 等上下文文件和 Skills，只保留身份信息 + memory + 工作提示词
+  private fastMode: boolean = false;
+  
   // 模块实例
   private initializer: AgentInitializer;
   private messageHandler: MessageHandler;
@@ -563,6 +566,76 @@ export class AgentRuntime {
   }
 
   /**
+   * 设置 Fast 模式
+   * 
+   * Fast 模式下不组装 AGENT.md、TOOLS.md 等上下文文件和 Skills，
+   * 只保留身份信息 + 核心记忆 + 工作提示词，减少 token 消耗和响应延迟
+   */
+  setFastMode(enabled: boolean): void {
+    if (this.fastMode !== enabled) {
+      this.fastMode = enabled;
+      console.log(`[AgentRuntime] ${enabled ? '⚡ 进入 Fast 模式' : '🔄 退出 Fast 模式，恢复正常模式'}`);
+    }
+  }
+
+  /**
+   * 获取当前是否为 Fast 模式
+   */
+  isFastMode(): boolean {
+    return this.fastMode;
+  }
+
+  /**
+   * 构建 Fast 模式精简提示词
+   * 只包含：身份信息 + 核心记忆 + 工作提示词（通过 transformContext 注入）
+   */
+  private async buildFastModePrompt(): Promise<string> {
+    const lines: string[] = [];
+
+    // 1. 身份信息
+    const { SystemConfigStore } = await import('../database/system-config-store');
+    const configStore = SystemConfigStore.getInstance();
+    const nameConfig = configStore.getNameConfig();
+    
+    let agentName = nameConfig.agentName;
+    const sessionId = this.runtimeConfig.sessionId;
+    if (sessionId && sessionId !== 'default') {
+      const tabConfig = configStore.getTabConfig(sessionId);
+      if (tabConfig?.agentName) {
+        agentName = tabConfig.agentName;
+      }
+    }
+    
+    lines.push('## 身份信息', '');
+    lines.push(`你的名字: ${agentName}`);
+    lines.push(`用户称呼: ${nameConfig.userName}`);
+    lines.push('');
+    lines.push('## 模式', '');
+    lines.push('当前处于 Fast 模式：已跳过详细工具指引和 Agent 指令，仅保留核心记忆和工作提示词。工具仍然可用。');
+    lines.push('');
+
+    // 2. 核心记忆
+    try {
+      const { getMemoryContent } = await import('../tools/memory-tool');
+      const memoryContent = await getMemoryContent(sessionId);
+      
+      if (memoryContent && memoryContent.trim().length > 0) {
+        lines.push(
+          '## 核心记忆', '',
+          memoryContent,
+          ''
+        );
+      }
+    } catch (error) {
+      console.warn('⚠️ Fast 模式加载核心记忆失败:', error);
+    }
+
+    // 注意：工作提示词通过 transformContext hook 注入，不需要在这里处理
+
+    return lines.filter(Boolean).join('\n');
+  }
+
+  /**
    * 重新加载系统提示词
    * 
    * 用于在记忆更新后重新加载系统提示词
@@ -745,9 +818,21 @@ export class AgentRuntime {
       await this.initializeSystemPrompt();
     }
     
+    // 🔥 Fast 模式：使用精简提示词（只有身份信息 + memory + 工作提示词）
+    let effectivePrompt = this.systemPrompt;
+    if (this.fastMode) {
+      console.log('[AgentRuntime] ⚡ Fast 模式：使用精简系统提示词');
+      effectivePrompt = await this.buildFastModePrompt();
+    }
+    
     // 更新 messageProcessor 的依赖
-    this.messageProcessor.updateSystemPrompt(this.systemPrompt);
+    this.messageProcessor.updateSystemPrompt(effectivePrompt);
     this.messageProcessor.updateTools(this.tools);
+    
+    // 🔥 同步更新 Agent.state.systemPrompt（pi-agent-core 实际使用的是这个）
+    if (this.instanceManager.agent) {
+      this.instanceManager.agent.state.systemPrompt = effectivePrompt;
+    }
     
     // 设置维护消息队列回调
     this.messageProcessor.setMaintainMessageQueueCallback(this.maintainMessageQueue.bind(this));
@@ -823,6 +908,20 @@ export class AgentRuntime {
    */
   isCurrentlyGenerating(): boolean {
     return this.messageHandler.isCurrentlyGenerating();
+  }
+
+  /**
+   * 获取当前执行的 Turn 数
+   */
+  getTurnCount(): number {
+    return this.messageHandler.getTurnCount();
+  }
+
+  /**
+   * 获取累计输入字符数（所有 Turn 的实际上下文大小之和）
+   */
+  getAccumulatedInputTokens(): number {
+    return this.messageHandler.getAccumulatedInputTokens();
   }
 
   /**

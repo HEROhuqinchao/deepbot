@@ -18,6 +18,10 @@ import { searchSkillsOnGitHub } from './search';
 import { installSkill } from './install';
 import type { ToolPlugin, ToolCreateOptions } from '../registry/tool-interface';
 import { listInstalledSkills, uninstallSkill, getSkillInfo, getSkillEnv, setSkillEnv, exportSkills, importSkills } from './manage';
+import { parseSkillMetadata } from './utils';
+import { getAllSkillPaths } from '../../config/skill-paths';
+import * as path from 'path';
+import * as fs from 'fs';
 import { resetShellPathCache } from '../shell-env';
 
 /**
@@ -61,16 +65,18 @@ export function createSkillManagerTool(): AgentTool {
         Type.Literal('info'),
         Type.Literal('get-env'),
         Type.Literal('set-env'),
+        Type.Literal('enable'),
+        Type.Literal('disable'),
       ], { description: '操作类型' }),
       query: Type.Optional(Type.String({ description: '查找关键词（find 操作）' })),
-      name: Type.Optional(Type.String({ description: 'Skill 名称/slug（install/uninstall/info/get-env/set-env 操作）' })),
-      enabled: Type.Optional(Type.Boolean({ description: '是否只列出已启用的 Skill（list 操作）' })),
+      name: Type.Optional(Type.String({ description: 'Skill 名称/slug（install/uninstall/info/get-env/set-env/enable/disable 操作）' })),
+      includeDisabled: Type.Optional(Type.Boolean({ description: '是否包含已禁用的 Skill（list 操作，默认 false）' })),
       env: Type.Optional(Type.String({ description: '环境变量内容，格式：KEY=VALUE，每行一个（set-env 操作）' })),
     }),
     
     execute: async (toolCallId, params, signal, onUpdate) => {
       try {
-        const { action, query, name, enabled, env } = params as any;
+        const { action, query, name, env } = params as any;
         
         let result: any;
         
@@ -102,7 +108,9 @@ export function createSkillManagerTool(): AgentTool {
           
           case 'list':
             {
-              const skills = listInstalledSkills(db, { enabled });
+              // 默认只返回已启用的 Skill；传 includeDisabled: true 获取全部（含禁用）
+              const includeDisabled = (params as any).includeDisabled === true;
+              const skills = listInstalledSkills(db, includeDisabled ? undefined : { enabled: true });
               result = {
                 skills,
                 count: skills.length,
@@ -142,6 +150,33 @@ export function createSkillManagerTool(): AgentTool {
             // 自动清除环境变量缓存，下次执行命令时重新加载
             resetShellPathCache();
             result = { success: true, message: `Skill "${name}" 环境变量已保存` };
+            break;
+          
+          case 'enable':
+            if (!name) throw new Error('缺少参数: name');
+            {
+              const stmt = db.prepare('UPDATE skills SET enabled = 1 WHERE name = ?');
+              const updateResult = stmt.run(name);
+              if (updateResult.changes === 0) {
+                throw new Error(`Skill "${name}" 不存在`);
+              }
+              refreshSkillMetadata(name, db);
+              result = { success: true, message: `Skill "${name}" 已启用` };
+              invalidateSystemPrompts();
+            }
+            break;
+          
+          case 'disable':
+            if (!name) throw new Error('缺少参数: name');
+            {
+              const stmt = db.prepare('UPDATE skills SET enabled = 0 WHERE name = ?');
+              const updateResult = stmt.run(name);
+              if (updateResult.changes === 0) {
+                throw new Error(`Skill "${name}" 不存在`);
+              }
+              result = { success: true, message: `Skill "${name}" 已禁用` };
+              invalidateSystemPrompts();
+            }
             break;
           
           case 'export':
@@ -206,6 +241,33 @@ function invalidateSystemPrompts(): void {
     }
   } catch (error) {
     console.warn('[Skill Manager] ⚠️ 标记系统提示词重建失败:', error);
+  }
+}
+
+/**
+ * 重新读取 SKILL.md 并更新数据库中的 metadata（version、description 等）
+ * 在 enable 时调用，确保系统提示词使用最新内容
+ */
+function refreshSkillMetadata(skillName: string, db: any): void {
+  try {
+    const skillPaths = getAllSkillPaths();
+    for (const skillPath of skillPaths) {
+      const skillDir = path.join(skillPath, skillName);
+      const skillMdPath = path.join(skillDir, 'SKILL.md');
+      if (!fs.existsSync(skillMdPath)) continue;
+
+      const metadata = parseSkillMetadata(skillDir);
+      db.prepare('UPDATE skills SET version = ?, repository = ?, metadata = ? WHERE name = ?').run(
+        metadata.version || '1.0.0',
+        metadata.repository || '',
+        JSON.stringify(metadata),
+        skillName
+      );
+      console.info(`[Skill Manager] 🔄 刷新 Skill 元数据: ${skillName}`);
+      return;
+    }
+  } catch (error) {
+    console.warn(`[Skill Manager] ⚠️ 刷新 Skill 元数据失败: ${skillName}`, error);
   }
 }
 

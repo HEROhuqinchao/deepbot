@@ -24,6 +24,8 @@ import { scheduledTaskToolPlugin } from '../scheduled-task-tool';
 import { environmentCheckToolPlugin } from '../environment-check-tool';
 import { imageGenerationToolPlugin } from '../image-generation-tool';
 import { webSearchToolPlugin } from '../web-search-tool';
+import { mediaAnalysisToolPlugin } from '../media-analysis-tool';
+import { docAnalysisToolPlugin } from '../doc-analysis-tool';
 import { webFetchToolPlugin } from '../web-fetch-tool';
 import { memoryToolPlugin } from '../memory-tool';
 import { chatToolPlugin } from '../chat-tool';
@@ -157,7 +159,7 @@ export class ToolLoader {
       // 环境检查工具
       tools.push(...await resolvePluginTools(environmentCheckToolPlugin.create(pluginOpts)));
       
-      // 图片生成工具
+      // 图片生成工具（每次执行时实时读取 Tab 配置，不再通过闭包传递）
       if (configStore && isEnabled(TOOL_NAMES.IMAGE_GENERATION)) {
         tools.push(...await resolvePluginTools(imageGenerationToolPlugin.create(pluginOpts)));
       }
@@ -165,6 +167,16 @@ export class ToolLoader {
       // 网络搜索工具
       if (configStore && isEnabled(TOOL_NAMES.WEB_SEARCH)) {
         tools.push(...await resolvePluginTools(webSearchToolPlugin.create(pluginOpts)));
+      }
+
+      // 多媒体分析工具
+      if (configStore && isEnabled(TOOL_NAMES.MEDIA_ANALYSIS)) {
+        tools.push(...await resolvePluginTools(mediaAnalysisToolPlugin.create(pluginOpts)));
+      }
+
+      // 文档分析工具
+      if (isEnabled(TOOL_NAMES.DOC_ANALYSIS)) {
+        tools.push(...await resolvePluginTools(docAnalysisToolPlugin.create(pluginOpts)));
       }
       
       // Web 内容获取工具

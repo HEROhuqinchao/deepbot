@@ -120,51 +120,9 @@ export class AgentMessageProcessor {
       return true;
     }
 
-    // 🔥 假执行未命中，使用 AI 判断是否需要继续
-    console.log('🤖 [detectUnfinishedIntent] 使用 AI 判断是否需要继续...');
-    
-    try {
-      // 截取合理长度给AI判断（最多2000字符，取尾部，尾部最能反映最终状态）
-      const maxLen = 2000;
-      const responseForAI = cleanResponse.length > maxLen
-        ? '...' + cleanResponse.slice(-maxLen)
-        : cleanResponse;
-
-      const prompt = `判断以下AI助手的回复是否已经完成了用户的任务。
-
-回复内容：
-"""
-${responseForAI}
-"""
-
-全程是否调用过工具：${anyRoundHasToolCalls ? '是' : '否'}
-
-判断标准：
-- "未完成"：回复中说了要做什么（如"我会"、"我将"、"让我来"、"现在开始"），但没有实际执行（没有工具调用结果、没有"已完成"等确认）
-- "已完成"：其他所有情况，包括：已执行完毕、在等待用户输入、闲聊问候、信息回答、内容分析、等待异步结果等
-
-只回复"已完成"或"未完成"。`;
-
-      const aiResponse = await callAI([
-        { role: 'user', content: prompt },
-      ], {
-        temperature: 0,
-        maxTokens: 1000,
-        useFastModel: true,
-      });
-      
-      const decision = aiResponse.content.trim();
-      console.log(`   AI 判断结果: ${decision}`);
-      
-      const shouldContinue = decision.includes('未完成');
-      console.log(`   最终决定: ${shouldContinue ? '继续执行' : '任务完成'}`);
-      
-      return shouldContinue;
-    } catch (error) {
-      console.error('❌ [detectUnfinishedIntent] AI 判断失败:', getErrorMessage(error));
-      // AI 判断失败，默认不继续（保守策略）
-      return false;
-    }
+    // 规则判断未命中，视为任务完成
+    console.log('✅ [detectUnfinishedIntent] 规则判断：任务完成');
+    return false;
   }
   
   /**

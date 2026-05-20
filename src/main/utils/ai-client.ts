@@ -84,8 +84,8 @@ export async function callAI(
     throw new Error('AI API Key 未配置，请在系统设置中配置 AI 模型');
   }
 
-  // 选择模型 ID
-  const modelId = options.model || (useFastModel && config.modelId2 ? config.modelId2 : config.modelId);
+  // 选择模型 ID（统一使用主模型）
+  const modelId = options.model || config.modelId;
   
   // 构造请求 URL
   const apiType = config.apiType || 'openai-completions';

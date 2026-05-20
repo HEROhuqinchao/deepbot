@@ -91,9 +91,10 @@ export const api = {
     return config.imageGeneration || null;
   },
 
-  async saveImageGenerationToolConfig(config: any): Promise<void> {
+  async saveImageGenerationToolConfig(config: any): Promise<any> {
     if (isElectron()) return (window as any).deepbot.saveImageGenerationToolConfig(config);
     await webClient.updateConfig({ imageGeneration: config });
+    return { success: true };
   },
 
   async getWebSearchToolConfig(): Promise<any> {
@@ -105,6 +106,18 @@ export const api = {
   async saveWebSearchToolConfig(config: any): Promise<any> {
     if (isElectron()) return (window as any).electron.ipcRenderer.invoke('tool-config:web-search:save', { config });
     await webClient.updateConfig({ webSearch: config });
+    return { success: true };
+  },
+
+  async getMediaAnalysisToolConfig(): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getMediaAnalysisToolConfig();
+    const config = await webClient.getConfig();
+    return { success: true, config: config.mediaAnalysis || null };
+  },
+
+  async saveMediaAnalysisToolConfig(config: any): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.saveMediaAnalysisToolConfig(config);
+    await webClient.updateConfig({ mediaAnalysis: config });
     return { success: true };
   },
 
@@ -372,6 +385,16 @@ export const api = {
     return webClient.post(`/api/tabs/${tabId}/work-prompt`, { workPrompt });
   },
 
+  async getTabFastMode(tabId: string): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.getTabFastMode(tabId);
+    return webClient.get(`/api/tabs/${tabId}/fast-mode`);
+  },
+
+  async setTabFastMode(tabId: string, fastMode: boolean): Promise<any> {
+    if (isElectron()) return (window as any).deepbot.setTabFastMode(tabId, fastMode);
+    return webClient.post(`/api/tabs/${tabId}/fast-mode`, { fastMode });
+  },
+
   async getTabSkillWhitelist(tabId: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.getTabSkillWhitelist(tabId);
     return webClient.get(`/api/tabs/${tabId}/skill-whitelist`);
@@ -390,6 +413,17 @@ export const api = {
   async setTabWorkspaceDirs(tabId: string, dirs: string[] | null): Promise<any> {
     if (isElectron()) return (window as any).deepbot.setTabWorkspaceDirs(tabId, dirs);
     return webClient.post(`/api/tabs/${tabId}/workspace-dirs`, { dirs });
+  },
+
+  // Tab 生图工具配置
+  async getTabImageToolConfig(tabId: string): Promise<{ success: boolean; config: any }> {
+    if (isElectron()) return (window as any).deepbot.getTabImageToolConfig(tabId);
+    return webClient.get(`/api/tabs/${tabId}/image-tool-config`);
+  },
+
+  async saveTabImageToolConfig(tabId: string, config: any): Promise<{ success: boolean }> {
+    if (isElectron()) return (window as any).deepbot.saveTabImageToolConfig(tabId, config);
+    return webClient.post(`/api/tabs/${tabId}/image-tool-config`, { config });
   },
 
   async getTabReplyMode(tabId: string): Promise<any> {
@@ -536,6 +570,11 @@ export const api = {
   onTabUpdated(callback: (data: { tabId: string; title: string }) => void): () => void {
     if (isElectron()) return (window as any).deepbot.onTabUpdated(callback);
     return this._registerWebEvent('tab:updated', callback);
+  },
+
+  onTabFastModeChanged(callback: (data: { tabId: string; fastMode: boolean }) => void): () => void {
+    if (isElectron()) return (window as any).deepbot.onTabFastModeChanged(callback);
+    return this._registerWebEvent('tab:fast-mode-changed', callback);
   },
 
   onTabMessagesCleared(callback: (data: { tabId: string }) => void): () => void {
@@ -747,5 +786,36 @@ export const api = {
       return () => (window as any).electron.ipcRenderer.removeListener('update-downloaded', handler);
     }
     return () => {};
+  },
+
+  // ==================== Token 用量统计 ====================
+
+  async getTokenUsage(startDate: string, endDate: string): Promise<{ success: boolean; records: any[]; error?: string }> {
+    if (isElectron()) return (window as any).deepbot.getTokenUsage(startDate, endDate);
+    return webClient.get(`/api/token-usage?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`);
+  },
+
+  // ==================== 图片用量统计 ====================
+
+  async getImageUsage(startDate: string, endDate: string): Promise<{ success: boolean; records: any[]; error?: string }> {
+    if (isElectron()) return (window as any).deepbot.getImageUsage(startDate, endDate);
+    return webClient.get(`/api/image-usage?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`);
+  },
+
+  async getImageQuotaStatus(): Promise<{ success: boolean; quota: any | null }> {
+    if (isElectron()) return (window as any).deepbot.getImageQuotaStatus();
+    return webClient.get('/api/config/image-quota-status');
+  },
+
+  // ==================== 模型服务商路由配置 ====================
+
+  async getModelProviderRouting(modelId: string): Promise<{ success: boolean; routing: any }> {
+    if (isElectron()) return (window as any).deepbot.getModelProviderRouting(modelId);
+    return webClient.get(`/api/model-provider-routing?modelId=${encodeURIComponent(modelId)}`);
+  },
+
+  async saveModelProviderRouting(modelId: string, providerOrder: string, allowFallbacks: boolean): Promise<{ success: boolean }> {
+    if (isElectron()) return (window as any).deepbot.saveModelProviderRouting(modelId, providerOrder, allowFallbacks);
+    return webClient.post('/api/model-provider-routing', { modelId, providerOrder, allowFallbacks });
   },
 };

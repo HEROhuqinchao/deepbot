@@ -148,6 +148,14 @@ export class GatewayMessageHandler {
         await this.handleAIConnectionError(error, runtime, content, sessionId);
       } else {
         this.sendError(errorMessage, sessionId);
+        
+        // 通知连接器（如果是连接器 Tab）
+        if (this.sendResponseToConnectorFn) {
+          try {
+            await this.sendResponseToConnectorFn(sessionId, `❌ 处理失败：${errorMessage}`);
+          } catch { /* 忽略 */ }
+        }
+        
         await this.processMessageQueue(sessionId);
       }
     } finally {
@@ -278,6 +286,14 @@ export class GatewayMessageHandler {
       const userMessage = `AI 连接超时，已尝试自动恢复但失败。\n\n可能的原因：\n1. 网络连接不稳定\n2. AI 服务响应缓慢\n3. API 配置错误\n\n建议操作：\n1. 检查网络连接\n2. 重新保存模型配置\n3. 如问题持续，请重启应用\n\n错误详情: ${getErrorMessage(retryError)}`;
       
       this.sendError(userMessage, sessionId);
+      
+      // 通知连接器（如果是连接器 Tab）
+      if (this.sendResponseToConnectorFn) {
+        try {
+          await this.sendResponseToConnectorFn(sessionId, `❌ ${userMessage}`);
+        } catch { /* 忽略 */ }
+      }
+      
       await this.processMessageQueue(sessionId);
     }
   }
@@ -434,6 +450,22 @@ export class GatewayMessageHandler {
       console.log(`[MessageHandler] ⏱️ Agent 总执行时间: ${(totalDuration / 1000).toFixed(2)} 秒`);
       this.sendStreamChunk(messageId, '', true, false, undefined, finalSteps, sessionId, totalDuration, sentAt, runtime.getModelId());
 
+      // 记录 Token 用量（包含系统提示词 + 工具定义 + 上下文消息 + AI 响应）
+      try {
+        const { estimateTokens, recordTokenUsage } = await import('./database/token-usage');
+        const { SystemConfigStore } = await import('./database/system-config-store');
+        
+        const inputTokens = runtime.getAccumulatedInputTokens();
+        const turnCount = runtime.getTurnCount();
+        const outputTokens = estimateTokens(fullResponse);
+        const modelId = runtime.getModelId() || 'unknown';
+        const db = SystemConfigStore.getInstance().getDb();
+        recordTokenUsage(db, modelId, inputTokens, outputTokens, turnCount || 1);
+        console.log(`[MessageHandler] 📊 用量已记录: 输入字符=${inputTokens}(${turnCount}turns), 输出字符=${outputTokens}, 模型=${modelId}`);
+      } catch (tokenError) {
+        console.error('[MessageHandler] ⚠️ 记录用量失败:', getErrorMessage(tokenError));
+      }
+
       // 检查并执行延迟重置（如工具配置变更）
       const { getGatewayInstance } = await import('./gateway');
       const gateway = getGatewayInstance();
@@ -461,6 +493,22 @@ export class GatewayMessageHandler {
       console.log('[MessageHandler] ✅ Agent 执行完成，检查队列...');
       await this.processMessageQueue(sessionId);
     } catch (error) {
+      // 只有 AI 确实返回了内容（fullResponse 非空）才记录，一开始就失败的不计算
+      if (fullResponse.length > 0) {
+        try {
+          const { estimateTokens, recordTokenUsage } = await import('./database/token-usage');
+          const { SystemConfigStore } = await import('./database/system-config-store');
+          const inputTokens = runtime.getAccumulatedInputTokens();
+          const turnCount = runtime.getTurnCount();
+          const outputTokens = estimateTokens(fullResponse);
+          const modelId = runtime.getModelId() || 'unknown';
+          const db = SystemConfigStore.getInstance().getDb();
+          recordTokenUsage(db, modelId, inputTokens, outputTokens, turnCount || 1);
+          console.log(`[MessageHandler] 📊 用量已记录(中断): 输入字符=${inputTokens}(${turnCount}turns), 输出字符=${outputTokens}, 模型=${modelId}`);
+        } catch {
+          // 忽略记录错误
+        }
+      }
       console.error('AI 响应失败:', error);
       throw error;
     }

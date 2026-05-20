@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { PROVIDER_PRESETS } from '../../../shared/config/default-configs';
 import { api } from '../../api';
 import { showToast } from '../../utils/toast';
@@ -12,7 +13,7 @@ import { ApiKeyHelpModal } from './ApiKeyHelpModal';
 import { getLanguage } from '../../i18n';
 
 interface ModelConfig {
-  providerType: 'deepbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom';
+  providerType: 'deepbot' | 'gemini' | 'custom';
   providerId: string;
   providerName: string;
   baseUrl: string;
@@ -51,6 +52,9 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
   const [isFromEnv, setIsFromEnv] = useState(false); // 当前配置是否来自环境变量
   const [showApiKeyHelp, setShowApiKeyHelp] = useState(false); // 显示 API Key 帮助模态框
   const [showModelDropdown, setShowModelDropdown] = useState(false); // DeepBot 模型下拉菜单
+  const [showAdvancedModal, setShowAdvancedModal] = useState(false); // 高级路由配置模态框
+  const [advProviderOrder, setAdvProviderOrder] = useState(''); // 服务商列表
+  const [advAllowFallbacks, setAdvAllowFallbacks] = useState(false); // 自动调配
 
   // 加载当前配置（防止 Strict Mode 重复执行）
   useEffect(() => {
@@ -71,6 +75,12 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
           providerType: actualResult.config.providerType || 'deepbot',
           apiType: actualResult.config.apiType || 'openai-completions',
         };
+
+        // 旧供应商（qwen/deepseek/minimax）自动映射为 custom
+        if (['qwen', 'deepseek', 'minimax'].includes(loadedConfig.providerType)) {
+          loadedConfig.providerType = 'custom';
+          loadedConfig.apiType = 'openai-completions';
+        }
         
         // Tab 模式：用 tab 的覆盖配置合并全局配置
         if (isTabMode && tabId) {
@@ -93,6 +103,12 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
           } catch { /* 忽略 */ }
         }
         
+        // 旧模型迁移：qwen3.6-plus → qwen3.6-35b-a3b
+        if (loadedConfig.modelId === 'qwen3.6-plus') {
+          loadedConfig.modelId = 'qwen3.6-35b-a3b';
+          loadedConfig.modelName = 'qwen3.6-35b-a3b';
+        }
+
         setConfig(loadedConfig);
         setIsFromEnv(!!actualResult.config.fromEnv);
         setIsFirstTimeConfig(!loadedConfig.apiKey);
@@ -108,7 +124,7 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
   };
 
   // 处理提供商类型变化
-  const handleProviderTypeChange = (providerType: 'deepbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom') => {
+  const handleProviderTypeChange = (providerType: 'deepbot' | 'gemini' | 'custom') => {
     const preset = PROVIDER_PRESETS[providerType];
     
     setConfig({
@@ -118,10 +134,10 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
       providerName: preset.name,
       baseUrl: preset.baseUrl,
       modelId: preset.defaultModelId,
-      modelId2: preset.defaultModelId2 || undefined,  // 设置快速模型默认值
+      modelId2: preset.defaultModelId2 || undefined,
       modelName: preset.defaultModelId,
       apiType: preset.apiType,
-      contextWindow: undefined,  // 清空上下文窗口，让系统自动推断
+      contextWindow: undefined,
     });
   };
 
@@ -265,40 +281,19 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
         </label>
         <select
           value={config.providerType}
-          onChange={(e) => handleProviderTypeChange(e.target.value as 'deepbot' | 'qwen' | 'deepseek' | 'gemini' | 'minimax' | 'custom')}
+          onChange={(e) => handleProviderTypeChange(e.target.value as 'deepbot' | 'gemini' | 'custom')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="deepbot">{lang === 'zh' ? 'DeepBot（推荐）' : 'DeepBot (Recommended)'}</option>
-          <option value="qwen">Qwen</option>
-          <option value="deepseek">DeepSeek</option>
           <option value="gemini">Google Gemini</option>
-          <option value="minimax">MiniMax</option>
-          <option value="custom">{lang === 'zh' ? '自定义（OpenAI、Claude）' : 'Custom (OpenAI, Claude)'}</option>
+          <option value="custom">{lang === 'zh' ? '自定义（OpenAI 兼容）' : 'Custom (OpenAI Compatible)'}</option>
         </select>
         <p className="mt-1 text-xs text-gray-500">
           {lang === 'zh' ? '选择预设提供商或自定义配置' : 'Select a preset provider or customize'}
         </p>
       </div>
 
-      {/* API 类型（仅自定义模式显示） */}
-      {config.providerType === 'custom' && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {lang === 'zh' ? 'API 类型' : 'API Type'}
-          </label>
-          <select
-            value={config.apiType}
-            onChange={(e) => setConfig({ ...config, apiType: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="openai-completions">{lang === 'zh' ? 'OpenAI 兼容（OpenAI、OpenRouter、Claude、Qwen、DeepSeek 等）' : 'OpenAI Compatible (OpenAI, OpenRouter, Claude, Qwen, DeepSeek, etc.)'}</option>
-            <option value="google-generative-ai">{lang === 'zh' ? 'Google Generative AI（Gemini 原生格式）' : 'Google Generative AI (Gemini native format)'}</option>
-          </select>
-          <p className="mt-1 text-xs text-gray-500">
-            {lang === 'zh' ? '大多数提供商使用 OpenAI 兼容格式，Google Gemini 原生 API 选第二项' : 'Most providers use OpenAI-compatible format. Select the second option for Google Gemini native API'}
-          </p>
-        </div>
-      )}
+      {/* API 类型（自定义模式固定为 OpenAI 兼容） */}
 
       {/* API 地址 */}
       <div>
@@ -321,9 +316,36 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
 
       {/* 模型 ID */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {lang === 'zh' ? '模型 ID（主模型）' : 'Model ID (Primary)'} <span className="text-red-500">*</span>
-        </label>
+        <div className="flex items-center gap-2 mb-2">
+          <label className="text-sm font-medium text-gray-700">
+            {lang === 'zh' ? '模型 ID（主模型）' : 'Model ID (Primary)'} <span className="text-red-500">*</span>
+          </label>
+          {config.providerType === 'deepbot' && (
+            <span
+              onClick={async () => {
+                // 打开模态框前加载当前模型的路由配置
+                try {
+                  const result = await api.getModelProviderRouting(config.modelId);
+                  const actualResult = (result as any).data || result;
+                  if (actualResult.success && actualResult.routing) {
+                    setAdvProviderOrder(actualResult.routing.providerOrder || '');
+                    setAdvAllowFallbacks(actualResult.routing.allowFallbacks || false);
+                  } else {
+                    setAdvProviderOrder('');
+                    setAdvAllowFallbacks(false);
+                  }
+                } catch {
+                  setAdvProviderOrder('');
+                  setAdvAllowFallbacks(false);
+                }
+                setShowAdvancedModal(true);
+              }}
+              style={{ fontSize: '12px', color: 'var(--settings-accent, #3b82f6)', cursor: 'pointer' }}
+            >
+              {lang === 'zh' ? '高级' : 'Advanced'}
+            </span>
+          )}
+        </div>
         {config.providerType === 'deepbot' ? (
           <div style={{ position: 'relative' }}>
             <input
@@ -351,7 +373,7 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
                 listStyle: 'none', margin: 0, padding: '4px 0',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               }}>
-                {['deepseek-v3.2', 'deepseek-v4-flash', 'minimax-m2.5', 'minimax-m2.7', 'glm-4.7', 'kimi-k2.5', 'step-3.5-flash', 'qwen3.6-plus', 'qwen3-coder-next'].map(id => (
+                {['deepseek-v4-flash', 'hy3-preview', 'minimax-m2.5', 'minimax-m2.7', 'glm-4.7', 'kimi-k2.5', 'step-3.5-flash', 'qwen3.5-flash-02-23', 'qwen3-coder-next', 'qwen3.6-35b-a3b'].map(id => (
                   <li key={id}
                     onMouseDown={() => setConfig({ ...config, modelId: id, modelName: id, contextWindow: undefined })}
                     style={{
@@ -372,57 +394,16 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
             value={config.modelId}
             onChange={(e) => setConfig({ ...config, modelId: e.target.value, modelName: e.target.value, contextWindow: undefined })}
             placeholder={
-              config.providerType === 'qwen' 
-                ? 'qwen-max' 
-                : config.providerType === 'deepseek' 
-                  ? 'deepseek-chat' 
-                  : config.providerType === 'gemini'
-                    ? 'gemini-3-pro-preview'
-                    : config.providerType === 'minimax'
-                      ? 'MiniMax-M2.5'
-                      : 'model-id'
+              config.providerType === 'gemini'
+                ? 'gemini-3-pro-preview'
+                : 'model-id'
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         )}
         <p className="mt-1 text-xs text-gray-500">
           {config.providerType === 'deepbot' && (lang === 'zh' ? '推荐 DeepSeek V4 模型，从列表选择或输入自定义模型 ID' : 'DeepSeek V4 models recommended. Select from the list or enter a custom model ID')}
-          {config.providerType === 'qwen' && (lang === 'zh' ? '推荐: qwen-max（高质量）或 qwen-plus（平衡）' : 'Recommended: qwen-max (high quality) or qwen-plus (balanced)')}
-          {config.providerType === 'deepseek' && (lang === 'zh' ? '推荐: deepseek-chat' : 'Recommended: deepseek-chat')}
-          {config.providerType === 'gemini' && (lang === 'zh' ? '推荐: gemini-3-pro-preview（高质量）或 gemini-3-flash-preview（快速）' : 'Recommended: gemini-3-pro-preview (high quality) or gemini-3-flash-preview (fast)')}
-          {config.providerType === 'minimax' && (lang === 'zh' ? '推荐: MiniMax-M2.5（高质量）或 MiniMax-M2.5-highspeed（快速）' : 'Recommended: MiniMax-M2.5 (high quality) or MiniMax-M2.5-highspeed (fast)')}
           {config.providerType === 'custom' && (lang === 'zh' ? '输入主模型 ID' : 'Enter the primary model ID')}
-        </p>
-      </div>
-
-      {/* 模型 ID 2（快速模型） */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {lang === 'zh' ? '模型 ID 2（快速模型，可选）' : 'Model ID 2 (Fast model, optional)'}
-        </label>
-        <input
-          type="text"
-          value={config.modelId2 || ''}
-          onChange={(e) => setConfig({ ...config, modelId2: e.target.value || undefined })}
-          placeholder={
-            config.providerType === 'qwen' 
-              ? 'qwen-plus' 
-              : config.providerType === 'deepseek' 
-                ? 'deepseek-chat' 
-                : config.providerType === 'gemini'
-                  ? 'gemini-3-flash-preview'
-                  : config.providerType === 'minimax'
-                    ? 'MiniMax-M2.5-highspeed'
-                    : 'fast-model-id'
-          }
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          {config.providerType === 'qwen' && (lang === 'zh' ? '推荐: qwen-plus（用于轻量级任务，如语义判断）' : 'Recommended: qwen-plus (for lightweight tasks like semantic analysis)')}
-          {config.providerType === 'deepseek' && (lang === 'zh' ? '推荐: deepseek-chat（与主模型相同）' : 'Recommended: deepseek-chat (same as primary model)')}
-          {config.providerType === 'gemini' && (lang === 'zh' ? '推荐: gemini-3-flash-preview（用于轻量级任务）' : 'Recommended: gemini-3-flash-preview (for lightweight tasks)')}
-          {config.providerType === 'minimax' && (lang === 'zh' ? '推荐: MiniMax-M2.5-highspeed（用于轻量级任务）' : 'Recommended: MiniMax-M2.5-highspeed (for lightweight tasks)')}
-          {config.providerType === 'custom' && (lang === 'zh' ? '输入快速模型 ID（用于轻量级任务）' : 'Enter fast model ID (for lightweight tasks)')}
         </p>
       </div>
 
@@ -473,7 +454,20 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
       </div>
 
       {/* 操作按钮 */}
-      <div className="flex justify-end pt-4 border-t">
+      <div className="flex justify-end gap-3 pt-4 border-t">
+        {isTabMode && (
+          <button
+            onClick={async () => {
+              await api.setTabModelConfig(tabId!, null);
+              showToast('success', lang === 'zh' ? '✅ 已还原为全局模型配置' : '✅ Restored to global model config');
+              onClose();
+            }}
+            className="skill-icon-button"
+            style={{ padding: '8px 16px', borderRadius: '6px' }}
+          >
+            {lang === 'zh' ? '还原默认' : 'Reset to Default'}
+          </button>
+        )}
         <button
           onClick={handleSave}
           disabled={isSaving}
@@ -485,6 +479,116 @@ export function ModelConfig({ onClose, tabId }: ModelConfigProps) {
 
       {/* 如何获取 API Key 模态框 */}
       {showApiKeyHelp && <ApiKeyHelpModal onClose={() => setShowApiKeyHelp(false)} />}
+
+      {/* 高级路由配置模态框 */}
+      {showAdvancedModal && (
+        <div className="settings-overlay" onClick={() => setShowAdvancedModal(false)}>
+          <div
+            className="tab-model-picker-container"
+            style={{ width: '500px', maxWidth: '90vw', display: 'flex', flexDirection: 'column', background: 'var(--settings-bg)', color: 'var(--settings-text)', border: '1px solid var(--settings-border)', borderRadius: '8px', boxShadow: '0 20px 60px var(--terminal-overlay)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="settings-header">
+              <h2 className="settings-title">{lang === 'zh' ? '高级路由配置' : 'Advanced Routing'}</h2>
+              <button className="settings-close-button" onClick={() => setShowAdvancedModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px' }}>
+              <div className="settings-alert settings-alert-success" style={{ marginBottom: '0', flexShrink: 0 }}>
+                <p className="text-sm text-green-800">
+                  {lang === 'zh'
+                    ? '不要在没有管理员指导的情况下修改'
+                    : 'Do not modify without administrator guidance'}
+                </p>
+              </div>
+
+              {/* 当前模型 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {lang === 'zh' ? '当前模型' : 'Current Model'}
+                </label>
+                <div style={{ padding: '8px 12px', marginTop: '6px', background: 'var(--settings-bg-light, #f9fafb)', borderRadius: '6px', fontSize: '13px', color: 'var(--settings-text, #333)' }}>
+                  {config.modelId || '-'}
+                </div>
+              </div>
+
+              {/* 服务商输入框 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {lang === 'zh' ? '服务商列表' : 'Provider List'}
+                </label>
+                <input
+                  type="text"
+                  value={advProviderOrder}
+                  onChange={(e) => setAdvProviderOrder(e.target.value)}
+                  placeholder={lang === 'zh' ? '逗号分隔，如: deepseek,novita,atlas-cloud' : 'Comma-separated, e.g.: deepseek,novita,atlas-cloud'}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{ fontSize: '13px', marginTop: '6px' }}
+                />
+                <p style={{ marginTop: '4px', fontSize: '11px', color: 'var(--settings-text-dim, #6b7280)' }}>
+                  {lang === 'zh' ? '按优先级排列的服务商，留空则使用系统默认路由' : 'Providers in priority order. Leave empty for system default routing'}
+                </p>
+              </div>
+
+              {/* 自动调配 checkbox（仅在服务商有值时显示） */}
+              {advProviderOrder.trim() && (
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--settings-text, #374151)' }}>
+                    <input
+                      type="checkbox"
+                      checked={advAllowFallbacks}
+                      onChange={(e) => setAdvAllowFallbacks(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    {lang === 'zh' ? '允许自动调配（当首选服务商不可用时自动切换）' : 'Allow fallbacks (auto-switch when preferred provider is unavailable)'}
+                  </label>
+                </div>
+              )}
+
+              {/* 底部按钮 */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '12px', borderTop: '1px solid var(--settings-border, #e5e7eb)', marginTop: '4px' }}>
+                <button
+                  onClick={async () => {
+                    // 清空数据库记录（还原为默认值）
+                    await api.saveModelProviderRouting(config.modelId, '', false);
+                    // 重新加载：如果有默认值会回填，没有则清空
+                    try {
+                      const result = await api.getModelProviderRouting(config.modelId);
+                      const actualResult = (result as any).data || result;
+                      if (actualResult.success && actualResult.routing) {
+                        setAdvProviderOrder(actualResult.routing.providerOrder || '');
+                        setAdvAllowFallbacks(actualResult.routing.allowFallbacks || false);
+                      } else {
+                        setAdvProviderOrder('');
+                        setAdvAllowFallbacks(false);
+                      }
+                    } catch {
+                      setAdvProviderOrder('');
+                      setAdvAllowFallbacks(false);
+                    }
+                    showToast('success', lang === 'zh' ? '已还原默认值' : 'Restored to default');
+                  }}
+                  className="skill-icon-button"
+                  style={{ padding: '8px 16px', borderRadius: '6px' }}
+                >
+                  {lang === 'zh' ? '还原默认' : 'Reset'}
+                </button>
+                <button
+                  onClick={async () => {
+                    await api.saveModelProviderRouting(config.modelId, advProviderOrder.trim(), advAllowFallbacks);
+                    setShowAdvancedModal(false);
+                    showToast('success', lang === 'zh' ? '路由配置已保存' : 'Routing config saved');
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                  {lang === 'zh' ? '保存' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

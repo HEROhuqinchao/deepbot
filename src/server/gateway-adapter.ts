@@ -297,6 +297,7 @@ export class GatewayAdapter extends EventEmitter {
       connectors: store.getAllConnectorConfigs(),
       imageGeneration: store.getImageGenerationToolConfig(),
       webSearch: store.getWebSearchToolConfig(),
+      mediaAnalysis: store.getMediaAnalysisToolConfig(),
       isDocker: isDockerMode(), // Docker 模式标识，前端用于置灰目录配置
     };
   }
@@ -349,12 +350,25 @@ export class GatewayAdapter extends EventEmitter {
     
     // 更新图片生成工具配置
     if (updates.imageGeneration) {
+      // 验证 API Key 配额后缀
+      if (updates.imageGeneration.apiKey) {
+        const { parseApiKeyQuota } = await import('../main/tools/providers/image-quota');
+        const parsed = parseApiKeyQuota(updates.imageGeneration.apiKey, store);
+        if (!parsed) {
+          throw new Error('API Key 无效，请检查是否正确');
+        }
+      }
       store.saveImageGenerationToolConfig(updates.imageGeneration);
     }
     
     // 更新网页搜索工具配置
     if (updates.webSearch) {
       store.saveWebSearchToolConfig(updates.webSearch);
+    }
+
+    // 更新多媒体分析工具配置
+    if (updates.mediaAnalysis) {
+      store.saveMediaAnalysisToolConfig(updates.mediaAnalysis);
     }
   }
   
@@ -688,6 +702,23 @@ export class GatewayAdapter extends EventEmitter {
    */
   async stopGeneration(sessionId?: string): Promise<void> {
     await this.gateway.handleStopGeneration(sessionId);
+  }
+
+  /**
+   * 设置 Tab 的 Fast 模式
+   */
+  setTabFastMode(tabId: string, enabled: boolean): void {
+    this.gateway.setTabFastMode(tabId, enabled);
+    
+    // 通过 WebSocket 通知前端
+    this.emit('tab_fast_mode_changed', { tabId, fastMode: enabled });
+  }
+
+  /**
+   * 获取 Tab 是否为 Fast 模式
+   */
+  isTabFastMode(tabId: string): boolean {
+    return this.gateway.isTabFastMode(tabId);
   }
   
   /**

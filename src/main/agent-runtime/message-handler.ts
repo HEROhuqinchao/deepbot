@@ -6,7 +6,6 @@
 
 import type { Agent } from '@mariozechner/pi-agent-core';
 import { isAbortError } from '../../shared/utils/error-handler';
-import { TIMEOUTS } from '../config/timeouts';
 import { generateStepId } from '../../shared/utils/id-generator';
 import type { ExecutionStep, ExecutionStepStatus } from '../../types/message';
 
@@ -29,6 +28,12 @@ export class MessageHandler {
   
   // 当前正在流式输出的内容
   private currentStreamingContent = '';
+  
+  // 当前执行的 Turn 数
+  private turnCount = 0;
+  
+  // 累计输入字符数（每个 Turn 开始时累加当时的上下文大小）
+  private accumulatedInputTokens = 0;
   
   // 进度监控定时器（需要在停止生成时清除）
   private progressTimer: NodeJS.Timeout | null = null;
@@ -150,6 +155,10 @@ export class MessageHandler {
     // 重置当前流式输出内容
     this.currentStreamingContent = '';
     
+    // 重置 Turn 计数和累计字符数
+    this.turnCount = 0;
+    this.accumulatedInputTokens = 0;
+    
     try {
       // 订阅 Agent 事件，并实现真正的流式输出
       let fullResponse = '';
@@ -159,6 +168,10 @@ export class MessageHandler {
       
       // 用于统计
       let toolCallCount = 0;
+      
+      // 🔥 心跳检测：监测 AI streaming 响应的 chunk 间隔
+      let heartbeatIdleMs = 0; // 心跳空闲累计毫秒
+      let activeToolCalls = 0; // 当前正在执行的工具数量
       
       // 创建一个 Promise 来等待 Agent 完成
       let resolvePrompt: (() => void) | null = null;
@@ -173,6 +186,13 @@ export class MessageHandler {
         if (this.abortController?.signal.aborted || generationId !== this.currentGenerationId) {
           wasCancelled = true;
           return;
+        }
+        
+        // 🔥 心跳：只在有实际内容产出时重置（忽略空事件）
+        if (event.type === 'tool_execution_start' || event.type === 'tool_execution_end' ||
+            event.type === 'tool_execution_update' || event.type === 'turn_start' ||
+            event.type === 'turn_end' || event.type === 'agent_start' || event.type === 'agent_end') {
+          heartbeatIdleMs = 0;
         }
         
         // 🔥 添加更多事件类型的调试信息
@@ -273,6 +293,7 @@ export class MessageHandler {
             if (filteredDelta) {
               fullResponse += filteredDelta;
               this.currentStreamingContent = fullResponse; // 更新当前流式输出内容
+              heartbeatIdleMs = 0; // 🔥 有实际文本输出时重置心跳
             }
           }
           return;
@@ -281,7 +302,8 @@ export class MessageHandler {
         // 处理工具调用事件 - 收集执行步骤
         if (event.type === 'tool_execution_start') {
           toolCallCount++;
-          console.log(`🔧 工具调用 ${toolCallCount}: ${event.toolName} (${event.toolCallId})`);
+          activeToolCalls++;
+          console.log(`🔧 工具调用 ${toolCallCount}: ${event.toolName} (${event.toolCallId}) [activeToolCalls=${activeToolCalls}]`);
           
           // 使用 toolCallId 作为步骤 ID，确保并行调用不会错位
           const stepId = event.toolCallId || generateStepId();
@@ -308,7 +330,8 @@ export class MessageHandler {
         }
         
         if (event.type === 'tool_execution_end') {
-          console.log(`✅ 工具完成 ${toolCallCount}: ${event.toolName} (${event.toolCallId})`);
+          activeToolCalls = Math.max(0, activeToolCalls - 1);
+          console.log(`✅ 工具完成 ${toolCallCount}: ${event.toolName} (${event.toolCallId}) [activeToolCalls=${activeToolCalls}]`);
           
           // 通过 toolCallId 找到对应的步骤
           const stepId = toolCallStepMap.get(event.toolCallId);
@@ -328,6 +351,32 @@ export class MessageHandler {
         
         // 监听 Turn 事件（Agent 的每一轮思考）
         if (event.type === 'turn_start') {
+          this.turnCount++;
+          // 累加当前 Turn 的上下文字符数（中文=1，英文=0.5）
+          const { estimateTokens } = require('../database/token-usage');
+          const systemChars = estimateTokens(this.agent?.state.systemPrompt || '');
+          let messagesChars = 0;
+          for (const msg of (this.agent?.state.messages || [])) {
+            const content = msg.content as any;
+            if (typeof content === 'string') {
+              messagesChars += estimateTokens(content);
+            } else if (Array.isArray(content)) {
+              for (const part of content) {
+                if (typeof part === 'string') {
+                  messagesChars += estimateTokens(part);
+                } else if (typeof part === 'object' && part) {
+                  messagesChars += estimateTokens(JSON.stringify(part));
+                }
+              }
+            }
+          }
+          let toolsChars = 0;
+          if (this.agent?.state.tools && this.agent.state.tools.length > 0) {
+            for (const tool of this.agent.state.tools) {
+              toolsChars += estimateTokens((tool.name || '') + (tool.label || '') + (tool.description || '') + JSON.stringify(tool.parameters || {}));
+            }
+          }
+          this.accumulatedInputTokens += systemChars + toolsChars + messagesChars;
           console.log(`🔄 Agent 开始新的 Turn（思考轮次）`);
           console.log(`   当前消息数: ${this.agent?.state.messages.length || 0}`);
         }
@@ -389,14 +438,8 @@ export class MessageHandler {
         console.log(`   模型 Provider: ${this.agent.state.model?.provider || 'unknown'}`);
         console.log(`   模型 BaseURL: ${this.agent.state.model?.baseUrl || 'unknown'}`);
         
-        // 添加超时保护
-        const TIMEOUT_MS = TIMEOUTS.AGENT_MESSAGE_TIMEOUT;
-        const startTime = Date.now();
-        
-        // 启动 Agent.prompt()
-        // Agent 内部会自动处理工具调用循环，直到完成
-        
         // 添加进度监控定时器
+        const startTime = Date.now();
         let elapsedSeconds = 0;
         
         // 清除可能残留的旧定时器
@@ -405,14 +448,9 @@ export class MessageHandler {
         }
         
         this.progressTimer = setInterval(() => {
-          elapsedSeconds += 5;
+          elapsedSeconds += 30;
           console.log(`⏳ Agent 正在处理... 已耗时 ${elapsedSeconds} 秒`);
-          
-          // 如果超过 30 秒，输出警告
-          if (elapsedSeconds >= 30 && elapsedSeconds % 10 === 0) {
-            console.warn(`⚠️ Agent 处理时间较长 (${elapsedSeconds}秒)，可能在处理大量数据或等待 AI 响应`);
-          }
-        }, 5000);
+        }, 30000);
         
         void this.agent.prompt(content).then(() => {
           // 清除进度定时器
@@ -485,13 +523,28 @@ export class MessageHandler {
         
         // 使用 Promise.race 来检测 prompt 是否完成
         const checkInterval = 50; // 每 50ms 检查一次
+        let lastHeartbeatLog = Date.now(); // 心跳日志计时
         
         while (!isPromptDone) {
-          // 检查超时（只保留总超时保护）
-          if (Date.now() - startTime > TIMEOUT_MS) {
-            console.error(`⏱️ Agent 执行超时（${TIMEOUT_MS}ms），强制停止`);
-            this.abortController?.abort();
-            yield '\n\n[执行超时，已停止]';
+          // 🔥 累加心跳空闲时间（仅在非工具执行时累加）
+          if (activeToolCalls === 0) {
+            heartbeatIdleMs += checkInterval;
+          }
+          
+          // 🔥 心跳日志：每 30 秒输出一次状态
+          const now = Date.now();
+          if (now - lastHeartbeatLog >= 30000) {
+            const idleSeconds = (heartbeatIdleMs / 1000).toFixed(0);
+            console.log(`💓 [心跳] 空闲=${idleSeconds}s, activeToolCalls=${activeToolCalls}, 响应长度=${fullResponse.length}`);
+            lastHeartbeatLog = now;
+          }
+          
+          // 🔥 心跳检测：空闲超过 300 秒，判定为挂死
+          const HEARTBEAT_TIMEOUT_MS = 300 * 1000;
+          if (heartbeatIdleMs > HEARTBEAT_TIMEOUT_MS) {
+            console.error(`💀 [心跳检测] AI 响应空闲 ${(heartbeatIdleMs / 1000).toFixed(0)} 秒，判定为挂死，强制停止`);
+            this.stopGeneration();
+            yield '\n\n[AI 响应超时，请重试]';
             break;
           }
           
@@ -761,5 +814,27 @@ export class MessageHandler {
    */
   getCurrentStreamingContent(): string {
     return this.currentStreamingContent;
+  }
+
+  /**
+   * 获取当前执行的 Turn 数
+   */
+  getTurnCount(): number {
+    return this.turnCount;
+  }
+
+  /**
+   * 获取累计输入字符数
+   */
+  getAccumulatedInputTokens(): number {
+    return this.accumulatedInputTokens;
+  }
+
+  /**
+   * 添加额外的用量（如 detectUnfinishedIntent 的 AI 调用）
+   */
+  addExtraUsage(chars: number): void {
+    this.turnCount++;
+    this.accumulatedInputTokens += chars;
   }
 }

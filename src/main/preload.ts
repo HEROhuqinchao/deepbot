@@ -41,6 +41,8 @@ const IPC_CHANNELS = {
   SAVE_IMAGE_GENERATION_TOOL_CONFIG: 'tool-config:image-generation:save',
   GET_WEB_SEARCH_TOOL_CONFIG: 'tool-config:web-search:get',
   SAVE_WEB_SEARCH_TOOL_CONFIG: 'tool-config:web-search:save',
+  GET_MEDIA_ANALYSIS_TOOL_CONFIG: 'tool-config:media-analysis:get',
+  SAVE_MEDIA_ANALYSIS_TOOL_CONFIG: 'tool-config:media-analysis:save',
   GET_DISABLED_TOOLS: 'tool-config:disabled:get',
   SAVE_DISABLED_TOOLS: 'tool-config:disabled:save',
   LAUNCH_CHROME_WITH_DEBUG: 'browser:launch-chrome-with-debug',
@@ -87,15 +89,25 @@ const IPC_CHANNELS = {
   CONNECTOR_GET_KF_WORKSPACE_DIRS: 'connector:get-kf-workspace-dirs',
   GET_TAB_REPLY_MODE: 'tab:get-reply-mode',
   SET_TAB_REPLY_MODE: 'tab:set-reply-mode',
+  GET_TOKEN_USAGE: 'token-usage:get',
+  GET_IMAGE_USAGE: 'image-usage:get',
+  GET_IMAGE_QUOTA_STATUS: 'image-quota:get-status',
+  GET_MODEL_PROVIDER_ROUTING: 'model-config:get-provider-routing',
+  SAVE_MODEL_PROVIDER_ROUTING: 'model-config:save-provider-routing',
   SET_TAB_MODEL_CONFIG: 'tab:set-model-config',
   GET_TAB_MODEL_CONFIG: 'tab:get-model-config',
   RENAME_TAB: 'tab:rename',
   GET_TAB_WORK_PROMPT: 'tab:get-work-prompt',
   SET_TAB_WORK_PROMPT: 'tab:set-work-prompt',
+  GET_TAB_FAST_MODE: 'tab:get-fast-mode',
+  SET_TAB_FAST_MODE: 'tab:set-fast-mode',
+  TAB_FAST_MODE_CHANGED: 'tab:fast-mode-changed',
   GET_TAB_SKILL_WHITELIST: 'tab:get-skill-whitelist',
   SET_TAB_SKILL_WHITELIST: 'tab:set-skill-whitelist',
   GET_TAB_WORKSPACE_DIRS: 'tab:get-workspace-dirs',
   SET_TAB_WORKSPACE_DIRS: 'tab:set-workspace-dirs',
+  GET_TAB_IMAGE_TOOL_CONFIG: 'tab:get-image-tool-config',
+  SAVE_TAB_IMAGE_TOOL_CONFIG: 'tab:save-image-tool-config',
 } as const;
 
 /**
@@ -223,6 +235,15 @@ contextBridge.exposeInMainWorld('deepbot', {
     return ipcRenderer.invoke(IPC_CHANNELS.SAVE_WEB_SEARCH_TOOL_CONFIG, { config });
   },
 
+  // 工具配置 - 多媒体分析工具
+  getMediaAnalysisToolConfig: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_MEDIA_ANALYSIS_TOOL_CONFIG);
+  },
+
+  saveMediaAnalysisToolConfig: (config: { model: string }) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SAVE_MEDIA_ANALYSIS_TOOL_CONFIG, { config });
+  },
+
   // 工具禁用管理
   getDisabledTools: () => {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_DISABLED_TOOLS);
@@ -315,6 +336,15 @@ contextBridge.exposeInMainWorld('deepbot', {
     ipcRenderer.on(IPC_CHANNELS.TAB_UPDATED, listener);
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.TAB_UPDATED, listener);
+    };
+  },
+
+  // 监听 Tab Fast 模式变化
+  onTabFastModeChanged: (callback: (data: { tabId: string; fastMode: boolean }) => void) => {
+    const listener = (_event: any, data: any) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.TAB_FAST_MODE_CHANGED, listener);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.TAB_FAST_MODE_CHANGED, listener);
     };
   },
   
@@ -468,6 +498,15 @@ contextBridge.exposeInMainWorld('deepbot', {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_MODEL_CONFIG, { tabId });
   },
 
+  // 模型服务商路由配置
+  getModelProviderRouting: (modelId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_MODEL_PROVIDER_ROUTING, { modelId });
+  },
+
+  saveModelProviderRouting: (modelId: string, providerOrder: string, allowFallbacks: boolean) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SAVE_MODEL_PROVIDER_ROUTING, { modelId, providerOrder, allowFallbacks });
+  },
+
   renameTab: (tabId: string, title: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.RENAME_TAB, { tabId, title });
   },
@@ -478,6 +517,14 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   setTabWorkPrompt: (tabId: string, workPrompt: string | null) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_WORK_PROMPT, { tabId, workPrompt });
+  },
+
+  getTabFastMode: (tabId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_FAST_MODE, { tabId });
+  },
+
+  setTabFastMode: (tabId: string, fastMode: boolean) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_FAST_MODE, { tabId, fastMode });
   },
 
   getTabSkillWhitelist: (tabId: string) => {
@@ -496,12 +543,36 @@ contextBridge.exposeInMainWorld('deepbot', {
     return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_WORKSPACE_DIRS, { tabId, dirs });
   },
 
+  // Tab 生图工具配置
+  getTabImageToolConfig: (tabId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_IMAGE_TOOL_CONFIG, { tabId });
+  },
+
+  saveTabImageToolConfig: (tabId: string, config: any) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SAVE_TAB_IMAGE_TOOL_CONFIG, { tabId, config });
+  },
+
   getTabReplyMode: (tabId: string) => {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_TAB_REPLY_MODE, { tabId });
   },
 
   setTabReplyMode: (tabId: string, replyMode: 'agent' | 'direct') => {
     return ipcRenderer.invoke(IPC_CHANNELS.SET_TAB_REPLY_MODE, { tabId, replyMode });
+  },
+
+  // Token 用量统计
+  getTokenUsage: (startDate: string, endDate: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_TOKEN_USAGE, { startDate, endDate });
+  },
+
+  // 图片用量统计
+  getImageUsage: (startDate: string, endDate: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_IMAGE_USAGE, { startDate, endDate });
+  },
+
+  // 图片生成配额状态
+  getImageQuotaStatus: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_IMAGE_QUOTA_STATUS);
   },
 
   // 监听待授权用户数量变化

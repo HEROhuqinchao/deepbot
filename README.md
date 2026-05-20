@@ -24,7 +24,7 @@ DeepBot is a system-level AI assistant focused on enterprise productivity. It in
 ### ✨ Core Features
 
 - 🎯 **Parallel Task Processing** — Run multiple tasks simultaneously without interference
-- 🔧 **14 Built-in Tools** — File operations, command execution, browser control, image generation, AI chat, cross-session messaging, web fetching, Feishu document operations, and more
+- 🔧 **20+ Built-in Tools** — File operations, command execution, browser control, image generation, image/video analysis, document analysis, AI chat, cross-session messaging, web fetching, Feishu/WeChat/WeCom messaging, Feishu document operations, and more
 - 🧠 **Memory System** — Long-term memory for user preferences and important context
 - ⏰ **Scheduled Tasks** — Automate recurring work with cron-based scheduling
 - 🎨 **Skill Extensions** — Compose tools into reusable Skills for complex workflows
@@ -227,7 +227,7 @@ DeepBot uses a modular architecture with support for multi-Agent communication a
 - **Session**: An isolated conversation unit with its own Agent Runtime, memory, and context.
 - **Agent Runtime**: Built on `@mariozechner/pi-agent-core`, handles intelligent decision-making and tool orchestration.
 - **System Prompt Assembly Layer**: Dynamically assembles system prompts from base prompts, tool instructions, memory files, and Skills.
-- **Tools**: 14 built-in tools including a cross-Tab messaging tool for inter-Agent communication.
+- **Tools**: 20+ built-in tools including a cross-Tab messaging tool for inter-Agent communication.
 - **Security Check**: All file and command operations are validated against a path whitelist.
 - **Multi-Agent Collaboration**: Agents in different Tabs can message each other to collaborate on complex tasks.
 
@@ -285,18 +285,46 @@ Interact with DeepBot through a Feishu bot, supporting both direct messages and 
 
 📖 [Feishu Bot Configuration Guide](docs/飞书机器人配置指南.md) (Chinese)
 
-Covers the full Feishu Open Platform setup, permission configuration, and security policy details.
+#### WeChat
+
+Interact with DeepBot via WeChat, supporting private and group chats.
+
+**Features**:
+- ✅ QR code login
+- ✅ Private and group messages
+- ✅ Send text, images, files
+- ✅ Independent session management
+
+#### WeCom (WeChat Work)
+
+Interact with DeepBot via WeCom applications.
+
+**Features**:
+- ✅ Application message push
+- ✅ Send text, images, files
+- ✅ Independent session management
+- ✅ Multi-instance support
+
+#### Smart KF (Customer Service)
+
+External customer service powered by WeCom KF API.
+
+**Features**:
+- ✅ Customer message receiving and replying
+- ✅ Send text, images, files
+- ✅ Independent session management
+- ✅ Security sandbox (restricted tool access)
+- ✅ Skill whitelist mechanism
 
 ### Coming Soon
 
 - 🔜 Discord
 - 🔜 Slack
-- 🔜 WeCom (WeChat Work)
 - 🔜 DingTalk
 
 ---
 
-## 🔧 14 Built-in Tools
+## 🔧 20+ Built-in Tools
 
 | Tool | Function | Typical Use Cases |
 |------|----------|-------------------|
@@ -306,14 +334,21 @@ Covers the full Feishu Open Platform setup, permission configuration, and securi
 | **Calendar Tool** | Calendar management | Check dates, calculate time, schedule reminders |
 | **Environment Check** | System inspection | Detect system info, verify dependencies, diagnose issues |
 | **Image Generation** | AI image generation | Create images, design assets, visual content |
-| **Web Search** | Web search | Real-time queries, research, data collection |
+| **Media Analysis** | Image/video analysis | Image description, video understanding, OCR (DeepBot provider only) |
+| **Doc Analysis** | Document analysis | Read PDF/Word/Excel/PPT content (requires markitdown) |
+| **Web Search** | Web search (Tavily) | Real-time queries, research, data collection |
 | **Web Fetch** | Fetch web content | Extract articles, download page data |
 | **Memory Tool** | Memory management | Store preferences, retrieve historical context |
 | **Skill Manager** | Skill management | Install, uninstall, and list skill packages |
 | **Scheduled Task** | Task scheduling | Create and manage cron-based tasks |
 | **Chat Tool** | AI conversation | Internal AI calls, backend processing, isolated from main Agent context |
-| **Cross Tab Call** 🆕 | Cross-Tab messaging | Inter-Agent communication for multi-Agent collaboration |
+| **Cross Tab Call** | Cross-Tab messaging | Inter-Agent communication for multi-Agent collaboration |
+| **Feishu Send** | Feishu messaging | Send text, images, files to Feishu users |
 | **Feishu Doc Tool** | Feishu document ops | Create, read, append, update, delete blocks, add comments |
+| **WeChat Send** | WeChat messaging | Send text, images, files to WeChat users |
+| **WeCom Send** | WeCom messaging | Send text, images, files to WeCom users |
+| **Smart KF Send** | Smart KF messaging | Send text, images, files to customer service users |
+| **System Command** | System commands | Clear session and other system-level operations |
 
 ### Creating Custom Tools
 
@@ -693,7 +728,7 @@ Place the Skill directory under `~/.agents/skills/` and restart DeepBot — it w
 
 ### Skill Capabilities
 
-- 📖 Skills can call all 14 built-in tools
+- 📖 Skills can call all 20+ built-in tools
 - 📝 Supports async operations and error handling
 - 🔧 Compose multiple tools for complex multi-step workflows
 
