@@ -48,6 +48,7 @@ export interface TabConfig {
   skillWhitelist?: string[] | null;     // Skill 白名单（智能客服用）
   workspaceDirs?: string[] | null;     // 自定义工作目录（null=继承系统）
   replyMode?: 'agent' | 'direct';     // 回复模式（智能客服 Tab 用）
+  sortOrder?: number;                  // 排序顺序
 }
 
 /**
@@ -146,6 +147,13 @@ export function initTabConfigTable(db: Database.Database): void {
   } catch {
     // 列已存在，忽略
   }
+
+  // 兼容旧数据库：添加 sort_order 列（Tab 排序）
+  try {
+    db.exec('ALTER TABLE agent_tabs ADD COLUMN sort_order INTEGER DEFAULT 0');
+  } catch {
+    // 列已存在，忽略
+  }
   
   console.log('[TabConfig] ✅ agent_tabs 表已初始化');
 }
@@ -204,7 +212,7 @@ export function getAllPersistentTabs(db: Database.Database): TabConfig[] {
   const stmt = db.prepare(`
     SELECT * FROM agent_tabs 
     WHERE is_persistent = 1
-    ORDER BY last_active_at DESC
+    ORDER BY sort_order ASC, last_active_at DESC
   `);
   
   const rows = stmt.all() as TabConfigRow[];
@@ -348,6 +356,25 @@ export function updateTabReplyMode(db: Database.Database, tabId: string, replyMo
 }
 
 /**
+ * 批量更新 Tab 排序
+ */
+export function updateTabSortOrder(db: Database.Database, tabOrders: { id: string; sortOrder: number }[]): void {
+  const stmt = db.prepare(`
+    UPDATE agent_tabs 
+    SET sort_order = ?
+    WHERE id = ?
+  `);
+  
+  const transaction = db.transaction(() => {
+    for (const { id, sortOrder } of tabOrders) {
+      stmt.run(sortOrder, id);
+    }
+  });
+  
+  transaction();
+}
+
+/**
  * 删除 Tab 配置
  */
 export function deleteTabConfig(db: Database.Database, tabId: string): void {
@@ -398,5 +425,6 @@ function rowToConfig(row: TabConfigRow): TabConfig {
     skillWhitelist: row.skill_whitelist ? (() => { try { return JSON.parse(row.skill_whitelist); } catch { return undefined; } })() : undefined,
     workspaceDirs: row.workspace_dirs ? (() => { try { return JSON.parse(row.workspace_dirs); } catch { return undefined; } })() : undefined,
     replyMode: (row.reply_mode === 'agent' || row.reply_mode === 'direct') ? row.reply_mode : undefined,
+    sortOrder: (row as any).sort_order ?? undefined,
   };
 }

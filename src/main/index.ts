@@ -1121,6 +1121,19 @@ function registerIpcHandlers() {
     }
   });
 
+  // 保存 Tab 排序
+  ipcMain.handle(IPC_CHANNELS.SAVE_TAB_SORT_ORDER, async (_event, { tabOrders }) => {
+    try {
+      const { updateTabSortOrder } = await import('./database/tab-config');
+      const { SystemConfigStore } = await import('./database/system-config-store');
+      const db = SystemConfigStore.getInstance().getDb();
+      updateTabSortOrder(db, tabOrders);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 设置 Tab 回复模式
   ipcMain.handle(IPC_CHANNELS.SET_TAB_REPLY_MODE, async (_event, { tabId, replyMode }) => {
     try {

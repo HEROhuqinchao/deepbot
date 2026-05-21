@@ -108,6 +108,7 @@ const IPC_CHANNELS = {
   SET_TAB_WORKSPACE_DIRS: 'tab:set-workspace-dirs',
   GET_TAB_IMAGE_TOOL_CONFIG: 'tab:get-image-tool-config',
   SAVE_TAB_IMAGE_TOOL_CONFIG: 'tab:save-image-tool-config',
+  SAVE_TAB_SORT_ORDER: 'tab:save-sort-order',
 } as const;
 
 /**
@@ -550,6 +551,11 @@ contextBridge.exposeInMainWorld('deepbot', {
 
   saveTabImageToolConfig: (tabId: string, config: any) => {
     return ipcRenderer.invoke(IPC_CHANNELS.SAVE_TAB_IMAGE_TOOL_CONFIG, { tabId, config });
+  },
+
+  // Tab 排序
+  saveTabSortOrder: (tabOrders: { id: string; sortOrder: number }[]) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SAVE_TAB_SORT_ORDER, { tabOrders });
   },
 
   getTabReplyMode: (tabId: string) => {

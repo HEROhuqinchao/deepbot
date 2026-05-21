@@ -58,6 +58,10 @@
   color: var(--terminal-text);
 }
 
+.agent-tab.drag-over {
+  border-left: 2px solid var(--terminal-prompt-user);
+}
+
 .agent-tab.active {
   background: var(--terminal-bg);
   color: var(--terminal-prompt-user);

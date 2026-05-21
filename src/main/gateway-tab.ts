@@ -524,6 +524,7 @@ ${welcomeContent}
             conversationId: tabConfig.conversationId,
             taskId: tabConfig.taskId,
             modelConfig: tabConfig.modelConfig,
+            sortOrder: tabConfig.sortOrder,
           };
           
           this.tabs.set(tabId, tab);
@@ -828,6 +829,10 @@ ${welcomeContent}
     return Array.from(this.tabs.values()).sort((a, b) => {
       if (a.id === 'default') return -1;
       if (b.id === 'default') return 1;
+      // 优先按 sortOrder 排序，没有 sortOrder 的按 createdAt 排序
+      const orderA = a.sortOrder ?? 9999;
+      const orderB = b.sortOrder ?? 9999;
+      if (orderA !== orderB) return orderA - orderB;
       return a.createdAt - b.createdAt;
     });
   }

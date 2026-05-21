@@ -154,6 +154,7 @@ export const IPC_CHANNELS = {
   // Tab 生图工具配置
   GET_TAB_IMAGE_TOOL_CONFIG: 'tab:get-image-tool-config',
   SAVE_TAB_IMAGE_TOOL_CONFIG: 'tab:save-image-tool-config',
+  SAVE_TAB_SORT_ORDER: 'tab:save-sort-order',
   
   // 应用信息
 } as const;

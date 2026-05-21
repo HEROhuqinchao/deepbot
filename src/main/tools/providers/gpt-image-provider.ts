@@ -86,7 +86,7 @@ async function pollPrediction(
   signal?: AbortSignal
 ): Promise<string> {
   const pollUrl = `${apiUrl.replace(/\/$/, '')}/prediction/${predictionId}`;
-  const maxAttempts = 60; // 最多轮询 2 分钟（每次 2 秒）
+  const maxAttempts = 120; // 最多轮询 4 分钟（每次 2 秒）
 
   for (let i = 0; i < maxAttempts; i++) {
     if (signal?.aborted) {
@@ -121,7 +121,7 @@ async function pollPrediction(
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
-  throw new Error('图片生成超时（超过 2 分钟）');
+  throw new Error('图片生成超时（超过 4 分钟）');
 }
 
 /**

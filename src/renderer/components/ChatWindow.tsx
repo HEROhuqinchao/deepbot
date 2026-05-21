@@ -38,6 +38,7 @@ interface ChatWindowProps {
   onTabClick?: (tabId: string) => void;
   onTabClose?: (tabId: string) => void;
   onTabCreate?: () => void;
+  onTabReorder?: (tabIds: string[]) => void;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
@@ -55,6 +56,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
   onTabClick,
   onTabClose,
   onTabCreate,
+  onTabReorder,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<MessageInputRef>(null); // 🔥 添加输入框引用
@@ -185,16 +187,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     };
   }, [expandedGroup]);
 
+  // 🔥 Tab 拖拽排序状态
+  const [dragTabId, setDragTabId] = useState<string | null>(null);
+  const [dragOverTabId, setDragOverTabId] = useState<string | null>(null);
+
   const { normalTabs, wecomGroups } = React.useMemo(() => {
     if (!tabs) return { normalTabs: [] as AgentTab[], wecomGroups: {} as Record<string, AgentTab[]> };
-    const sorted = [...tabs].sort((a, b) => {
-      if (a.id === 'default') return -1;
-      if (b.id === 'default') return 1;
-      return (a.createdAt || 0) - (b.createdAt || 0);
-    });
     const normal: AgentTab[] = [];
     const groups: Record<string, AgentTab[]> = {};
-    for (const tab of sorted) {
+    for (const tab of tabs) {
       if (tab.connectorId === 'smart-kf') {
         const key = getSmartKfName(tab.title || '') || 'unknown';
         if (!groups[key]) groups[key] = [];
@@ -215,6 +216,61 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
     }
     return { normalTabs: normal, wecomGroups: groups };
   }, [tabs]);
+
+  // 🔥 Tab 拖拽排序处理
+  const handleTabDragStart = (e: React.DragEvent, tabId: string) => {
+    setDragTabId(tabId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tabId);
+    // 设置拖拽时的透明度
+    const target = e.currentTarget as HTMLElement;
+    setTimeout(() => { target.style.opacity = '0.4'; }, 0);
+  };
+
+  const handleTabDragEnd = (e: React.DragEvent) => {
+    (e.currentTarget as HTMLElement).style.opacity = '1';
+    setDragTabId(null);
+    setDragOverTabId(null);
+  };
+
+  const handleTabDragOver = (e: React.DragEvent, tabId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragTabId && tabId !== dragTabId) {
+      setDragOverTabId(tabId);
+    }
+  };
+
+  const handleTabDragLeave = () => {
+    setDragOverTabId(null);
+  };
+
+  const handleTabDrop = (e: React.DragEvent, targetTabId: string) => {
+    e.preventDefault();
+    setDragOverTabId(null);
+    if (!dragTabId || dragTabId === targetTabId) return;
+
+    // 计算新顺序
+    const currentOrder = normalTabs.map(t => t.id);
+    const fromIndex = currentOrder.indexOf(dragTabId);
+    const toIndex = currentOrder.indexOf(targetTabId);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    // 移动元素
+    currentOrder.splice(fromIndex, 1);
+    currentOrder.splice(toIndex, 0, dragTabId);
+
+    // 保存排序到数据库
+    const tabOrders = currentOrder.map((id, index) => ({ id, sortOrder: index }));
+    api.saveTabSortOrder(tabOrders).catch(() => {});
+
+    // 通知父组件更新 tabs 顺序（通过重新排序 tabs 数组）
+    if (onTabReorder) {
+      onTabReorder(currentOrder);
+    }
+
+    setDragTabId(null);
+  };
 
   const getGroupActiveTab = (groupTabs: AgentTab[], kfName: string) => {
     // 优先：当前激活的 Tab 在分组内
@@ -655,13 +711,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
             {normalTabs.map((tab) => (
               <div
                 key={tab.id}
-                className={`agent-tab ${tab.id === activeTabId ? 'active' : ''} ${tabFastModes[tab.id] ? 'fast-mode' : ''}`}
+                className={`agent-tab ${tab.id === activeTabId ? 'active' : ''} ${tabFastModes[tab.id] ? 'fast-mode' : ''} ${dragOverTabId === tab.id ? 'drag-over' : ''}`}
                 onClick={() => onTabClick(tab.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   onTabClick(tab.id);
                   setContextMenu({ x: e.clientX, y: e.clientY, tabId: tab.id });
                 }}
+                draggable
+                onDragStart={(e) => handleTabDragStart(e, tab.id)}
+                onDragEnd={handleTabDragEnd}
+                onDragOver={(e) => handleTabDragOver(e, tab.id)}
+                onDragLeave={handleTabDragLeave}
+                onDrop={(e) => handleTabDrop(e, tab.id)}
               >
                 {tabFastModes[tab.id] && <Zap size={10} style={{ marginRight: '3px', color: 'var(--terminal-accent)' }} />}
                 <span className="agent-tab-title">{tab.title}</span>

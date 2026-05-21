@@ -41,6 +41,7 @@ export interface AgentTab {
   agentName?: string | null;     // Agent 名字（NULL 表示继承主 Agent）
   isPersistent?: boolean;        // 是否持久化（手动创建的 Tab 为 true）
   modelConfig?: TabModelConfig | null;  // Tab 独立模型配置（覆盖全局）
+  sortOrder?: number;            // 排序顺序（拖拽排序用）
   
   // 🔥 新增：消息队列（用于连接器 Tab 的多人消息处理）
   pendingMessages?: PendingMessage[];  // 待处理消息队列
