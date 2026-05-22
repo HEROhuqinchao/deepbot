@@ -56,4 +56,3 @@ temp/
 # Docker
 docker-compose.yml
 Dockerfile
-/src/main/tools/image-generation-tool.ts
