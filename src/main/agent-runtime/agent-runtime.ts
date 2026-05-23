@@ -943,6 +943,20 @@ export class AgentRuntime {
   }
 
   /**
+   * 获取真实 API Token 用量（input_tokens 累加）
+   */
+  getAccumulatedApiInputTokens(): number {
+    return this.messageHandler.getAccumulatedApiInputTokens();
+  }
+
+  /**
+   * 获取真实 API Token 用量（output_tokens 累加）
+   */
+  getAccumulatedApiOutputTokens(): number {
+    return this.messageHandler.getAccumulatedApiOutputTokens();
+  }
+
+  /**
    * 获取当前系统提示词
    */
   getSystemPrompt(): string {

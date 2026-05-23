@@ -1668,6 +1668,20 @@ function registerIpcHandlers() {
     }
   });
 
+  // 重置指定模型的 Token 用量
+  ipcMain.handle(IPC_CHANNELS.RESET_TOKEN_USAGE, async (_event, { modelId }) => {
+    try {
+      const { resetTokenUsage } = await import('./database/token-usage');
+      const configStore = SystemConfigStore.getInstance();
+      const db = configStore.getDb();
+      resetTokenUsage(db, modelId);
+      return { success: true };
+    } catch (error) {
+      console.error('[IPC] 重置 Token 用量失败:', getErrorMessage(error));
+      return { success: false, error: getErrorMessage(error) };
+    }
+  });
+
   // 图片用量统计
   ipcMain.handle(IPC_CHANNELS.GET_IMAGE_USAGE, async (_event, { startDate, endDate }) => {
     try {

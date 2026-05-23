@@ -32,5 +32,29 @@ export function createTokenUsageRouter(): Router {
 
   router.get('/', getTokenUsage);
 
+  /**
+   * DELETE /api/token-usage/:modelId
+   * 重置指定模型的用量数据
+   */
+  const resetUsage: RequestHandler = async (req, res) => {
+    try {
+      const { modelId } = req.params;
+      if (!modelId) {
+        res.status(400).json({ success: false, error: 'modelId 参数必填' });
+        return;
+      }
+
+      const { resetTokenUsage } = await import('../../main/database/token-usage');
+      const { SystemConfigStore } = await import('../../main/database/system-config-store');
+      const db = SystemConfigStore.getInstance().getDb();
+      resetTokenUsage(db, decodeURIComponent(modelId));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+  };
+
+  router.delete('/:modelId', resetUsage);
+
   return router;
 }

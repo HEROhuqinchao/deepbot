@@ -800,6 +800,11 @@ export const api = {
     return webClient.get(`/api/token-usage?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`);
   },
 
+  async resetTokenUsage(modelId: string): Promise<{ success: boolean; error?: string }> {
+    if (isElectron()) return (window as any).deepbot.resetTokenUsage(modelId);
+    return webClient.delete(`/api/token-usage/${encodeURIComponent(modelId)}`);
+  },
+
   // ==================== 图片用量统计 ====================
 
   async getImageUsage(startDate: string, endDate: string): Promise<{ success: boolean; records: any[]; error?: string }> {
