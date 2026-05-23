@@ -426,6 +426,11 @@ export const api = {
     return webClient.post(`/api/tabs/${tabId}/image-tool-config`, { config });
   },
 
+  async saveTabSortOrder(tabOrders: { id: string; sortOrder: number }[]): Promise<{ success: boolean }> {
+    if (isElectron()) return (window as any).deepbot.saveTabSortOrder(tabOrders);
+    return webClient.post('/api/tabs/sort-order', { tabOrders });
+  },
+
   async getTabReplyMode(tabId: string): Promise<any> {
     if (isElectron()) return (window as any).deepbot.getTabReplyMode(tabId);
     return webClient.get(`/api/tabs/${tabId}/reply-mode`);

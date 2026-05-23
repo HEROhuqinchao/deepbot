@@ -763,6 +763,22 @@ function App() {
         onTabClick={handleSwitchTab}
         onTabClose={handleCloseTab}
         onTabCreate={handleCreateTab}
+        onTabReorder={(tabIds) => {
+          // 按新顺序重排 tabs
+          setTabs(prev => {
+            const tabMap = new Map(prev.map(t => [t.id, t]));
+            const reordered: typeof prev = [];
+            for (const id of tabIds) {
+              const tab = tabMap.get(id);
+              if (tab) reordered.push(tab);
+            }
+            // 添加不在 tabIds 中的 tab（如分组 tab）
+            for (const tab of prev) {
+              if (!tabIds.includes(tab.id)) reordered.push(tab);
+            }
+            return reordered;
+          });
+        }}
         pendingPairingCount={pendingPairingCount}
       />
       
