@@ -455,13 +455,24 @@ export class GatewayMessageHandler {
         const { estimateTokens, recordTokenUsage } = await import('./database/token-usage');
         const { SystemConfigStore } = await import('./database/system-config-store');
         
-        const inputTokens = runtime.getAccumulatedInputTokens();
+        // 字符估算（始终记录）
+        const inputChars = runtime.getAccumulatedInputTokens();
+        const outputChars = estimateTokens(fullResponse);
         const turnCount = runtime.getTurnCount();
-        const outputTokens = estimateTokens(fullResponse);
         const modelId = runtime.getModelId() || 'unknown';
         const db = SystemConfigStore.getInstance().getDb();
-        recordTokenUsage(db, modelId, inputTokens, outputTokens, turnCount || 1);
-        console.log(`[MessageHandler] 📊 用量已记录: 输入字符=${inputTokens}(${turnCount}turns), 输出字符=${outputTokens}, 模型=${modelId}`);
+        recordTokenUsage(db, modelId, inputChars, outputChars, turnCount || 1);
+        
+        // 真实 API token（如果有）
+        const apiInput = runtime.getAccumulatedApiInputTokens();
+        const apiOutput = runtime.getAccumulatedApiOutputTokens();
+        if (apiInput > 0 || apiOutput > 0) {
+          // 记录真实 token 到单独的模型 ID（带 :tokens 后缀）
+          recordTokenUsage(db, modelId + ':tokens', apiInput, apiOutput, turnCount || 1);
+          console.log(`[MessageHandler] 📊 用量已记录: 字符=${inputChars}/${outputChars}, token=${apiInput}/${apiOutput}, turns=${turnCount}, 模型=${modelId}`);
+        } else {
+          console.log(`[MessageHandler] 📊 用量已记录: 字符=${inputChars}/${outputChars}, turns=${turnCount}, 模型=${modelId}`);
+        }
       } catch (tokenError) {
         console.error('[MessageHandler] ⚠️ 记录用量失败:', getErrorMessage(tokenError));
       }
@@ -498,13 +509,20 @@ export class GatewayMessageHandler {
         try {
           const { estimateTokens, recordTokenUsage } = await import('./database/token-usage');
           const { SystemConfigStore } = await import('./database/system-config-store');
-          const inputTokens = runtime.getAccumulatedInputTokens();
+          
+          const inputChars = runtime.getAccumulatedInputTokens();
+          const outputChars = estimateTokens(fullResponse);
           const turnCount = runtime.getTurnCount();
-          const outputTokens = estimateTokens(fullResponse);
           const modelId = runtime.getModelId() || 'unknown';
           const db = SystemConfigStore.getInstance().getDb();
-          recordTokenUsage(db, modelId, inputTokens, outputTokens, turnCount || 1);
-          console.log(`[MessageHandler] 📊 用量已记录(中断): 输入字符=${inputTokens}(${turnCount}turns), 输出字符=${outputTokens}, 模型=${modelId}`);
+          recordTokenUsage(db, modelId, inputChars, outputChars, turnCount || 1);
+          
+          const apiInput = runtime.getAccumulatedApiInputTokens();
+          const apiOutput = runtime.getAccumulatedApiOutputTokens();
+          if (apiInput > 0 || apiOutput > 0) {
+            recordTokenUsage(db, modelId + ':tokens', apiInput, apiOutput, turnCount || 1);
+          }
+          console.log(`[MessageHandler] 📊 用量已记录(中断): 字符=${inputChars}/${outputChars}, 模型=${modelId}`);
         } catch {
           // 忽略记录错误
         }

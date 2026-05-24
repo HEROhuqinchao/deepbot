@@ -1,7 +1,7 @@
 /**
  * 多媒体分析工具
  *
- * 上传图片/视频到临时存储，调用 im-director.com API 进行分析
+ * 上传图片/视频到临时存储，调用 deepbot.plus API 进行分析
  * 仅在主模型为 DeepBot 供应商时可用，复用主模型的 API Key 和地址
  * 支持图片（jpg/png/gif/webp）和视频（mp4/mov/avi/mkv）
  */
@@ -36,7 +36,7 @@ function getToolConfig(configStore: SystemConfigStore): { apiKey: string; apiUrl
 
   // 仅 DeepBot 供应商可用
   if ((modelConfig.providerType as string) !== 'deepbot') {
-    throw new Error('多媒体分析为 DeepBot 供应商专用工具。其他供应商请创建 Skill 实现相同功能。');
+    throw new Error('图片/视频分析为 DeepBot 供应商专属工具。如需在其他供应商下使用类似功能，请安装对应的 Skill（如视觉分析 Skill）来实现。');
   }
 
   if (!modelConfig.apiKey || !modelConfig.apiKey.trim()) {

@@ -34,6 +34,10 @@ export class MessageHandler {
   
   // 累计输入字符数（每个 Turn 开始时累加当时的上下文大小）
   private accumulatedInputTokens = 0;
+
+  // 累计真实 API Token 用量（从 API 响应中获取，仅支持返回 usage 的模型）
+  private accumulatedApiInputTokens = 0;
+  private accumulatedApiOutputTokens = 0;
   
   // 进度监控定时器（需要在停止生成时清除）
   private progressTimer: NodeJS.Timeout | null = null;
@@ -158,6 +162,8 @@ export class MessageHandler {
     // 重置 Turn 计数和累计字符数
     this.turnCount = 0;
     this.accumulatedInputTokens = 0;
+    this.accumulatedApiInputTokens = 0;
+    this.accumulatedApiOutputTokens = 0;
     
     try {
       // 订阅 Agent 事件，并实现真正的流式输出
@@ -382,6 +388,15 @@ export class MessageHandler {
         }
         
         if (event.type === 'turn_end') {
+          // 累加真实 API Token 用量（从 AssistantMessage.usage 中获取）
+          const turnUsage = (event as any).message?.usage;
+          if (turnUsage && (turnUsage.input > 0 || turnUsage.output > 0)) {
+            const turnInput = (turnUsage.input || 0) + (turnUsage.cacheRead || 0) + (turnUsage.cacheWrite || 0);
+            const turnOutput = turnUsage.output || 0;
+            this.accumulatedApiInputTokens += turnInput;
+            this.accumulatedApiOutputTokens += turnOutput;
+            console.log(`[MessageHandler] 📊 Turn API usage: input=${turnInput}, output=${turnOutput}, 累计: ${this.accumulatedApiInputTokens}/${this.accumulatedApiOutputTokens}`);
+          }
           console.log(`✅ Agent 完成一轮 Turn`);
           console.log(`   工具调用数: ${event.toolResults?.length || 0}`);
           if (event.toolResults && event.toolResults.length > 0) {
@@ -828,6 +843,20 @@ export class MessageHandler {
    */
   getAccumulatedInputTokens(): number {
     return this.accumulatedInputTokens;
+  }
+
+  /**
+   * 获取真实 API Token 用量（input_tokens + cache 累加）
+   */
+  getAccumulatedApiInputTokens(): number {
+    return this.accumulatedApiInputTokens;
+  }
+
+  /**
+   * 获取真实 API Token 用量（output_tokens 累加）
+   */
+  getAccumulatedApiOutputTokens(): number {
+    return this.accumulatedApiOutputTokens;
   }
 
   /**

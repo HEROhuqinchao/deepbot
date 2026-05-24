@@ -8,10 +8,11 @@
  */
 
 import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { Calendar, CalendarDays, CalendarRange, Search, BarChart3, Image } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarRange, Search, BarChart3, Image, RotateCcw } from 'lucide-react';
 import { api } from '../../api';
 import { t, getLanguage } from '../../i18n';
 import { ThemeContext } from '../../App';
+import { Tooltip } from '../Tooltip';
 
 interface TokenUsageRecord {
   date: string;
@@ -181,7 +182,9 @@ export function TokenUsage() {
   /** 按模型汇总数据 */
   const modelSummaries: ModelSummary[] = React.useMemo(() => {
     const map = new Map<string, ModelSummary>();
+    // 先汇总字符数据（不含 :tokens 后缀的记录）
     for (const record of records) {
+      if (record.modelId.endsWith(':tokens')) continue;
       const existing = map.get(record.modelId);
       if (existing) {
         existing.inputTokens += record.inputTokens;
@@ -199,6 +202,18 @@ export function TokenUsage() {
       }
     }
     return Array.from(map.values()).sort((a, b) => b.totalTokens - a.totalTokens);
+  }, [records]);
+
+  /** 按模型汇总真实 token 数据（:tokens 后缀的记录） */
+  const tokenSummaries = React.useMemo(() => {
+    const map = new Map<string, number>();
+    for (const record of records) {
+      if (!record.modelId.endsWith(':tokens')) continue;
+      const modelId = record.modelId.replace(':tokens', '');
+      const existing = map.get(modelId) || 0;
+      map.set(modelId, existing + record.inputTokens + record.outputTokens);
+    }
+    return map;
   }, [records]);
 
   /** 按提供商汇总图片用量 */
@@ -372,27 +387,73 @@ export function TokenUsage() {
                 <thead>
                   <tr style={{ background: 'var(--settings-bg-secondary, rgba(0,0,0,0.03))' }}>
                     <th style={thStyle}>{lang === 'zh' ? '模型' : 'Model'}</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>{lang === 'zh' ? '字符消耗' : 'Characters'}</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>{lang === 'zh' ? '字符 / Token' : 'Chars / Tokens'}</th>
                     <th style={{ ...thStyle, textAlign: 'right' }}>{lang === 'zh' ? '调用轮次' : 'Turns'}</th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: '40px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {modelSummaries.map((item) => (
-                    <tr key={item.modelId} style={{ borderTop: '1px solid var(--settings-border)' }}>
-                      <td style={tdStyle}>
-                        <span style={{ fontWeight: 500, color: 'var(--settings-text)' }}>{item.modelId}</span>
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 500 }}>{formatTokenCount(item.totalTokens)}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right' }}>{formatTokenCount(item.requestCount)}</td>
-                    </tr>
-                  ))}
+                  {modelSummaries.map((item) => {
+                    const realTokens = tokenSummaries.get(item.modelId);
+                    return (
+                      <tr key={item.modelId} style={{ borderTop: '1px solid var(--settings-border)' }}>
+                        <td style={tdStyle}>
+                          <span style={{ fontWeight: 500, color: 'var(--settings-text)' }}>{item.modelId}</span>
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 500 }}>
+                          {formatTokenCount(item.totalTokens)}
+                          {realTokens != null && (
+                            <span style={{ color: 'var(--settings-accent)', marginLeft: '2px' }}>
+                              /{formatTokenCount(realTokens)}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: 'right' }}>{formatTokenCount(item.requestCount)}</td>
+                        <td style={{ ...tdStyle, textAlign: 'center' }}>
+                          <Tooltip content={lang === 'zh' ? '重置' : 'Reset'}>
+                            <button
+                              onClick={async () => {
+                                const confirmed = confirm(
+                                  lang === 'zh'
+                                    ? `确定要重置 "${item.modelId}" 的用量数据吗？`
+                                    : `Reset usage data for "${item.modelId}"?`
+                                );
+                                if (!confirmed) return;
+                                const result = await api.resetTokenUsage(item.modelId);
+                                if (result.success) {
+                                  // 重新加载数据
+                                  fetchData(startDate, endDate);
+                                }
+                              }}
+                              className="skill-icon-button"
+                              style={{ padding: '4px' }}
+                            >
+                              <RotateCcw size={13} />
+                            </button>
+                          </Tooltip>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 {/* 总计行 */}
                 <tfoot>
                   <tr style={{ borderTop: '2px solid var(--settings-border)', background: 'var(--settings-bg-secondary, rgba(0,0,0,0.03))' }}>
                     <td style={{ ...tdStyle, fontWeight: 600 }}>{lang === 'zh' ? '总计' : 'Total'}</td>
-                    <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{formatTokenCount(totals.totalTokens)}</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>
+                      {formatTokenCount(totals.totalTokens)}
+                      {(() => {
+                        let totalRealTokens = 0;
+                        tokenSummaries.forEach(v => { totalRealTokens += v; });
+                        return totalRealTokens > 0 ? (
+                          <span style={{ color: 'var(--settings-accent)', marginLeft: '2px' }}>
+                            /{formatTokenCount(totalRealTokens)}
+                          </span>
+                        ) : null;
+                      })()}
+                    </td>
                     <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{formatTokenCount(totals.requestCount)}</td>
+                    <td style={{ ...tdStyle }}></td>
                   </tr>
                 </tfoot>
               </table>
@@ -402,8 +463,8 @@ export function TokenUsage() {
           {/* 说明 */}
           <p style={{ marginTop: '16px', fontSize: '12px', color: 'var(--settings-text-dim)' }}>
             {lang === 'zh' 
-              ? <>统计数据为实际消耗的字符数（中文=1，英文=0.5）。<span style={{ color: 'var(--settings-accent)', fontWeight: 500 }}>Token 因每个模型计算方式不一致，实际消耗以模型提供商账单为准。</span></>
-              : <>Statistics show actual characters consumed (CJK=1, English=0.5). <span style={{ color: 'var(--settings-accent)', fontWeight: 500 }}>Token usage varies by model tokenizer. Refer to your provider's billing for actual token consumption.</span></>}
+              ? <>字符数为估算值（中文=1，英文=0.5）。<span style={{ color: 'var(--settings-accent)', fontWeight: 500 }}>/后的数字为 API 返回的真实 Token 用量（input+output 之和）。</span></>
+              : <>Character count is estimated (CJK=1, English=0.5). <span style={{ color: 'var(--settings-accent)', fontWeight: 500 }}>Numbers after / are real token usage from API (input+output sum).</span></>}
           </p>
         </>
       )}

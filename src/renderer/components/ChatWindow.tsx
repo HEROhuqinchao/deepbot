@@ -718,12 +718,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                   onTabClick(tab.id);
                   setContextMenu({ x: e.clientX, y: e.clientY, tabId: tab.id });
                 }}
-                draggable
-                onDragStart={(e) => handleTabDragStart(e, tab.id)}
+                draggable={tab.id !== 'default'}
+                onDragStart={(e) => tab.id !== 'default' && handleTabDragStart(e, tab.id)}
                 onDragEnd={handleTabDragEnd}
-                onDragOver={(e) => handleTabDragOver(e, tab.id)}
+                onDragOver={(e) => tab.id !== 'default' && handleTabDragOver(e, tab.id)}
                 onDragLeave={handleTabDragLeave}
-                onDrop={(e) => handleTabDrop(e, tab.id)}
+                onDrop={(e) => tab.id !== 'default' && handleTabDrop(e, tab.id)}
               >
                 {tabFastModes[tab.id] && <Zap size={10} style={{ marginRight: '3px', color: 'var(--terminal-accent)' }} />}
                 <span className="agent-tab-title">{tab.title}</span>
@@ -1600,7 +1600,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(({
                   type="text"
                   value={imageToolConfig?.apiUrl || ''}
                   onChange={(e) => setImageToolConfig({ ...imageToolConfig || { model: '', apiUrl: '', apiKey: '' }, apiUrl: e.target.value })}
-                  placeholder="https://im-director.com/tool/gemini"
+                  placeholder="https://deepbot.plus/tool/gemini"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

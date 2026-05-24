@@ -1128,6 +1128,16 @@ function registerIpcHandlers() {
       const { SystemConfigStore } = await import('./database/system-config-store');
       const db = SystemConfigStore.getInstance().getDb();
       updateTabSortOrder(db, tabOrders);
+      
+      // 同步更新内存中的 sortOrder
+      if (gateway) {
+        const tabManager = gateway.getTabManager();
+        for (const { id, sortOrder } of tabOrders) {
+          const tab = tabManager.getTab(id);
+          if (tab) tab.sortOrder = sortOrder;
+        }
+      }
+      
       return { success: true };
     } catch (error) {
       return { success: false, error: getErrorMessage(error) };
@@ -1655,6 +1665,20 @@ function registerIpcHandlers() {
     } catch (error) {
       console.error('[IPC] 获取 Token 用量失败:', getErrorMessage(error));
       return { success: false, error: getErrorMessage(error), records: [] };
+    }
+  });
+
+  // 重置指定模型的 Token 用量
+  ipcMain.handle(IPC_CHANNELS.RESET_TOKEN_USAGE, async (_event, { modelId }) => {
+    try {
+      const { resetTokenUsage } = await import('./database/token-usage');
+      const configStore = SystemConfigStore.getInstance();
+      const db = configStore.getDb();
+      resetTokenUsage(db, modelId);
+      return { success: true };
+    } catch (error) {
+      console.error('[IPC] 重置 Token 用量失败:', getErrorMessage(error));
+      return { success: false, error: getErrorMessage(error) };
     }
   });
 

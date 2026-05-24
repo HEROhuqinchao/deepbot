@@ -11,7 +11,7 @@
 export const PROVIDER_PRESETS = {
   deepbot: {
     name: 'DeepBot',
-    baseUrl: 'https://im-director.com/v1',
+    baseUrl: 'https://deepbot.plus/v1',
     defaultModelId: 'deepseek-v4-flash',
     defaultModelId2: 'deepseek-v4-flash',  // 快速模型
     apiType: 'openai-completions',
@@ -45,11 +45,18 @@ export const PROVIDER_PRESETS = {
     apiType: 'openai-completions',
   },
   custom: {
-    name: '自定义',
-    baseUrl: '',
+    name: 'OpenAI 兼容',
+    baseUrl: 'https://api.openai.com/v1',
     defaultModelId: '',
     defaultModelId2: '',  // 快速模型
     apiType: 'openai-completions',
+  },
+  anthropic: {
+    name: 'Anthropic',
+    baseUrl: 'https://deepbot.plus/anthropic',
+    defaultModelId: 'claude-sonnet-4-6',
+    defaultModelId2: 'claude-sonnet-4-6',  // 快速模型
+    apiType: 'anthropic-messages',
   },
 } as const;
 
@@ -59,12 +66,12 @@ export const PROVIDER_PRESETS = {
 export const IMAGE_GENERATION_PROVIDER_PRESETS = {
   deepbot: {
     name: 'DeepBot（Nano banana 2）',
-    baseUrl: 'https://im-director.com/tool/gemini',
+    baseUrl: 'https://deepbot.plus/tool/gemini',
     defaultModelId: 'gemini-3.1-flash-image-preview',
   },
   'deepbot-gpt': {
     name: 'DeepBot（GPT Image 2）',
-    baseUrl: 'https://im-director.com/tool/gpt',
+    baseUrl: 'https://deepbot.plus/tool/gpt',
     defaultModelId: 'openai/gpt-image-2',
   },
 } as const;

@@ -89,3 +89,17 @@ export function getTokenUsage(
     requestCount: row.request_count,
   }));
 }
+
+/**
+ * 重置指定模型的用量数据（删除该模型所有记录，包括 :tokens 后缀的）
+ */
+export function resetTokenUsage(
+  db: Database.Database,
+  modelId: string
+): void {
+  db.prepare(`
+    DELETE FROM token_usage_daily WHERE model_id = ? OR model_id = ?
+  `).run(modelId, modelId + ':tokens');
+  
+  console.info(`[TokenUsage] ✅ 已重置模型 "${modelId}" 的用量数据`);
+}
